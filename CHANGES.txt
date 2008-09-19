@@ -1,0 +1,8 @@
+Changes
+=======
+
+1.0 (unreleased)
+----------------
+
+* Initial release, branched from ZODB trunk on 2009-09-18 (aka
+  "3.9.0dev").
