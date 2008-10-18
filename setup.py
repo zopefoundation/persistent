@@ -12,7 +12,7 @@
 #
 ##############################################################################
 
-__version__ = '1.0a1'
+__version__ = '1.0b1'
 
 import os
 
@@ -77,7 +77,7 @@ setup(name='persistent',
                  'persistent/ring.h'],
       tests_require = [
         'zope.interface',
-        'zope.testing>=3.7dev',
+        'zope.testing>=3.7.0',
         ],
       test_loader="zope.testing.testrunner.eggsupport:SkipLayers",
       test_suite="persistent.tests",
