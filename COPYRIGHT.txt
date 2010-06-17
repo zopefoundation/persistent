@@ -1,2 +1,1 @@
-Copyright (c) 2008 Zope Corporation and Contributors.
-All Rights Reserved.
+Zope Foundation and Contributors
