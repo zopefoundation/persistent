@@ -12,7 +12,7 @@
 #
 ##############################################################################
 
-__version__ = '1.0b1'
+__version__ = '3.10b1'
 
 import os
 
@@ -78,15 +78,16 @@ setup(name='persistent',
       tests_require = [
         'zope.interface',
         'zope.testing>=3.7.0',
+        'zope.testrunner',
         ],
-      test_loader="zope.testing.testrunner.eggsupport:SkipLayers",
+      test_loader="zope.testrunner.eggsupport:SkipLayers",
       test_suite="persistent.tests",
       install_requires=[
         'zope.interface',
         ],
       entry_points = """\
       [distutils.commands]
-      ftest = zope.testing.testrunner.eggsupport:ftest
+      ftest = zope.testrunner.eggsupport:ftest
       """
       )
 
