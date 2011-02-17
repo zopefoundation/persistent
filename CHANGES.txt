@@ -1,8 +1,7 @@
-Changes
-=======
+``persistent`` Changelog
+========================
 
-1.0 (unreleased)
-----------------
+3.11 (unreleased)
+-----------------
 
-* Initial release, branched from ZODB trunk on 2009-09-18 (aka
-  "3.9.0dev").
+- Initial release, branched from ZODB trunk on 2011-02-16.
