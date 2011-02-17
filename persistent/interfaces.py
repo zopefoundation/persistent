@@ -184,8 +184,9 @@ class IPersistent(Interface):
 
         The special value None is reserved to indicate that an object
         id has not been assigned.  Non-None object ids must be non-empty
-        strings.  The 8-byte string '\0'*8 (8 NUL bytes) is reserved to
-        identify the database root object.
+        strings.  The 8-byte string consisting of 8 NUL bytes
+        ('\x00\x00\x00\x00\x00\x00\x00\x00') is reserved to identify the
+        database root object.
 
         Once assigned an OID, an object cannot be re-assigned another.
         """)
