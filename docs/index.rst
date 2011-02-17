@@ -12,6 +12,7 @@ Contents:
 
    using
    api
+   glossary
 
 Indices and tables
 ==================
