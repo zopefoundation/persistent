@@ -73,7 +73,7 @@ class PersistentTests(unittest.TestCase):
         self.assertEqual(inst._p_jar, None)
         self.assertEqual(inst._p_oid, None)
         self.assertEqual(inst._p_serial, _INITIAL_SERIAL)
-        self.assertEqual(inst._p_changed, None)
+        self.assertEqual(inst._p_changed, False)
         self.assertEqual(inst._p_sticky, False)
         self.assertEqual(inst._p_status, 'unsaved')
 
@@ -188,13 +188,24 @@ class PersistentTests(unittest.TestCase):
         del(inst._p_serial)
         self.assertEqual(inst._p_serial, _INITIAL_SERIAL)
 
-    def test_query_p_changed(self):
+    def test_query_p_changed_unsaved(self):
         inst = self._makeOne()
+        self.assertEqual(inst._p_changed, False)
+
+    def test_query_p_changed_ghost(self):
+        inst, jar, OID = self._makeOneWithJar()
         self.assertEqual(inst._p_changed, None)
+
+    def test_query_p_changed_saved(self):
+        inst, jar, OID = self._makeOneWithJar()
+        inst._p_activate()
+        self.assertEqual(inst._p_changed, False)
+
+    def test_query_p_changed_changed(self):
+        inst, jar, OID = self._makeOneWithJar()
+        inst._p_activate()
         inst._p_changed = True
         self.assertEqual(inst._p_changed, True)
-        inst._p_changed = False
-        self.assertEqual(inst._p_changed, False)
 
     def test_assign_p_changed_none_from_unsaved(self):
         inst = self._makeOne()
@@ -305,6 +316,15 @@ class PersistentTests(unittest.TestCase):
         del inst._p_changed
         self.assertEqual(inst._p_status, 'unsaved')
 
+    def test_delete_p_changed_from_unsaved_w_dict(self):
+        class Derived(self._getTargetClass()):
+            pass
+        inst = Derived()
+        inst.foo = 'bar'
+        del inst._p_changed
+        self.assertEqual(inst._p_status, 'unsaved')
+        self.assertEqual(inst.foo, 'bar')
+
     def test_delete_p_changed_from_ghost(self):
         inst, jar, OID = self._makeOneWithJar()
         del inst._p_changed
@@ -409,10 +429,6 @@ class PersistentTests(unittest.TestCase):
         inst._p_serial = ts.raw()
         self.assertEqual(inst._p_mtime, ts.timeTime())
 
-    def test__p_state_new(self):
-        inst = self._makeOne()
-        self.assertEqual(inst._p_state, 0)
-
     def test__p_state_unsaved(self):
         inst = self._makeOne()
         inst._p_changed = True
@@ -446,15 +462,20 @@ class PersistentTests(unittest.TestCase):
         inst._p_sticky = True
         self.assertEqual(inst._p_state, 2)
 
-    def test_query_p_estimated_size(self):
+    def test_query_p_estimated_size_new(self):
         inst = self._makeOne()
         self.assertEqual(inst._p_estimated_size, 0)
 
+    def test_assign_p_estimated_size_negative(self):
+        inst = self._makeOne()
+        def _test():
+            inst._p_estimated_size = -1
+        self.assertRaises(ValueError, _test)
+
     def test_assign_p_estimated_size(self):
-        # XXX at the moment, we don't store this value.
         inst = self._makeOne()
         inst._p_estimated_size = 123
-        self.assertEqual(inst._p_estimated_size, 0)
+        self.assertEqual(inst._p_estimated_size, 128)
 
     def test___getattribute___p__names(self):
         NAMES = ['_p_jar',
@@ -529,12 +550,22 @@ class PersistentTests(unittest.TestCase):
             setattr(inst, name, value)
         self.assertEqual(jar._cache._mru, [])
 
+    def test___setattr___v__name(self):
+        class Derived(self._getTargetClass()):
+            pass
+        inst, jar, OID = self._makeOneWithJar(Derived)
+        jar._cache._mru = []
+        inst._v_foo = 'bar'
+        self.assertEqual(inst._p_status, 'saved')
+        self.assertEqual(jar._cache._mru, [])
+
     def test___setattr__normal_name_from_unsaved(self):
         class Derived(self._getTargetClass()):
             normal = 'before'
         inst = Derived()
         setattr(inst, 'normal', 'after')
         self.assertEqual(getattr(inst, 'normal', None), 'after')
+        self.assertEqual(inst._p_status, 'unsaved')
 
     def test___setattr__normal_name_from_ghost(self):
         class Derived(self._getTargetClass()):
@@ -545,6 +576,7 @@ class PersistentTests(unittest.TestCase):
         self.assertEqual(jar._cache._mru, [OID])
         self.assertEqual(jar._registered, [OID])
         self.assertEqual(getattr(inst, 'normal', None), 'after')
+        self.assertEqual(inst._p_status, 'changed')
 
     def test___setattr__normal_name_from_saved(self):
         class Derived(self._getTargetClass()):
@@ -556,6 +588,7 @@ class PersistentTests(unittest.TestCase):
         self.assertEqual(jar._cache._mru, [OID])
         self.assertEqual(jar._registered, [OID])
         self.assertEqual(getattr(inst, 'normal', None), 'after')
+        self.assertEqual(inst._p_status, 'changed')
 
     def test___setattr__normal_name_from_changed(self):
         class Derived(self._getTargetClass()):
@@ -568,6 +601,7 @@ class PersistentTests(unittest.TestCase):
         self.assertEqual(jar._cache._mru, [OID])
         self.assertEqual(jar._registered, [])
         self.assertEqual(getattr(inst, 'normal', None), 'after')
+        self.assertEqual(inst._p_status, 'changed')
 
     def test___delattr___p__names(self):
         NAMES = ['_p_changed',
@@ -655,7 +689,7 @@ class PersistentTests(unittest.TestCase):
         self.assertEqual(inst._p_jar, None)
         self.assertEqual(inst._p_oid, None)
         self.assertEqual(inst._p_serial, _INITIAL_SERIAL)
-        self.assertEqual(inst._p_changed, None)
+        self.assertEqual(inst._p_changed, False)
         self.assertEqual(inst._p_sticky, False)
 
     def test___setstate___nonempty_derived_w_dict(self):
@@ -805,7 +839,7 @@ class PersistentTests(unittest.TestCase):
         inst = Derived()
         inst._p_invalidate()
         self.assertEqual(inst._p_status, 'unsaved')
-        self.assertEqual(inst.__dict__, {})
+        self.assertEqual(inst.__dict__, {'normal': 'after'})
 
     def test__p_invalidate_from_ghost(self):
         inst, jar, OID = self._makeOneWithJar()

@@ -77,13 +77,16 @@ def parseTimestamp(octets):
 class Persistent(object):
     """ Pure Python implmentation of Persistent base class
     """
-    __slots__ = ('__jar', '__oid', '__serial', '__flags')
+    __slots__ = ('__jar', '__oid', '__serial', '__flags', '__size')
     implements(IPersistent)
 
     def __new__(cls):
         inst = super(Persistent, cls).__new__(cls)
-        inst.__jar = inst.__oid =  inst.__serial = None
+        inst.__jar = None
+        inst.__oid = None
+        inst.__serial = None
         inst.__flags = None
+        inst.__size = 0
         return inst
 
     # _p_jar:  see IPersistent.
@@ -143,9 +146,11 @@ class Persistent(object):
 
     # _p_changed:  see IPersistent.
     def _get_changed(self):
+        if self.__jar is None:
+            return False
         if self.__flags is None: # ghost
             return None
-        return self.__flags & _CHANGED
+        return bool(self.__flags & _CHANGED)
 
     def _set_changed(self, value):
         if self.__flags is None:
@@ -173,13 +178,11 @@ class Persistent(object):
 
     # _p_state
     def _get_state(self):
+        if self.__jar is None:
+            return UPTODATE
         if self.__flags is None:
-            if self.__jar is None:
-                return UPTODATE
             return GHOST
         if self.__flags & _CHANGED:
-            if self.__jar is None:
-                return UPTODATE
             result = CHANGED
         else:
             result = UPTODATE
@@ -191,10 +194,13 @@ class Persistent(object):
 
     # _p_estimated_size:  XXX don't want to reserve the space?
     def _get_estimated_size(self):
-        return 0
+        return self.__size * 64
 
     def _set_estimated_size(self, value):
-        pass
+        value = int(value)
+        if value < 0:
+            raise ValueError('_p_estimated_size must not be negative')
+        self.__size = _estimated_size_in_24_bits(value)
 
     _p_estimated_size = property(_get_estimated_size, _set_estimated_size)
 
@@ -245,19 +251,22 @@ class Persistent(object):
     def __setattr__(self, name, value):
         special_name = (name.startswith('_Persistent__') or
                         name.startswith('_p_'))
+        volatile = name.startswith('_v_')
         if not special_name:
             if _OGA(self, '_Persistent__flags') is None:
                 _OGA(self, '_p_activate')()
-            _OGA(self, '_p_accessed')()
+            if not volatile:
+                _OGA(self, '_p_accessed')()
         _OSA(self, name, value)
-        if not special_name:
+        if (_OGA(self, '_Persistent__jar') is not None and
+            _OGA(self, '_Persistent__oid') is not None and
+            not special_name and
+            not volatile):
             before = _OGA(self, '_Persistent__flags')
             after = before | _CHANGED
             if before != after:
                 _OSA(self, '_Persistent__flags', after)
-                if (_OGA(self, '_Persistent__jar') is not None and
-                    _OGA(self, '_Persistent__oid') is not None):
-                    _OGA(self, '_p_register')()
+                _OGA(self, '_p_register')()
 
     def __delattr__(self, name):
         special_name = (name.startswith('_Persistent__') or
@@ -320,12 +329,13 @@ class Persistent(object):
     def _p_invalidate(self):
         """ See IPersistent.
         """
-        if self.__flags is not None and self.__flags & _STICKY:
-            raise ValueError('Sticky')
-        self.__flags = None
-        idict = getattr(self, '__dict__', None)
-        if idict is not None:
-            idict.clear()
+        if self.__jar is not None:
+            if self.__flags is not None and self.__flags & _STICKY:
+                raise ValueError('Sticky')
+            self.__flags = None
+            idict = getattr(self, '__dict__', None)
+            if idict is not None:
+                idict.clear()
 
     def _p_getattr(self, name):
         """ See IPersistent.
@@ -379,3 +389,8 @@ class Persistent(object):
         # the cache on the persistent object.
         if self.__jar is not None and self.__oid is not None:
             self.__jar._cache.mru(self.__oid)
+
+def _estimated_size_in_24_bits(value):
+    if value > 1073741696:
+        return 16777215
+    return (value//64) + 1
