@@ -216,13 +216,11 @@ class Persistent(object):
     # The '_p_status' property is not (yet) part of the API:  for now,
     # it exists to simplify debugging and testing assertions.
     def _get_status(self):
+        if self.__jar is None:
+            return 'unsaved'
         if self.__flags is None:
-            if self.__jar is None:
-                return 'new'
             return 'ghost'
         if self.__flags & _CHANGED:
-            if self.__jar is None:
-                return 'unsaved'
             result = 'changed'
         else:
             result = 'saved'
