@@ -32,6 +32,7 @@ static PyObject *py__p_changed, *py__p_deactivate;
 static PyObject *py___getattr__, *py___setattr__, *py___delattr__;
 static PyObject *py___slotnames__, *copy_reg_slotnames, *__newobj__;
 static PyObject *py___getnewargs__, *py___getstate__;
+static PyObject *py_unsaved, *py_ghost, *py_saved, *py_changed, *py_sticky;
 
 
 static int
@@ -52,6 +53,11 @@ init_strings(void)
   INIT_STRING(__slotnames__);
   INIT_STRING(__getnewargs__);
   INIT_STRING(__getstate__);
+  INIT_STRING(unsaved);
+  INIT_STRING(ghost);
+  INIT_STRING(saved);
+  INIT_STRING(changed);
+  INIT_STRING(sticky);
 #undef INIT_STRING
   return 0;
 }
@@ -1135,6 +1141,62 @@ Per_set_estimated_size(cPersistentObject *self, PyObject *v)
   return 0;
 }
 
+static PyObject *
+Per_get_status(cPersistentObject *self)
+{
+  PyObject *result = NULL;
+
+  if (!self->jar) {
+    result = py_unsaved;
+  } else {
+    switch (self->state) {
+        case cPersistent_GHOST_STATE:
+            result = py_ghost;
+            break;
+        case cPersistent_STICKY_STATE:
+            result = py_sticky;
+            break;
+        case cPersistent_UPTODATE_STATE:
+            result = py_saved;
+            break;
+        case cPersistent_CHANGED_STATE:
+            result = py_changed;
+            break;
+    }
+  }
+
+  if (result) {
+    Py_INCREF(result);
+  }
+  return result;
+}
+
+static PyObject*
+Per_get_sticky(cPersistentObject *self)
+{
+  return PyBool_FromLong(self->state == cPersistent_STICKY_STATE);
+}
+
+static int
+Per_set_sticky(cPersistentObject *self, PyObject* value)
+{
+  if (self->state < 0) {
+     PyErr_SetString(PyExc_ValueError,
+                          "can't set sticky flag on a ghost");
+     return -1;
+  }
+  if (self->jar)
+  {
+    if (PyObject_IsTrue(value))
+    {
+        self->state = cPersistent_STICKY_STATE;
+    } else {
+        self->state = cPersistent_UPTODATE_STATE;
+    }
+  }
+  return 0;
+}
+
 static PyGetSetDef Per_getsets[] = {
   {"_p_changed", (getter)Per_get_changed, (setter)Per_set_changed},
   {"_p_jar", (getter)Per_get_jar, (setter)Per_set_jar},
@@ -1145,6 +1207,8 @@ static PyGetSetDef Per_getsets[] = {
   {"_p_estimated_size",
    (getter)Per_get_estimated_size, (setter)Per_set_estimated_size
   },
+  {"_p_status", (getter)Per_get_status},
+  {"_p_sticky", (getter)Per_get_sticky, (setter)Per_set_sticky},
   {NULL}
 };
 
