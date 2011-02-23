@@ -13,11 +13,7 @@
 ##############################################################################
 import unittest
 
-class PersistentTests(unittest.TestCase):
-
-    def _getTargetClass(self):
-        from persistent.pyPersistence import Persistent
-        return Persistent
+class _Persistent_Base(object):
 
     def _makeOne(self, *args, **kw):
         return self._getTargetClass()(*args, **kw)
@@ -26,24 +22,19 @@ class PersistentTests(unittest.TestCase):
         from zope.interface import implements
         from persistent.interfaces import IPersistentDataManager
 
-        class _Cache(object):
-            def __init__(self):
-                self._mru = []
-            def mru(self, oid):
-                self._mru.append(oid)
-
         class _Jar(object):
             implements(IPersistentDataManager)
             def __init__(self):
                 self._loaded = []
                 self._registered = []
-                self._cache = _Cache()
             def setstate(self, obj):
                 self._loaded.append(obj._p_oid)
             def register(self, obj):
                 self._registered.append(obj._p_oid)
 
-        return _Jar()
+        jar = _Jar()
+        jar._cache = self._makeCache(jar)
+        return jar
 
     def _makeOneWithJar(self, klass=None):
         from persistent.pyPersistence import _makeOctets
@@ -53,8 +44,7 @@ class PersistentTests(unittest.TestCase):
         else:
             inst = self._makeOne()
         jar = self._makeJar()
-        inst._p_jar = jar
-        inst._p_oid = OID
+        jar._cache.new_ghost(OID, inst) # assigns _p_jar, _p_oid
         return inst, jar, OID
 
     def test_class_conforms_to_IPersistent(self):
@@ -77,29 +67,23 @@ class PersistentTests(unittest.TestCase):
         self.assertEqual(inst._p_sticky, False)
         self.assertEqual(inst._p_status, 'unsaved')
 
-    def test_assign_p_jar_w_invalid_jar(self):
-        inst = self._makeOne()
-        def _test():
-            inst._p_jar = object()
-        self.assertRaises(ValueError, _test)
-
     def test_assign_p_jar_w_new_jar(self):
-        inst = self._makeOne()
-        inst._p_jar = self._makeJar()
-        jar = self._makeJar()
+        inst, jar, OID = self._makeOneWithJar()
+        new_jar = self._makeJar()
         def _test():
-            inst._p_jar = jar
+            inst._p_jar = new_jar
         self.assertRaises(ValueError, _test)
 
     def test_assign_p_jar_w_valid_jar(self):
         jar = self._makeJar()
         inst = self._makeOne()
         inst._p_jar = jar
+        self.assertEqual(inst._p_status, 'saved')
         self.failUnless(inst._p_jar is jar)
         inst._p_jar = jar # reassign only to same DM
 
     def test_assign_p_oid_w_invalid_oid(self):
-        inst = self._makeOne()
+        inst, jar, OID = self._makeOneWithJar()
         def _test():
             inst._p_oid = object()
         self.assertRaises(ValueError, _test)
@@ -123,13 +107,10 @@ class PersistentTests(unittest.TestCase):
 
     def test_assign_p_oid_w_new_oid_w_jar(self):
         from persistent.pyPersistence import _makeOctets
-        OID1 = _makeOctets('\x01' * 8)
-        OID2 = _makeOctets('\x02' * 8)
-        inst = self._makeOne()
-        inst._p_oid = OID1
-        inst._p_jar = self._makeJar()
+        inst, jar, OID = self._makeOneWithJar()
+        new_OID = _makeOctets('\x02' * 8)
         def _test():
-            inst._p_oid = OID2
+            inst._p_oid = new_OID
         self.assertRaises(ValueError, _test)
 
     def test_delete_p_oid_wo_jar(self):
@@ -141,11 +122,7 @@ class PersistentTests(unittest.TestCase):
         self.assertEqual(inst._p_oid, None)
 
     def test_delete_p_oid_w_jar(self):
-        from persistent.pyPersistence import _makeOctets
-        OID = _makeOctets('\x01' * 8)
-        inst = self._makeOne()
-        inst._p_oid = OID
-        inst._p_jar = self._makeJar()
+        inst, jar, OID = self._makeOneWithJar()
         def _test():
             del inst._p_oid
         self.assertRaises(ValueError, _test)
@@ -154,6 +131,12 @@ class PersistentTests(unittest.TestCase):
         inst = self._makeOne()
         def _test():
             inst._p_serial = object()
+        self.assertRaises(ValueError, _test)
+
+    def test_assign_p_serial_w_None(self):
+        inst = self._makeOne()
+        def _test():
+            inst._p_serial = None
         self.assertRaises(ValueError, _test)
 
     def test_assign_p_serial_too_short(self):
@@ -170,13 +153,10 @@ class PersistentTests(unittest.TestCase):
 
     def test_assign_p_serial_w_valid_serial(self):
         from persistent.pyPersistence import _makeOctets
-        from persistent.pyPersistence import _INITIAL_SERIAL
         SERIAL = _makeOctets('\x01' * 8)
         inst = self._makeOne()
         inst._p_serial = SERIAL 
         self.assertEqual(inst._p_serial, SERIAL)
-        inst._p_serial = None
-        self.assertEqual(inst._p_serial, _INITIAL_SERIAL)
 
     def test_delete_p_serial(self):
         from persistent.pyPersistence import _makeOctets
@@ -194,6 +174,7 @@ class PersistentTests(unittest.TestCase):
 
     def test_query_p_changed_ghost(self):
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_deactivate()
         self.assertEqual(inst._p_changed, None)
 
     def test_query_p_changed_saved(self):
@@ -224,6 +205,7 @@ class PersistentTests(unittest.TestCase):
 
     def test_assign_p_changed_none_from_ghost(self):
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_deactivate()
         inst._p_changed = None
         self.assertEqual(inst._p_status, 'ghost')
         self.assertEqual(list(jar._loaded), [])
@@ -231,6 +213,7 @@ class PersistentTests(unittest.TestCase):
 
     def test_assign_p_changed_true_from_ghost(self):
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_deactivate()
         inst._p_changed = True
         self.assertEqual(inst._p_status, 'changed')
         self.assertEqual(list(jar._loaded), [OID])
@@ -238,9 +221,10 @@ class PersistentTests(unittest.TestCase):
 
     def test_assign_p_changed_false_from_ghost(self):
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_deactivate()
         inst._p_changed = False
-        self.assertEqual(inst._p_status, 'saved')
-        self.assertEqual(list(jar._loaded), [OID])
+        self.assertEqual(inst._p_status, 'ghost') # ??? this is what C does
+        self.assertEqual(list(jar._loaded), [])
         self.assertEqual(list(jar._registered), [])
 
     def test_assign_p_changed_none_from_saved(self):
@@ -254,10 +238,11 @@ class PersistentTests(unittest.TestCase):
 
     def test_assign_p_changed_true_from_saved(self):
         inst, jar, OID = self._makeOneWithJar()
-        inst._p_activate()
+        inst._p_activate() # XXX
+        jar._loaded[:] = []
         inst._p_changed = True
         self.assertEqual(inst._p_status, 'changed')
-        self.assertEqual(list(jar._loaded), [OID])
+        self.assertEqual(list(jar._loaded), [])
         self.assertEqual(list(jar._registered), [OID])
 
     def test_assign_p_changed_false_from_saved(self):
@@ -305,11 +290,13 @@ class PersistentTests(unittest.TestCase):
 
     def test_assign_p_changed_none_when_sticky(self):
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_activate() # XXX
         inst._p_changed = False
         inst._p_sticky = True
-        def _test():
-            inst._p_changed = None
-        self.assertRaises(ValueError, _test)
+        inst._p_changed = None
+        self.assertEqual(inst._p_status, 'sticky')
+        self.assertEqual(inst._p_changed, False)
+        self.assertEqual(inst._p_sticky, True)
 
     def test_delete_p_changed_from_unsaved(self):
         inst = self._makeOne()
@@ -327,6 +314,7 @@ class PersistentTests(unittest.TestCase):
 
     def test_delete_p_changed_from_ghost(self):
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_deactivate()
         del inst._p_changed
         self.assertEqual(inst._p_status, 'ghost')
         self.assertEqual(list(jar._loaded), [])
@@ -355,32 +343,38 @@ class PersistentTests(unittest.TestCase):
 
     def test_delete_p_changed_when_sticky(self):
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_activate() # XXX
         inst._p_changed = False
         inst._p_sticky = True
-        def _test():
-            del inst._p_changed
-        self.assertRaises(ValueError, _test)
+        del inst._p_changed
+        self.assertEqual(inst._p_status, 'ghost')
+        self.assertEqual(inst._p_changed, None)
+        self.assertEqual(inst._p_sticky, False)
 
     def test_assign_p_sticky_true_when_ghost(self):
-        inst = self._makeOne()
+        inst, jar, OID = self._makeOneWithJar()
+        inst._p_deactivate() # XXX
         def _test():
             inst._p_sticky = True
         self.assertRaises(ValueError, _test)
 
     def test_assign_p_sticky_false_when_ghost(self):
-        inst = self._makeOne()
+        inst, jar, OID = self._makeOneWithJar()
+        inst._p_deactivate() # XXX
         def _test():
             inst._p_sticky = False
         self.assertRaises(ValueError, _test)
 
     def test_assign_p_sticky_true_non_ghost(self):
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_activate() # XXX
         inst._p_changed = False
         inst._p_sticky = True
         self.failUnless(inst._p_sticky)
 
     def test_assign_p_sticky_false_non_ghost(self):
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_activate() # XXX
         inst._p_changed = False
         inst._p_sticky = False
         self.failIf(inst._p_sticky)
@@ -391,6 +385,7 @@ class PersistentTests(unittest.TestCase):
 
     def test__p_status_ghost(self):
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_deactivate()
         self.assertEqual(inst._p_status, 'ghost')
 
     def test__p_status_changed(self):
@@ -401,21 +396,24 @@ class PersistentTests(unittest.TestCase):
     def test__p_status_changed_sticky(self):
         # 'sticky' is not a state, but a separate flag.
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_activate()
         inst._p_changed = True
         inst._p_sticky = True
-        self.assertEqual(inst._p_status, 'changed (sticky)')
+        self.assertEqual(inst._p_status, 'sticky')
 
     def test__p_status_saved(self):
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_activate() # XXX
         inst._p_changed = False
         self.assertEqual(inst._p_status, 'saved')
 
     def test__p_status_saved_sticky(self):
         # 'sticky' is not a state, but a separate flag.
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_activate()
         inst._p_changed = False
         inst._p_sticky = True
-        self.assertEqual(inst._p_status, 'saved (sticky)')
+        self.assertEqual(inst._p_status, 'sticky')
 
     def test__p_mtime_no_serial(self):
         inst = self._makeOne()
@@ -436,6 +434,7 @@ class PersistentTests(unittest.TestCase):
 
     def test__p_state_ghost(self):
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_deactivate()
         self.assertEqual(inst._p_state, -1)
 
     def test__p_state_changed(self):
@@ -446,18 +445,21 @@ class PersistentTests(unittest.TestCase):
     def test__p_state_changed_sticky(self):
         # 'sticky' is not a state, but a separate flag.
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_activate()
         inst._p_changed = True
         inst._p_sticky = True
         self.assertEqual(inst._p_state, 2)
 
     def test__p_state_saved(self):
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_activate() # XXX
         inst._p_changed = False
         self.assertEqual(inst._p_state, 0)
 
     def test__p_state_saved_sticky(self):
         # 'sticky' is not a state, but a separate flag.
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_activate()
         inst._p_changed = False
         inst._p_sticky = True
         self.assertEqual(inst._p_state, 2)
@@ -489,18 +491,18 @@ class PersistentTests(unittest.TestCase):
                  '_p_status',
                 ]
         inst, jar, OID = self._makeOneWithJar()
-        jar._cache._mru = []
+        self._clearMRU(jar)
         for name in NAMES:
             getattr(inst, name)
-        self.assertEqual(jar._cache._mru, [])
+        self._checkMRU(jar, [])
 
     def test___getattribute__special_name(self):
         from persistent.pyPersistence import SPECIAL_NAMES
         inst, jar, OID = self._makeOneWithJar()
-        jar._cache._mru = []
+        self._clearMRU(jar)
         for name in SPECIAL_NAMES:
             getattr(inst, name, None)
-        self.assertEqual(jar._cache._mru, [])
+        self._checkMRU(jar, [])
 
     def test___getattribute__normal_name_from_unsaved(self):
         class Derived(self._getTargetClass()):
@@ -512,32 +514,34 @@ class PersistentTests(unittest.TestCase):
         class Derived(self._getTargetClass()):
             normal = 'value'
         inst, jar, OID = self._makeOneWithJar(Derived)
-        jar._cache._mru = []
+        inst._p_deactivate()
+        self._clearMRU(jar)
         self.assertEqual(getattr(inst, 'normal', None), 'value')
-        self.assertEqual(jar._cache._mru, [OID])
+        self._checkMRU(jar, [OID])
 
     def test___getattribute__normal_name_from_saved(self):
         class Derived(self._getTargetClass()):
             normal = 'value'
         inst, jar, OID = self._makeOneWithJar(Derived)
         inst._p_changed = False
-        jar._cache._mru = []
+        self._clearMRU(jar)
         self.assertEqual(getattr(inst, 'normal', None), 'value')
-        self.assertEqual(jar._cache._mru, [OID])
+        self._checkMRU(jar, [OID])
 
     def test___getattribute__normal_name_from_changed(self):
         class Derived(self._getTargetClass()):
             normal = 'value'
         inst, jar, OID = self._makeOneWithJar(Derived)
         inst._p_changed = True
-        jar._cache._mru = []
+        self._clearMRU(jar)
         self.assertEqual(getattr(inst, 'normal', None), 'value')
-        self.assertEqual(jar._cache._mru, [OID])
+        self._checkMRU(jar, [OID])
 
     def test___setattr___p__names(self):
         from persistent.pyPersistence import _makeOctets
         SERIAL = _makeOctets('\x01' * 8)
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_activate()
         NAMES = [('_p_jar', jar),
                  ('_p_oid', OID),
                  ('_p_changed', False),
@@ -545,19 +549,19 @@ class PersistentTests(unittest.TestCase):
                  ('_p_estimated_size', 0),
                  ('_p_sticky', False),
                 ]
-        jar._cache._mru = []
+        self._clearMRU(jar)
         for name, value in NAMES:
             setattr(inst, name, value)
-        self.assertEqual(jar._cache._mru, [])
+        self._checkMRU(jar, [])
 
     def test___setattr___v__name(self):
         class Derived(self._getTargetClass()):
             pass
         inst, jar, OID = self._makeOneWithJar(Derived)
-        jar._cache._mru = []
+        self._clearMRU(jar)
         inst._v_foo = 'bar'
         self.assertEqual(inst._p_status, 'saved')
-        self.assertEqual(jar._cache._mru, [])
+        self._checkMRU(jar, [])
 
     def test___setattr__normal_name_from_unsaved(self):
         class Derived(self._getTargetClass()):
@@ -571,9 +575,10 @@ class PersistentTests(unittest.TestCase):
         class Derived(self._getTargetClass()):
             normal = 'before'
         inst, jar, OID = self._makeOneWithJar(Derived)
-        jar._cache._mru = []
+        inst._p_deactivate()
+        self._clearMRU(jar)
         setattr(inst, 'normal', 'after')
-        self.assertEqual(jar._cache._mru, [OID])
+        self._checkMRU(jar, [OID])
         self.assertEqual(jar._registered, [OID])
         self.assertEqual(getattr(inst, 'normal', None), 'after')
         self.assertEqual(inst._p_status, 'changed')
@@ -583,9 +588,9 @@ class PersistentTests(unittest.TestCase):
             normal = 'before'
         inst, jar, OID = self._makeOneWithJar(Derived)
         inst._p_changed = False
-        jar._cache._mru = []
+        self._clearMRU(jar)
         setattr(inst, 'normal', 'after')
-        self.assertEqual(jar._cache._mru, [OID])
+        self._checkMRU(jar, [OID])
         self.assertEqual(jar._registered, [OID])
         self.assertEqual(getattr(inst, 'normal', None), 'after')
         self.assertEqual(inst._p_status, 'changed')
@@ -595,10 +600,10 @@ class PersistentTests(unittest.TestCase):
             normal = 'before'
         inst, jar, OID = self._makeOneWithJar(Derived)
         inst._p_changed = True
-        jar._cache._mru = []
+        self._clearMRU(jar)
         jar._registered = []
         setattr(inst, 'normal', 'after')
-        self.assertEqual(jar._cache._mru, [OID])
+        self._checkMRU(jar, [OID])
         self.assertEqual(jar._registered, [])
         self.assertEqual(getattr(inst, 'normal', None), 'after')
         self.assertEqual(inst._p_status, 'changed')
@@ -608,11 +613,11 @@ class PersistentTests(unittest.TestCase):
                  '_p_serial',
                 ]
         inst, jar, OID = self._makeOneWithJar()
-        jar._cache._mru = []
+        self._clearMRU(jar)
         jar._registered = []
         for name in NAMES:
             delattr(inst, name)
-        self.assertEqual(jar._cache._mru, [])
+        self._checkMRU(jar, [])
         self.assertEqual(jar._registered, [])
 
     def test___delattr__normal_name_from_unsaved(self):
@@ -627,13 +632,15 @@ class PersistentTests(unittest.TestCase):
     def test___delattr__normal_name_from_ghost(self):
         class Derived(self._getTargetClass()):
             normal = 'before'
-            def __init__(self):
-                self.__dict__['normal'] = 'after'
         inst, jar, OID = self._makeOneWithJar(Derived)
-        jar._cache._mru = []
+        inst._p_deactivate()
+        self._clearMRU(jar)
         jar._registered = []
-        delattr(inst, 'normal')
-        self.assertEqual(jar._cache._mru, [OID])
+        def _test():
+            delattr(inst, 'normal')
+        self.assertRaises(AttributeError, _test)
+        self.assertEqual(inst._p_status, 'changed') # ??? this is what C does
+        self._checkMRU(jar, [OID])
         self.assertEqual(jar._registered, [OID])
         self.assertEqual(getattr(inst, 'normal', None), 'before')
 
@@ -644,10 +651,10 @@ class PersistentTests(unittest.TestCase):
                 self.__dict__['normal'] = 'after'
         inst, jar, OID = self._makeOneWithJar(Derived)
         inst._p_changed = False
-        jar._cache._mru = []
+        self._clearMRU(jar)
         jar._registered = []
         delattr(inst, 'normal')
-        self.assertEqual(jar._cache._mru, [OID])
+        self._checkMRU(jar, [OID])
         self.assertEqual(jar._registered, [OID])
         self.assertEqual(getattr(inst, 'normal', None), 'before')
 
@@ -658,16 +665,16 @@ class PersistentTests(unittest.TestCase):
                 self.__dict__['normal'] = 'after'
         inst, jar, OID = self._makeOneWithJar(Derived)
         inst._p_changed = True
-        jar._cache._mru = []
+        self._clearMRU(jar)
         jar._registered = []
         delattr(inst, 'normal')
-        self.assertEqual(jar._cache._mru, [OID])
+        self._checkMRU(jar, [OID])
         self.assertEqual(jar._registered, [])
         self.assertEqual(getattr(inst, 'normal', None), 'before')
 
     def test___getstate__(self):
         inst = self._makeOne()
-        self.assertEqual(inst.__getstate__(), ())
+        self.assertEqual(inst.__getstate__(), None)
 
     def test___getstate___derived_w_dict(self):
         class Derived(self._getTargetClass()):
@@ -680,12 +687,13 @@ class PersistentTests(unittest.TestCase):
 
     def test___setstate___empty(self):
         inst = self._makeOne()
-        inst.__setstate__(()) # doesn't raise, but doesn't change anything
+        inst.__setstate__(None) # doesn't raise, but doesn't change anything
 
     def test___setstate___nonempty(self):
         from persistent.pyPersistence import _INITIAL_SERIAL
         inst = self._makeOne()
-        self.assertRaises(ValueError, inst.__setstate__, {'bogus': 1})
+        self.assertRaises((ValueError, TypeError),
+                           inst.__setstate__, {'bogus': 1})
         self.assertEqual(inst._p_jar, None)
         self.assertEqual(inst._p_oid, None)
         self.assertEqual(inst._p_serial, _INITIAL_SERIAL)
@@ -706,7 +714,7 @@ class PersistentTests(unittest.TestCase):
         first, second, third = inst.__reduce__()
         self.failUnless(first is __newobj__)
         self.assertEqual(second, (self._getTargetClass(),))
-        self.assertEqual(third, ())
+        self.assertEqual(third, None)
 
     def test___reduce__w_subclass_having_getstate(self):
         from copy_reg import __newobj__
@@ -739,6 +747,7 @@ class PersistentTests(unittest.TestCase):
 
     def test__p_activate_from_ghost(self):
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_deactivate()
         inst._p_activate() 
         self.assertEqual(inst._p_status, 'saved')
 
@@ -822,9 +831,13 @@ class PersistentTests(unittest.TestCase):
 
     def test__p_deactivate_when_sticky(self):
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_activate() # XXX
         inst._p_changed = False
         inst._p_sticky = True
-        self.assertRaises(ValueError, inst._p_deactivate)
+        inst._p_deactivate()
+        self.assertEqual(inst._p_status, 'sticky')
+        self.assertEqual(inst._p_changed, False)
+        self.assertEqual(inst._p_sticky, True)
 
     def test__p_invalidate_from_unsaved(self):
         inst = self._makeOne()
@@ -843,6 +856,7 @@ class PersistentTests(unittest.TestCase):
 
     def test__p_invalidate_from_ghost(self):
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_deactivate()
         inst._p_invalidate()
         self.assertEqual(inst._p_status, 'ghost')
         self.assertEqual(list(jar._loaded), [])
@@ -900,11 +914,30 @@ class PersistentTests(unittest.TestCase):
         self.assertEqual(list(jar._loaded), [])
         self.assertEqual(list(jar._registered), [])
 
-    def test__p_invalidate_when_sticky(self):
+    def test__p_invalidate_from_sticky(self):
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_activate() # XXX
         inst._p_changed = False
         inst._p_sticky = True
-        self.assertRaises(ValueError, inst._p_invalidate)
+        self.assertEqual(inst._p_status, 'sticky')
+        inst._p_invalidate()
+        self.assertEqual(inst._p_status, 'ghost')
+        self.assertEqual(inst._p_changed, None)
+        self.assertEqual(inst._p_sticky, False)
+
+    def test__p_invalidate_from_sticky_w_dict(self):
+        class Derived(self._getTargetClass()):
+            def __init__(self):
+                self.normal = 'value'
+        inst, jar, OID = self._makeOneWithJar(Derived)
+        inst._p_activate() # XXX
+        inst._p_changed = False
+        inst._p_sticky = True
+        inst._p_invalidate()
+        self.assertEqual(inst._p_status, 'ghost')
+        self.assertEqual(inst._p_changed, None)
+        self.assertEqual(inst._p_sticky, False)
+        self.assertEqual(inst.__dict__, {})
 
     def test__p_getattr_w__p__names(self):
         NAMES = ['_p_jar',
@@ -918,45 +951,50 @@ class PersistentTests(unittest.TestCase):
                  '_p_status',
                 ]
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_deactivate()
         for name in NAMES:
             self.failUnless(inst._p_getattr(name))
         self.assertEqual(inst._p_status, 'ghost')
         self.assertEqual(list(jar._loaded), [])
-        self.assertEqual(list(jar._cache._mru), [])
+        self._checkMRU(jar, [])
 
     def test__p_getattr_w_special_names(self):
         from persistent.pyPersistence import SPECIAL_NAMES
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_deactivate()
         for name in SPECIAL_NAMES:
             self.failUnless(inst._p_getattr(name))
             self.assertEqual(inst._p_status, 'ghost')
         self.assertEqual(list(jar._loaded), [])
-        self.assertEqual(list(jar._cache._mru), [])
+        self._checkMRU(jar, [])
 
     def test__p_getattr_w_normal_name(self):
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_deactivate()
         self.failIf(inst._p_getattr('normal'))
         self.assertEqual(inst._p_status, 'saved')
         self.assertEqual(list(jar._loaded), [OID])
-        self.assertEqual(list(jar._cache._mru), [OID])
+        self._checkMRU(jar, [OID])
 
     def test__p_setattr_w__p__name(self):
         from persistent.pyPersistence import _makeOctets
         SERIAL = _makeOctets('\x01' * 8)
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_deactivate()
         self.failUnless(inst._p_setattr('_p_serial', SERIAL))
         self.assertEqual(inst._p_status, 'ghost')
         self.assertEqual(inst._p_serial, SERIAL)
         self.assertEqual(list(jar._loaded), [])
-        self.assertEqual(list(jar._cache._mru), [])
+        self._checkMRU(jar, [])
 
     def test__p_setattr_w_normal_name(self):
         inst, jar, OID = self._makeOneWithJar()
+        inst._p_deactivate()
         self.failIf(inst._p_setattr('normal', 'value'))
         # _p_setattr doesn't do the actual write for normal names
         self.assertEqual(inst._p_status, 'saved')
         self.assertEqual(list(jar._loaded), [OID])
-        self.assertEqual(list(jar._cache._mru), [OID])
+        self._checkMRU(jar, [OID])
 
     def test__p_delattr_w__p__names(self):
         NAMES = ['_p_changed',
@@ -970,16 +1008,60 @@ class PersistentTests(unittest.TestCase):
         self.assertEqual(inst._p_status, 'ghost')
         self.assertEqual(inst._p_changed, None)
         self.assertEqual(list(jar._loaded), [])
-        self.assertEqual(list(jar._cache._mru), [])
+        self._checkMRU(jar, [])
 
     def test__p_delattr_w_normal_name(self):
         class Derived(self._getTargetClass()):
-            normal = 'before'
-            def __init__(self):
-                self.__dict__['normal'] = 'after'
+            normal = 'value'
         inst, jar, OID = self._makeOneWithJar(Derived)
+        inst._p_deactivate()
         self.failIf(inst._p_delattr('normal'))
         # _p_delattr doesn't do the actual delete for normal names
         self.assertEqual(inst._p_status, 'saved')
         self.assertEqual(list(jar._loaded), [OID])
-        self.assertEqual(list(jar._cache._mru), [OID])
+        self._checkMRU(jar, [OID])
+
+class PyPersistentTests(unittest.TestCase, _Persistent_Base):
+
+    def _getTargetClass(self):
+        from persistent.pyPersistence import Persistent
+        return Persistent
+
+    def _makeCache(self, jar):
+
+        class _Cache(object):
+            def __init__(self, jar):
+                self._jar = jar
+                self._mru = []
+            def mru(self, oid):
+                self._mru.append(oid)
+            def new_ghost(self, oid, obj):
+                obj._p_jar = self._jar
+                obj._p_oid = oid
+
+        return _Cache(jar)
+
+    def _checkMRU(self, jar, value):
+        self.assertEqual(list(jar._cache._mru), value)
+
+    def _clearMRU(self, jar):
+        jar._cache._mru[:] = []
+        
+
+import os
+if os.environ.get('run_C_tests'):
+    class CPersistentTests(unittest.TestCase, _Persistent_Base):
+
+        def _getTargetClass(self):
+            from persistent.cPersistence import Persistent
+            return Persistent
+
+        def _checkMRU(self, jar, value):
+            pass # Figure this out later
+    
+        def _clearMRU(self, jar):
+            pass # Figure this out later
+
+        def _makeCache(self, jar):
+            from persistent.cPickleCache import PickleCache
+            return PickleCache(jar)

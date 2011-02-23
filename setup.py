@@ -23,6 +23,11 @@ from setuptools import Extension
 from setuptools import find_packages
 from setuptools import setup
 
+TESTS_REQUIRE = [
+    'zope.interface',
+    'zope.testing>=3.7.0',
+    'zope.testrunner',
+]
 
 here = os.path.abspath(os.path.dirname(__file__))
 README = (open(os.path.join(here, 'README.txt')).read()
@@ -75,11 +80,8 @@ setup(name='persistent',
                     ],
       headers = ['persistent/cPersistence.h',
                  'persistent/ring.h'],
-      tests_require = [
-        'zope.interface',
-        'zope.testing>=3.7.0',
-        'zope.testrunner',
-        ],
+      tests_require = TESTS_REQUIRE,
+      extras_require = {'test': TESTS_REQUIRE},
       test_loader="zope.testrunner.eggsupport:SkipLayers",
       test_suite="persistent.tests",
       install_requires=[

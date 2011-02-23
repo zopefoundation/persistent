@@ -94,13 +94,14 @@ class Persistent(object):
         return self.__jar
 
     def _set_jar(self, value):
-        if value is self.__jar:
-            return
         if self.__jar is not None:
-            raise ValueError('Already assigned a data manager')
-        if not IPersistentDataManager.providedBy(value):
-            raise ValueError('Not a data manager: %s' % value)
-        self.__jar = value
+            if self.__jar != value:
+                raise ValueError('Already assigned a data manager')
+        else:
+            if not IPersistentDataManager.providedBy(value):
+                raise ValueError('Not a data manager: %s' % value)
+            self.__jar = value
+            self.__flags = 0
 
     _p_jar = property(_get_jar, _set_jar)
 
@@ -132,11 +133,10 @@ class Persistent(object):
         return _INITIAL_SERIAL
 
     def _set_serial(self, value):
-        if value is not None:
-            if not isinstance(value, SERIAL_TYPE):
-                raise ValueError('Invalid SERIAL type: %s' % value)
-            if len(value) != 8:
-                raise ValueError('SERIAL must be 8 octets')
+        if not isinstance(value, SERIAL_TYPE):
+            raise ValueError('Invalid SERIAL type: %s' % value)
+        if len(value) != 8:
+            raise ValueError('SERIAL must be 8 octets')
         self.__serial = value
 
     def _del_serial(self):
@@ -154,7 +154,7 @@ class Persistent(object):
 
     def _set_changed(self, value):
         if self.__flags is None:
-            if value is not None:
+            if value:
                 self._p_activate()
                 self._p_set_changed_flag(value)
         else:
@@ -209,7 +209,7 @@ class Persistent(object):
     def _get_sticky(self):
         if self.__flags is None:
             return False
-        return self.__flags & _STICKY
+        return bool(self.__flags & _STICKY)
     def _set_sticky(self, value):
         if self.__flags is None:
             raise ValueError('Ghost')
@@ -226,13 +226,11 @@ class Persistent(object):
             return 'unsaved'
         if self.__flags is None:
             return 'ghost'
-        if self.__flags & _CHANGED:
-            result = 'changed'
-        else:
-            result = 'saved'
         if self.__flags & _STICKY:
-            return '%s (sticky)' % result
-        return result
+            return 'sticky'
+        if self.__flags & _CHANGED:
+            return 'changed'
+        return 'saved'
 
     _p_status = property(_get_status)
 
@@ -275,8 +273,6 @@ class Persistent(object):
             if _OGA(self, '_Persistent__flags') is None:
                 _OGA(self, '_p_activate')()
             _OGA(self, '_p_accessed')()
-        object.__delattr__(self, name)
-        if not special_name:
             before = _OGA(self, '_Persistent__flags')
             after = before | _CHANGED
             if before != after:
@@ -284,6 +280,7 @@ class Persistent(object):
                 if (_OGA(self, '_Persistent__jar') is not None and
                     _OGA(self, '_Persistent__oid') is not None):
                     _OGA(self, '_p_register')()
+        object.__delattr__(self, name)
 
     def __getstate__(self):
         """ See IPersistent.
@@ -293,7 +290,7 @@ class Persistent(object):
             return dict([x for x in idict.items()
                             if not x[0].startswith('_p_') and
                                not x[0].startswith('_v_')])
-        return ()
+        return None
 
     def __setstate__(self, state):
         """ See IPersistent.
@@ -303,7 +300,7 @@ class Persistent(object):
             idict.clear()
             idict.update(state)
         else:
-            if state != ():
+            if state != None:
                 raise ValueError('No state allowed on base Persistent class')
 
     def __reduce__(self):
@@ -323,16 +320,15 @@ class Persistent(object):
     def _p_deactivate(self):
         """ See IPersistent.
         """
-        if self.__flags is not None and not self.__flags & _CHANGED:
+        if self.__flags is not None and not self.__flags:
             self._p_invalidate()
 
     def _p_invalidate(self):
         """ See IPersistent.
         """
         if self.__jar is not None:
-            if self.__flags is not None and self.__flags & _STICKY:
-                raise ValueError('Sticky')
-            self.__flags = None
+            if self.__flags is not None:
+                self.__flags = None
             idict = getattr(self, '__dict__', None)
             if idict is not None:
                 idict.clear()
