@@ -23,14 +23,14 @@ try:
     from cPersistence import STICKY
     from cPersistence import simple_new
 except ImportError: # XXX need pure-Python fallback
-    _HAVE_CPERSISTECE = False
+    _HAVE_CPERSISTENCE = False
     from pyPersistence import Persistent
     from pyPersistence import GHOST
     from pyPersistence import UPTODATE
     from pyPersistence import CHANGED
     from pyPersistence import STICKY
 else:
-    _HAVE_CPERSISTECE = True
+    _HAVE_CPERSISTENCE = True
     import copy_reg
     copy_reg.constructor(simple_new)
 
@@ -39,7 +39,7 @@ try:
 except ImportError:
     from picklecache import PickleCache
 
-if _HAVE_CPERSISTECE:
+if _HAVE_CPERSISTENCE:
     # Make an interface declaration for Persistent, if zope.interface
     # is available.  XXX that the pyPersistent version already does this?
     try:
