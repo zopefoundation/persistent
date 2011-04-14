@@ -88,3 +88,9 @@ class TimeStampTests(unittest.TestCase):
         ts2 = self._makeOne(SERIAL2)
         later = ts2.laterThan(ts1)
         self.failUnless(later is ts2)
+
+    def test_repr(self):
+        from persistent.timestamp import _makeOctets
+        SERIAL = _makeOctets('\x01' * 8)
+        ts = self._makeOne(SERIAL)
+        self.assertEqual(SERIAL, repr(ts))

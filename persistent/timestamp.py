@@ -93,6 +93,9 @@ class TimeStamp(object):
     def raw(self):
         return self._raw
 
+    def __repr__(self):
+        return self._raw
+
     def year(self):
         return self._elements[0]
 
