@@ -19,7 +19,6 @@ $Id$
 __docformat__ = "reStructuredText"
 
 from persistent import Persistent
-import transaction
 
 WeakRefMarker = object()
 
@@ -33,6 +32,7 @@ class WeakRef(object):
     Here's an example. We'll start by creating a persistent object and
     a reference to it:
 
+    >>> import transaction
     >>> import persistent, ZODB.tests.MinPO
     >>> import ZODB.tests.util
     >>> ob = ZODB.tests.MinPO.MinPO()
@@ -204,6 +204,7 @@ class PersistentWeakKeyDictionary(Persistent):
     We'll start by creating a PersistentWeakKeyDictionary and adding
     some persistent objects to it.
 
+    >>> import transaction
     >>> d = PersistentWeakKeyDictionary()
     >>> import ZODB.tests.util
     >>> p1 = ZODB.tests.util.P('p1')
