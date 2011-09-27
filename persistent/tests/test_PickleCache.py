@@ -90,32 +90,42 @@ Caches have a new_ghost method that:
 
     <<< cache.total_estimated_size # WTF?
     0
-
-
-Peristent meta classes work too:
-
-    >>> import ZODB.persistentclass
-    >>> class PC:
-    ...     __metaclass__ = ZODB.persistentclass.PersistentMetaClass
-
-    >>> PC._p_oid
-    >>> PC._p_jar
-    >>> PC._p_serial
-    >>> PC._p_changed
-    False
-
-    >>> cache.new_ghost('2', PC)
-    >>> PC._p_oid
-    '2'
-    >>> PC._p_jar is jar
-    True
-    >>> PC._p_serial
-    >>> PC._p_changed
-    False
-
     """
 
-if 0: # this test doesn't belong here!
+try:
+    import transaction
+    import ZODB
+except ImportError:
+    pass
+else:
+    def new_ghost_w_persistent_classes():
+        """
+        Peristent meta classes work too:
+
+            >>> import persistent
+            >>> from persistent.tests.utils import ResettingJar
+            >>> jar = ResettingJar()
+            >>> cache = persistent.PickleCache(jar, 10, 100)
+            >>> import ZODB.persistentclass
+            >>> class PC:
+            ...     __metaclass__ = ZODB.persistentclass.PersistentMetaClass
+
+            >>> PC._p_oid
+            >>> PC._p_jar
+            >>> PC._p_serial
+            >>> PC._p_changed
+            False
+
+            >>> cache.new_ghost('2', PC)
+            >>> PC._p_oid
+            '2'
+            >>> PC._p_jar is jar
+            True
+            >>> PC._p_serial
+            >>> PC._p_changed
+            False
+        """
+
     def cache_invalidate_and_minimize_used_to_leak_None_ref():
         """Persistent weak references
 

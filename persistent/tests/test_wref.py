@@ -19,7 +19,13 @@ else:
     from doctest import DocTestSuite
 
 def test_suite():
-    return DocTestSuite('persistent.wref')
+    try:
+        import transaction
+        import ZODB
+    except ImportError:
+        return unittest.TestSuite()
+    else:
+        return DocTestSuite('persistent.wref')
 
 if __name__ == '__main__':
     unittest.main()
