@@ -12,8 +12,6 @@
 #
 ##############################################################################
 """ZODB-based persistent weakrefs
-
-$Id$
 """
 
 __docformat__ = "reStructuredText"
