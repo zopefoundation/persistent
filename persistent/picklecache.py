@@ -65,7 +65,8 @@ class PickleCache(object):
             raise ValueError('OID must be string: %s' % oid)
         # XXX
         if oid in self.persistent_classes or oid in self.data:
-            raise KeyError('Duplicate OID: %s' % oid)
+            if self.data[oid] is not value:
+                raise KeyError('Duplicate OID: %s' % oid)
         if type(value) is type:
             self.persistent_classes[oid] = value
         else:
@@ -226,6 +227,11 @@ class PickleCache(object):
                             ))
         return result
 
+    def update_object_size_estimation(self, oid, new_size):
+        """ See IPickleCache.
+        """
+        pass
+
     cache_size = property(lambda self: self.target_size)
     cache_drain_resistance = property(lambda self: self.drain_resistance)
     cache_non_ghost_count = property(lambda self: self.non_ghost_count)
@@ -254,4 +260,3 @@ class PickleCache(object):
                     break
         elif oid in self.persistent_classes:
             del self.persistent_classes[oid]
-
