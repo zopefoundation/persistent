@@ -81,6 +81,7 @@ setup(name='persistent',
       extras_require = {
         'test': TESTS_REQUIRE,
         'testing': TESTS_REQUIRE + ['nose', 'coverage'],
+        'docs': ['Sphinx', 'repoze.sphinx.autointerface'],
       },
       test_suite="persistent.tests",
       install_requires=[

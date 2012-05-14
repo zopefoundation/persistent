@@ -4,6 +4,9 @@
 4.0 (unreleased)
 -----------------
 
+- Added ``setup.py docs`` alias (installs ``Sphinx`` and
+  ``repoze.sphinx.autointerface``).
+
 - Added ``setup.py dev`` alias (installs ``nose`` and ``coverage``).
 
 - Dropped dependency on ``zope.testing`` / ``zope.testrunner``:  tests now
