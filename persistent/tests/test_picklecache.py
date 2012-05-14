@@ -168,6 +168,51 @@ class PickleCacheTests(unittest.TestCase):
         else:
             self.fail("Didn't raise KeyError with nonesuch OID.")
 
+    def test___delitem___w_persistent_class(self):
+        cache = self._makeOne()
+        class pclass(object):
+            pass
+        cache = self._makeOne()
+
+        cache['pclass'] = pclass
+        del cache['pclass']
+        self.assertTrue(cache.get('pclass', self) is self)
+        self.assertFalse('pclass' in cache.persistent_classes)
+        self.assertEqual(cache.ringlen(), 0)
+
+    def test___delitem___w_normal_object(self):
+        from persistent.interfaces import UPTODATE
+        cache = self._makeOne()
+        uptodate = self._makePersist(state=UPTODATE)
+
+        cache['uptodate'] = uptodate
+
+        del cache['uptodate']
+        self.assertTrue(cache.get('uptodate', self) is self)
+
+    def test___delitem___w_ghost(self):
+        from persistent.interfaces import GHOST
+        cache = self._makeOne()
+        ghost = self._makePersist(state=GHOST)
+
+        cache['ghost'] = ghost
+
+        del cache['ghost']
+        self.assertTrue(cache.get('ghost', self) is self)
+
+    def test___delitem___w_remaining_object(self):
+        from persistent.interfaces import UPTODATE
+        cache = self._makeOne()
+        remains = self._makePersist(state=UPTODATE)
+        uptodate = self._makePersist(state=UPTODATE)
+
+        cache['remains'] = remains
+        cache['uptodate'] = uptodate
+
+        del cache['uptodate']
+        self.assertTrue(cache.get('uptodate', self) is self)
+        self.assertTrue(cache.get('remains', self) is remains)
+
     def test_lruitems(self):
         from persistent.interfaces import UPTODATE
         cache = self._makeOne()
@@ -542,6 +587,57 @@ class PickleCacheTests(unittest.TestCase):
         self.failUnless(cache.persistent_classes['123'] is Pclass)
         cache.invalidate('123')
         self.failIf('123' in cache.persistent_classes)
+
+    def test_debug_info_w_persistent_class(self):
+        import gc
+        from persistent.interfaces import UPTODATE
+        class pclass(object):
+            pass
+        cache = self._makeOne()
+        pclass._p_state = UPTODATE
+        cache['pclass'] = pclass
+
+        info = cache.debug_info()
+
+        self.assertEqual(len(info), 1)
+        oid, refc, typ, state = info[0]
+        self.assertEqual(oid, 'pclass')
+        self.assertEqual(refc, len(gc.get_referents(pclass)))
+        self.assertEqual(typ, 'type')
+        self.assertEqual(state, UPTODATE)
+
+    def test_debug_info_w_normal_object(self):
+        import gc
+        from persistent.interfaces import UPTODATE
+        cache = self._makeOne()
+        uptodate = self._makePersist(state=UPTODATE)
+        cache['uptodate'] = uptodate
+
+        info = cache.debug_info()
+
+        self.assertEqual(len(info), 1)
+        oid, refc, typ, state = info[0]
+        self.assertEqual(oid, 'uptodate')
+        self.assertEqual(refc, len(gc.get_referents(uptodate)))
+        self.assertEqual(typ, 'DummyPersistent')
+        self.assertEqual(state, UPTODATE)
+
+
+    def test_debug_info_w_ghost(self):
+        import gc
+        from persistent.interfaces import GHOST
+        cache = self._makeOne()
+        ghost = self._makePersist(state=GHOST)
+        cache['ghost'] = ghost
+
+        info = cache.debug_info()
+
+        self.assertEqual(len(info), 1)
+        oid, refc, typ, state = info[0]
+        self.assertEqual(oid, 'ghost')
+        self.assertEqual(refc, len(gc.get_referents(ghost)))
+        self.assertEqual(typ, 'DummyPersistent')
+        self.assertEqual(state, GHOST)
 
 
 class DummyPersistent(object):

@@ -87,8 +87,6 @@ class PickleCache(object):
         else:
             value = self.data.pop(oid)
             node = self.ring.next
-            if node is None:
-                return
             while node is not self.ring:
                 if node.object is value:
                     node.prev.next, node.next.prev = node.next, node.prev
@@ -215,13 +213,13 @@ class PickleCache(object):
         result = []
         for oid, klass in self.persistent_classes.items():
             result.append((oid,
-                            len(gc.getreferents(klass)),
+                            len(gc.get_referents(klass)),
                             type(klass).__name__,
                             klass._p_state,
                             ))
         for oid, value in self.data.items():
             result.append((oid,
-                            len(gc.getreferents(value)),
+                            len(gc.get_referents(value)),
                             type(value).__name__,
                             value._p_state,
                             ))
@@ -230,7 +228,7 @@ class PickleCache(object):
     def update_object_size_estimation(self, oid, new_size):
         """ See IPickleCache.
         """
-        pass
+        pass #pragma NO COVER
 
     cache_size = property(lambda self: self.target_size)
     cache_drain_resistance = property(lambda self: self.drain_resistance)
