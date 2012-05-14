@@ -13,6 +13,34 @@
 ##############################################################################
 import unittest
 
+class Test__UTC(unittest.TestCase):
+
+    def _getTargetClass(self):
+        from persistent.timestamp import _UTC
+        return _UTC
+
+    def _makeOne(self, *args, **kw):
+        return self._getTargetClass()(*args, **kw)
+
+    def test_tzname(self):
+        utc = self._makeOne()
+        self.assertEqual(utc.tzname(), 'UTC')
+
+    def test_utcoffset(self):
+        from datetime import timedelta
+        utc = self._makeOne()
+        self.assertEqual(utc.utcoffset(object()), timedelta(0))
+
+    def test_dst(self):
+        utc = self._makeOne()
+        self.assertEqual(utc.dst(), 0)
+
+    def test_fromutc(self):
+        source = object()
+        utc = self._makeOne()
+        self.assertTrue(utc.fromutc(source) is source)
+
+
 class TimeStampTests(unittest.TestCase):
 
     def _getTargetClass(self):

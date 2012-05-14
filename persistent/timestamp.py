@@ -19,17 +19,12 @@ import struct
 import sys
 
 
-if sys.version_info < (2, 6):
-    _RAWTYPE = str
-else:
-    _RAWTYPE = bytes
+_RAWTYPE = bytes
 
 def _makeOctets(s):
-    if sys.version_info < (2, 6,):
-        return str(s)
     if sys.version_info < (3,):
         return bytes(s)
-    return bytes(s, 'ascii')
+    return bytes(s, 'ascii') #pragma NO COVERAGE
 
 _ZERO = _makeOctets('\x00' * 8)
 

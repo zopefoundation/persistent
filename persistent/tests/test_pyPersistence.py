@@ -37,7 +37,7 @@ class _Persistent_Base(object):
         return jar
 
     def _makeOneWithJar(self, klass=None):
-        from persistent.pyPersistence import _makeOctets
+        from persistent.timestamp import _makeOctets
         OID = _makeOctets('\x01' * 8)
         if klass is not None:
             inst = klass()
@@ -95,7 +95,7 @@ class _Persistent_Base(object):
         self.assertRaises(ValueError, _test)
 
     def test_assign_p_oid_w_valid_oid(self):
-        from persistent.pyPersistence import _makeOctets
+        from persistent.timestamp import _makeOctets
         OID = _makeOctets('\x01' * 8)
         inst = self._makeOne()
         inst._p_oid = OID 
@@ -103,7 +103,7 @@ class _Persistent_Base(object):
         inst._p_oid = OID  # reassign only same OID
 
     def test_assign_p_oid_w_new_oid_wo_jar(self):
-        from persistent.pyPersistence import _makeOctets
+        from persistent.timestamp import _makeOctets
         OID1 = _makeOctets('\x01' * 8)
         OID2 = _makeOctets('\x02' * 8)
         inst = self._makeOne()
@@ -112,7 +112,7 @@ class _Persistent_Base(object):
         self.assertEqual(inst._p_oid, OID2)
 
     def test_assign_p_oid_w_new_oid_w_jar(self):
-        from persistent.pyPersistence import _makeOctets
+        from persistent.timestamp import _makeOctets
         inst, jar, OID = self._makeOneWithJar()
         new_OID = _makeOctets('\x02' * 8)
         def _test():
@@ -120,7 +120,7 @@ class _Persistent_Base(object):
         self.assertRaises(ValueError, _test)
 
     def test_delete_p_oid_wo_jar(self):
-        from persistent.pyPersistence import _makeOctets
+        from persistent.timestamp import _makeOctets
         OID = _makeOctets('\x01' * 8)
         inst = self._makeOne()
         inst._p_oid = OID
@@ -158,14 +158,14 @@ class _Persistent_Base(object):
         self.assertRaises(ValueError, _test)
 
     def test_assign_p_serial_w_valid_serial(self):
-        from persistent.pyPersistence import _makeOctets
+        from persistent.timestamp import _makeOctets
         SERIAL = _makeOctets('\x01' * 8)
         inst = self._makeOne()
         inst._p_serial = SERIAL 
         self.assertEqual(inst._p_serial, SERIAL)
 
     def test_delete_p_serial(self):
-        from persistent.pyPersistence import _makeOctets
+        from persistent.timestamp import _makeOctets
         from persistent.pyPersistence import _INITIAL_SERIAL
         SERIAL = _makeOctets('\x01' * 8)
         inst = self._makeOne()
@@ -554,7 +554,7 @@ class _Persistent_Base(object):
         self._checkMRU(jar, [OID])
 
     def test___setattr___p__names(self):
-        from persistent.pyPersistence import _makeOctets
+        from persistent.timestamp import _makeOctets
         SERIAL = _makeOctets('\x01' * 8)
         inst, jar, OID = self._makeOneWithJar()
         inst._p_activate()
@@ -993,7 +993,7 @@ class _Persistent_Base(object):
         self._checkMRU(jar, [OID])
 
     def test__p_setattr_w__p__name(self):
-        from persistent.pyPersistence import _makeOctets
+        from persistent.timestamp import _makeOctets
         SERIAL = _makeOctets('\x01' * 8)
         inst, jar, OID = self._makeOneWithJar()
         inst._p_deactivate()

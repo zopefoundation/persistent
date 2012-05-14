@@ -23,15 +23,11 @@ from persistent.interfaces import UPTODATE
 from persistent.interfaces import CHANGED
 from persistent.interfaces import STICKY
 from persistent.timestamp import TimeStamp
+from persistent.timestamp import _ZERO
 
 OID_TYPE = SERIAL_TYPE = bytes
 
-def _makeOctets(s):
-    if sys.version_info < (3,):
-        return bytes(s)
-    return bytes(s, 'ascii') #pragma NO COVER
-
-_INITIAL_SERIAL = _makeOctets('\x00' * 8)
+_INITIAL_SERIAL = _ZERO
 
 
 # Bitwise flags
