@@ -12,7 +12,6 @@
 #
 ##############################################################################
 from copy_reg import __newobj__
-import struct
 import sys
 
 from zope.interface import implements
@@ -25,17 +24,12 @@ from persistent.interfaces import CHANGED
 from persistent.interfaces import STICKY
 from persistent.timestamp import TimeStamp
 
-if sys.version_info < (2, 6,):
-    OID_TYPE = SERIAL_TYPE = str
-else:
-    OID_TYPE = SERIAL_TYPE = bytes
+OID_TYPE = SERIAL_TYPE = bytes
 
 def _makeOctets(s):
-    if sys.version_info < (2, 6,):
-        return str(s)
     if sys.version_info < (3,):
         return bytes(s)
-    return bytes(s, 'ascii')
+    return bytes(s, 'ascii') #pragma NO COVER
 
 _INITIAL_SERIAL = _makeOctets('\x00' * 8)
 
@@ -54,24 +48,6 @@ SPECIAL_NAMES = ('__class__',
                  '__of__',
                  '__setstate__'
                 )
-
-_SCONV = 60.0 / (1<<16) / (1<<16)
-
-def makeTimestamp(year, month, day, hour, minute, second):
-    a = (((year - 1900) * 12 + month - 1) * 31 + day - 1)
-    a = (a * 24 + hour) * 60 + minute
-    b = int(second / _SCONV)
-    return struct.pack('>II', a, b)
-
-def parseTimestamp(octets):
-    a, b = struct.unpack('>II', octets)
-    minute = a % 60
-    hour = a // 60 % 24
-    day = a // (60 * 24) % 31 + 1
-    month = a // (60 * 24 * 31) % 12 + 1
-    year = a // (60 * 24 * 31 * 12) + 1900
-    second = b * _SCONV
-    return (year, month, day, hour, minute, second)
 
 
 class Persistent(object):
