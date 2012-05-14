@@ -4,6 +4,8 @@
 4.0 (unreleased)
 -----------------
 
+- Added support for continuous integration using ``tox`` and ``jenkins``.
+
 - Added ``setup.py docs`` alias (installs ``Sphinx`` and
   ``repoze.sphinx.autointerface``).
 
