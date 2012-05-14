@@ -80,6 +80,7 @@ setup(name='persistent',
       tests_require = TESTS_REQUIRE,
       extras_require = {
         'test': TESTS_REQUIRE,
+        'testing': TESTS_REQUIRE + ['nose', 'coverage'],
       },
       test_suite="persistent.tests",
       install_requires=[

@@ -4,6 +4,8 @@
 4.0 (unreleased)
 -----------------
 
+- Added ``setup.py dev`` alias (installs ``nose`` and ``coverage``).
+
 - Dropped dependency on ``zope.testing`` / ``zope.testrunner``:  tests now
   run with ``setup.py test``.
 

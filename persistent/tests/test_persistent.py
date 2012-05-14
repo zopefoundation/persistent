@@ -52,6 +52,6 @@ if simple_new is not None:
 def test_suite():
     import doctest
     return unittest.TestSuite((
-        doctest.DocFileSuite("persistent.txt", globs={"P": P}),
+        doctest.DocFileSuite("persistent.txt"),
         doctest.DocTestSuite(),
     ))

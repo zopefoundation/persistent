@@ -5,24 +5,6 @@ This document covers "edge case" tests for the Persistent base class.
 It should be replaced with normal unit tests.  (The meat of the narrative
 documentation is now in ``docs/usage`` of the distribution).
 
-The test expects a class named `P` to be
-provided in its globals.  The `P` class implements the `Persistent`
-interface.
-
-Test framework
---------------
-
-The class `P` needs to behave like `ExampleP`.  (Note that the code below
-is *not* part of the tests.)
-
-::
-
-  class ExampleP(Persistent):
-      def __init__(self):
-          self.x = 0
-      def inc(self):
-          self.x += 1
-
 The tests use stub data managers.  A data manager is responsible for
 loading and storing the state of a persistent object.  It's stored in
 the ``_p_jar`` attribute of a persistent object.
@@ -55,6 +37,13 @@ registration fails, the exception is propagated and the object stays in the
 up-to-date state.  It shouldn't change to the modified state, because it won't
 be saved when the transaction commits.
 
+  >>> from persistent import Persistent
+  >>> class P(Persistent):
+  ...     def __init__(self):
+  ...         self.x = 0
+  ...     def inc(self):
+  ...         self.x += 1
+  >>> 
   >>> p = P()
   >>> p._p_oid = 1
   >>> p._p_jar = BrokenDM()
