@@ -56,7 +56,7 @@ class TimeStampTests(unittest.TestCase):
     def test_ctor_from_string_non_zero(self):
         before = self._makeOne(2011, 2, 16, 14, 37, 22.0)
         after = self._makeOne(before.raw())
-        self.assertEqual(before._elements, after._elements)
+        self.assertEqual(before.raw(), after.raw())
 
     def test_ctor_from_elements(self):
         from persistent.timestamp import _makeOctets
