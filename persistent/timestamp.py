@@ -52,7 +52,7 @@ _SCONV = 60.0 / (1<<16) / (1<<16)
 def _makeRaw(year, month, day, hour, minute, second):
     a = (((year - 1900) * 12 + month - 1) * 31 + day - 1)
     a = (a * 24 + hour) * 60 + minute
-    b = round(second / _SCONV)
+    b = int(round(second / _SCONV))
     return struct.pack('>II', a, b)
 
 def _parseRaw(octets):
@@ -66,7 +66,7 @@ def _parseRaw(octets):
     return (year, month, day, hour, minute, second)
 
 
-class TimeStamp(object):
+class pyTimeStamp(object):
     __slots__ = ('_raw', '_elements')
 
     def __init__(self, *args):
@@ -132,5 +132,5 @@ class TimeStamp(object):
 
 try:
     from persistent.TimeStamp import TimeStamp
-except ImportError:
-    pass
+except ImportError: #pragma NO COVER
+    TimeStamp = pyTimeStamp

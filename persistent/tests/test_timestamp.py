@@ -41,11 +41,11 @@ class Test__UTC(unittest.TestCase):
         self.assertTrue(utc.fromutc(source) is source)
 
 
-class TimeStampTests(unittest.TestCase):
+class pyTimeStampTests(unittest.TestCase):
 
     def _getTargetClass(self):
-        from persistent.timestamp import TimeStamp
-        return TimeStamp
+        from persistent.timestamp import pyTimeStamp
+        return pyTimeStamp
 
     def _makeOne(self, *args, **kw):
         return self._getTargetClass()(*args, **kw)
@@ -59,6 +59,18 @@ class TimeStampTests(unittest.TestCase):
                     (1, 2, 3, 4, 5),
                     ('1', '2', '3', '4', '5', '6'),
                     (1, 2, 3, 4, 5, 6, 7),
+                   ]
+        for args in BAD_ARGS:
+            self.assertRaises((TypeError, ValueError), self._makeOne, *args)
+
+    def test_ctor_from_invalid_strings(self):
+        BAD_ARGS = [''
+                    '\x00',
+                    '\x00' * 2,
+                    '\x00' * 3,
+                    '\x00' * 4,
+                    '\x00' * 5,
+                    '\x00' * 7,
                    ]
         for args in BAD_ARGS:
             self.assertRaises((TypeError, ValueError), self._makeOne, *args)
@@ -104,6 +116,17 @@ class TimeStampTests(unittest.TestCase):
         self.assertEqual(ts.second(), 0.0)
         self.assertEqual(ts.timeTime(), DELTA_SECS)
 
+    def test_laterThan_invalid(self):
+        from persistent.timestamp import _makeOctets
+        SERIAL = _makeOctets('\x01' * 8)
+        ts = self._makeOne(SERIAL)
+        self.assertRaises(ValueError, ts.laterThan, None)
+        self.assertRaises(ValueError, ts.laterThan, '')
+        self.assertRaises(ValueError, ts.laterThan, ())
+        self.assertRaises(ValueError, ts.laterThan, [])
+        self.assertRaises(ValueError, ts.laterThan, {})
+        self.assertRaises(ValueError, ts.laterThan, object())
+
     def test_laterThan_self_is_earlier(self):
         from persistent.timestamp import _makeOctets
         SERIAL1 = _makeOctets('\x01' * 8)
@@ -127,3 +150,17 @@ class TimeStampTests(unittest.TestCase):
         SERIAL = _makeOctets('\x01' * 8)
         ts = self._makeOne(SERIAL)
         self.assertEqual(SERIAL, repr(ts))
+
+class TimeStampTests(unittest.TestCase):
+
+    def _getTargetClass(self):
+        from persistent.timestamp import TimeStamp
+        return TimeStamp
+
+
+def test_suite():
+    return unittest.TestSuite((
+        unittest.makeSuite(Test__UTC),
+        unittest.makeSuite(pyTimeStampTests),
+        unittest.makeSuite(TimeStampTests),
+    ))
