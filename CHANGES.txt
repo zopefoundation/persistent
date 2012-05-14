@@ -4,6 +4,10 @@
 4.0 (unreleased)
 -----------------
 
+- Added explicity support for PyPy.
+
+- Dropped explicit support for Python < 2.6.
+
 - Added support for continuous integration using ``tox`` and ``jenkins``.
 
 - Added ``setup.py docs`` alias (installs ``Sphinx`` and

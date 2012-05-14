@@ -57,7 +57,7 @@ _SCONV = 60.0 / (1<<16) / (1<<16)
 def _makeRaw(year, month, day, hour, minute, second):
     a = (((year - 1900) * 12 + month - 1) * 31 + day - 1)
     a = (a * 24 + hour) * 60 + minute
-    b = int(second / _SCONV)
+    b = round(second / _SCONV)
     return struct.pack('>II', a, b)
 
 def _parseRaw(octets):
@@ -67,7 +67,7 @@ def _parseRaw(octets):
     day = a // (60 * 24) % 31 + 1
     month = a // (60 * 24 * 31) % 12 + 1
     year = a // (60 * 24 * 31 * 12) + 1900
-    second = b * _SCONV
+    second = round(b * _SCONV, 6) #microsecond precision
     return (year, month, day, hour, minute, second)
 
 

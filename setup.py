@@ -15,6 +15,8 @@
 __version__ = '4.0dev'
 
 import os
+import platform
+import sys
 
 from ez_setup import use_setuptools
 use_setuptools()
@@ -31,6 +33,42 @@ README = (open(os.path.join(here, 'README.txt')).read()
           + '\n\n' +
           open(os.path.join(here, 'CHANGES.txt')).read())
 
+py_impl = getattr(platform, 'python_implementation', lambda: None)
+is_pypy = py_impl() == 'PyPy'
+is_jython = 'java' in sys.platform
+
+# Jython cannot build the C optimizations, while on PyPy they are
+# anti-optimizations (the C extension compatibility layer is known-slow,
+# and defeats JIT opportunities).
+if is_pypy or is_jython:
+    ext_modules = headers = []
+else:
+    ext_modules = [Extension(name = 'persistent.cPersistence',
+                             sources= ['persistent/cPersistence.c',
+                                       'persistent/ring.c',
+                                      ],
+                             depends = ['persistent/cPersistence.h',
+                                        'persistent/ring.h',
+                                        'persistent/ring.c',
+                                       ]
+                            ),
+                   Extension(name = 'persistent.cPickleCache',
+                             sources= ['persistent/cPickleCache.c',
+                                       'persistent/ring.c'
+                                      ],
+                             depends = ['persistent/cPersistence.h',
+                                        'persistent/ring.h',
+                                        'persistent/ring.c',
+                                       ]
+                            ),
+                   Extension(name = 'persistent.TimeStamp',
+                             sources= ['persistent/TimeStamp.c',
+                                      ],
+                            ),
+                  ]
+    headers = ['persistent/cPersistence.h',
+               'persistent/ring.h']
+
 setup(name='persistent',
       version=__version__,
       description='Translucent persistent objects',
@@ -39,6 +77,10 @@ setup(name='persistent',
         "Development Status :: 6 - Mature",
         "License :: OSI Approved :: Zope Public License",
         "Programming Language :: Python",
+        'Programming Language :: Python :: 2.6',
+        'Programming Language :: Python :: 2.7',
+        "Programming Language :: Python :: Implementation :: CPython",
+        "Programming Language :: Python :: Implementation :: PyPy",
         "Topic :: Database",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Operating System :: Microsoft :: Windows",
@@ -52,31 +94,8 @@ setup(name='persistent',
       packages=find_packages(),
       include_package_data=True,
       zip_safe=False,
-      ext_modules = [Extension(name = 'persistent.cPersistence',
-                               sources= ['persistent/cPersistence.c',
-                                         'persistent/ring.c',
-                                        ],
-                               depends = ['persistent/cPersistence.h',
-                                          'persistent/ring.h',
-                                          'persistent/ring.c',
-                                         ]
-                              ),
-                     Extension(name = 'persistent.cPickleCache',
-                               sources= ['persistent/cPickleCache.c',
-                                         'persistent/ring.c'
-                                        ],
-                               depends = ['persistent/cPersistence.h',
-                                          'persistent/ring.h',
-                                          'persistent/ring.c',
-                                         ]
-                              ),
-                     Extension(name = 'persistent.TimeStamp',
-                               sources= ['persistent/TimeStamp.c',
-                                        ],
-                              ),
-                    ],
-      headers = ['persistent/cPersistence.h',
-                 'persistent/ring.h'],
+      ext_modules = ext_modules,
+      headers = headers,
       tests_require = TESTS_REQUIRE,
       extras_require = {
         'test': TESTS_REQUIRE,
