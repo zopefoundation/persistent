@@ -11,29 +11,23 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
-from persistent import Persistent
+import unittest
 
 try:
     from persistent import simple_new
 except ImportError:
     simple_new = None
 
-import os
-if os.environ.get('USE_ZOPE_TESTING_DOCTEST'):
-    from zope.testing import doctest
-else:
-    import doctest
-
-import unittest
-
-class P(Persistent):
-    def __init__(self):
-        self.x = 0
-    def inc(self):
-        self.x += 1
 
 def cpersistent_setstate_pointer_sanity():
     """
+    >>> from persistent import Persistent
+    >>> class P(Persistent):
+    ...     def __init__(self):
+    ...         self.x = 0
+    ...     def inc(self):
+    ...         self.x += 1
+    >>> 
     >>> Persistent().__setstate__({})
     Traceback (most recent call last):
     ...
@@ -56,7 +50,8 @@ if simple_new is not None:
         """
 
 def test_suite():
+    import doctest
     return unittest.TestSuite((
         doctest.DocFileSuite("persistent.txt", globs={"P": P}),
         doctest.DocTestSuite(),
-        ))
+    ))

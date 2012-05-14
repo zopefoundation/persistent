@@ -11,8 +11,9 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
+import unittest
+
 from persistent import Persistent
-import pickle
 
 
 def print_dict(d):
@@ -59,6 +60,7 @@ def test_basic_pickling():
     >>> print_dict(state)
     {'__name__': 'x', 'aaa': 1, 'bbb': 'foo'}
 
+    >>> import pickle
     >>> pickle.loads(pickle.dumps(x)) == x
     1
     >>> pickle.loads(pickle.dumps(x, 0)) == x
@@ -110,6 +112,7 @@ def test_pickling_w_overrides():
     >>> ax, ay, a
     ('x', 'y', 99)
 
+    >>> import pickle
     >>> pickle.loads(pickle.dumps(x)) == x
     1
     >>> pickle.loads(pickle.dumps(x, 0)) == x
@@ -148,6 +151,7 @@ def test_pickling_w_slots_only():
     >>> print_dict(s)
     {'s1': 'x', 's2': 'y', 's3': 'z'}
 
+    >>> import pickle
     >>> pickle.loads(pickle.dumps(x)) == x
     1
     >>> pickle.loads(pickle.dumps(x, 0)) == x
@@ -198,6 +202,7 @@ def test_pickling_w_slots():
     >>> print_dict(s)
     {'s1': 'x', 's2': 'y', 's3': 'z'}
 
+    >>> import pickle
     >>> pickle.loads(pickle.dumps(x)) == x
     1
     >>> pickle.loads(pickle.dumps(x, 0)) == x
@@ -236,6 +241,7 @@ def test_pickling_w_slots_w_empty_dict():
     >>> print_dict(s)
     {'s1': 'x', 's2': 'y', 's3': 'z'}
 
+    >>> import pickle
     >>> pickle.loads(pickle.dumps(x)) == x
     1
     >>> pickle.loads(pickle.dumps(x, 0)) == x
@@ -264,17 +270,10 @@ def test_pickling_w_slots_w_empty_dict():
 
     """
 
-import os
-if os.environ.get('USE_ZOPE_TESTING_DOCTEST'):
-    from zope.testing.doctest import DocTestSuite
-else:
-    from doctest import DocTestSuite
 
-import unittest
 
 def test_suite():
+    from doctest import DocTestSuite
     return unittest.TestSuite((
         DocTestSuite(),
         ))
-
-if __name__ == '__main__': unittest.main()

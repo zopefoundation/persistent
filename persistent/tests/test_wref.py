@@ -12,13 +12,9 @@
 #
 ##############################################################################
 import unittest
-import os
-if os.environ.get('USE_ZOPE_TESTING_DOCTEST'):
-    from zope.testing.doctest import DocTestSuite
-else:
-    from doctest import DocTestSuite
 
 def test_suite():
+    from doctest import DocTestSuite
     try:
         import transaction
         import ZODB
@@ -26,6 +22,3 @@ def test_suite():
         return unittest.TestSuite()
     else:
         return DocTestSuite('persistent.wref')
-
-if __name__ == '__main__':
-    unittest.main()

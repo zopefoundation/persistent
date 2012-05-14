@@ -1,7 +1,10 @@
 ``persistent`` Changelog
 ========================
 
-3.11 (unreleased)
+4.0 (unreleased)
 -----------------
+
+- Dropped dependency on ``zope.testing`` / ``zope.testrunner``:  tests now
+  run with ``setup.py test``.
 
 - Initial release, branched from ZODB trunk on 2011-02-16.

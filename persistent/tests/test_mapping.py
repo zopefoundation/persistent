@@ -13,7 +13,6 @@
 ##############################################################################
 import doctest
 import unittest
-from zope.testing import setupstack
 
 def test_suite():
     return unittest.TestSuite((
