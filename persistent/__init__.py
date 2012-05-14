@@ -22,7 +22,7 @@ try:
     from cPersistence import CHANGED
     from cPersistence import STICKY
     from cPersistence import simple_new
-except ImportError: # XXX need pure-Python fallback
+except ImportError: #pragma NO COVER
     _HAVE_CPERSISTENCE = False
     from pyPersistence import Persistent
     from pyPersistence import GHOST
@@ -36,12 +36,12 @@ else:
 
 try:
     from cPickleCache import PickleCache
-except ImportError:
+except ImportError: #pragma NO COVER
     from picklecache import PickleCache
 
 try:
     import TimeStamp
-except ImportError:
+except ImportError: #pragma NO COVER
     import timestamp as TimeStamp
     import sys
     sys.modules['persistent.TimeStamp'] = sys.modules['persistent.timestamp']
@@ -51,7 +51,7 @@ if _HAVE_CPERSISTENCE:
     # is available.  XXX that the pyPersistent version already does this?
     try:
         from zope.interface import classImplements
-    except ImportError:
+    except ImportError: #pragma NO COVER
         pass
     else:
         from persistent.interfaces import IPersistent
