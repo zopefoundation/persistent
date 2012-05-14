@@ -1,2 +1,3 @@
 build
 persistent.egg-info
+.coverage
