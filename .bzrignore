@@ -1,3 +1,7 @@
 build
 persistent.egg-info
 .coverage
+.tox
+nosetests.xml
+coverage.xml
+docs/_build
