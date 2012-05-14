@@ -11,20 +11,44 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
-import doctest
 import unittest
 
-def test_suite():
-    return unittest.TestSuite((
-        doctest.DocFileSuite('README.txt'),
-        ))
 
 
-l0 = {}
-l1 = {0:0}
-l2 = {0:0, 1:1}
+class Test_default(unittest.TestCase):
 
-class MappingTests(unittest.TestCase):
+    def _getTargetClass(self):
+        from persistent.mapping import default
+        return default
+
+    def _makeOne(self, func):
+        return self._getTargetClass()(func)
+
+    def test___get___from_class(self):
+        _called_with = []
+        def _test(inst):
+            _called_with.append(inst)
+            return '_test'
+        descr = self._makeOne(_test)
+        class Foo(object):
+            testing = descr
+        self.assertTrue(Foo.testing is descr)
+        self.assertEqual(_called_with, [])
+
+    def test___get___from_instance(self):
+        _called_with = []
+        def _test(inst):
+            _called_with.append(inst)
+            return 'TESTING'
+        descr = self._makeOne(_test)
+        class Foo(object):
+            testing = descr
+        foo = Foo()
+        self.assertEqual(foo.testing, 'TESTING')
+        self.assertEqual(_called_with, [foo])
+
+
+class PersistentMappingTests(unittest.TestCase):
 
     def _getTargetClass(self):
         from persistent.mapping import PersistentMapping
@@ -41,6 +65,9 @@ class MappingTests(unittest.TestCase):
 
     def testTheWorld(self):
         # Test constructors
+        l0 = {}
+        l1 = {0:0}
+        l2 = {0:0, 1:1}
         pm = self._getTargetClass()
         u = pm()
         u0 = pm(l0)
@@ -215,7 +242,9 @@ without marking the object as changed:
     """
 
 def test_suite():
+    import doctest
     return unittest.TestSuite((
         doctest.DocTestSuite(),
-        unittest.makeSuite(MappingTests),
-        ))
+        unittest.makeSuite(PersistentMappingTests),
+        unittest.makeSuite(Test_default),
+    ))
