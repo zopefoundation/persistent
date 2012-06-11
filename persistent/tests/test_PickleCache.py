@@ -13,31 +13,6 @@
 ##############################################################################
 import unittest
 
-class DummyConnection:
-
-    def setklassstate(self, obj):
-        """Method used by PickleCache."""
-
-
-def test_delitem():
-    """
-    >>> from persistent import PickleCache
-    >>> conn = DummyConnection()
-    >>> cache = PickleCache(conn)
-    >>> del cache[''] # doctest: +ELLIPSIS
-    Traceback (most recent call last):
-    ...
-    KeyError:...
-    >>> from persistent import Persistent
-    >>> class Derived(Persistent):
-    ...    pass
-    >>> p = Derived()
-    >>> p._p_oid = 'foo'
-    >>> p._p_jar = conn
-    >>> cache['foo'] = p
-    >>> del cache['foo']
-
-    """
 
 def new_ghost():
     """
