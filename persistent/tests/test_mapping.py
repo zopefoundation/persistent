@@ -54,9 +54,12 @@ class PersistentMappingTests(unittest.TestCase):
         from persistent.mapping import PersistentMapping
         return PersistentMapping
 
+    def _makeOne(self, *args, **kw):
+        return self._getTargetClass()(*args, **kw)
+
     def test_volatile_attributes_not_persisted(self):
         # http://www.zope.org/Collectors/Zope/2052
-        m = self._getTargetClass()()
+        m = self._makeOne()
         m.foo = 'bar'
         m._v_baz = 'qux'
         state = m.__getstate__()
@@ -68,24 +71,23 @@ class PersistentMappingTests(unittest.TestCase):
         l0 = {}
         l1 = {0:0}
         l2 = {0:0, 1:1}
-        pm = self._getTargetClass()
-        u = pm()
-        u0 = pm(l0)
-        u1 = pm(l1)
-        u2 = pm(l2)
+        u = self._makeOne()
+        u0 = self._makeOne(l0)
+        u1 = self._makeOne(l1)
+        u2 = self._makeOne(l2)
 
-        uu = pm(u)
-        uu0 = pm(u0)
-        uu1 = pm(u1)
-        uu2 = pm(u2)
+        uu = self._makeOne(u)
+        uu0 = self._makeOne(u0)
+        uu1 = self._makeOne(u1)
+        uu2 = self._makeOne(u2)
 
         class OtherMapping:
             def __init__(self, initmapping):
                 self.__data = initmapping
             def items(self):
                 return self.__data.items()
-        v0 = pm(OtherMapping(u0))
-        vv = pm([(0, 0), (1, 1)])
+        v0 = self._makeOne(OtherMapping(u0))
+        vv = self._makeOne([(0, 0), (1, 1)])
 
         # Test __repr__
         eq = self.assertEqual
@@ -149,7 +151,7 @@ class PersistentMappingTests(unittest.TestCase):
         # Test update
 
         l = {"a":"b"}
-        u = pm(l)
+        u = self._makeOne(l)
         u.update(u2)
         for i in u:
             self.failUnless(i in l or i in u2, "i in l or i in u2")
@@ -195,56 +197,40 @@ class PersistentMappingTests(unittest.TestCase):
         u2.clear()
         eq(u2, {}, "u2 == {}")
 
-def test_legacy_data():
-    """
-We've deprecated PersistentDict.  If you import
-persistent.dict.PersistentDict, you'll get
-persistent.mapping.PersistentMapping.
+    def test___repr___converts_legacy_container_attr(self):
+        # In the past, PM used a _container attribute. For some time, the
+        # implementation continued to use a _container attribute in pickles
+        # (__get/setstate__) to be compatible with older releases.  This isn't
+        # really necessary any more. In fact, releases for which this might
+        # matter can no longer share databases with current releases.  Because
+        # releases as recent as 3.9.0b5 still use _container in saved state, we
+        # need to accept such state, but we stop producing it.
+        pm = self._makeOne()
+        self.assertEqual(pm.__dict__, {'data': {}})
+        # Make it look like an older instance
+        pm.__dict__.clear()
+        pm.__dict__['_container'] = {'a': 1}
+        self.assertEqual(pm.__dict__, {'_container': {'a': 1}})
+        pm._p_changed = 0
+        self.assertEqual(repr(pm), "{'a': 1}")
+        self.assertEqual(pm.__dict__, {'data': {'a': 1}})
+        self.assertEqual(pm.__getstate__(), {'data': {'a': 1}})
 
-    >>> import persistent.dict, persistent.mapping
-    >>> persistent.dict.PersistentDict is persistent.mapping.PersistentMapping
-    True
 
-PersistentMapping uses a data attribute for it's mapping data:
+class Test_legacy_PersistentDict(unittest.TestCase):
 
-    >>> m = persistent.mapping.PersistentMapping()
-    >>> m.__dict__
-    {'data': {}}
+    def _getTargetClass(self):
+        from persistent.dict import PersistentDict
+        return PersistentDict
 
-In the past, it used a _container attribute. For some time, the
-implementation continued to use a _container attribute in pickles
-(__get/setstate__) to be compatible with older releases.  This isn't
-really necessary any more. In fact, releases for which this might
-matter can no longer share databases with current releases.  Because
-releases as recent as 3.9.0b5 still use _container in saved state, we
-need to accept such state, but we stop producing it.
+    def test_PD_is_alias_to_PM(self):
+        from persistent.mapping import PersistentMapping
+        self.assertTrue(self._getTargetClass() is PersistentMapping)
 
-If we reset it's __dict__ with legacy data:
-
-    >>> m.__dict__.clear()
-    >>> m.__dict__['_container'] = {'a': 1}
-    >>> m.__dict__
-    {'_container': {'a': 1}}
-    >>> m._p_changed = 0
-
-But when we perform any operations on it, the data will be converted
-without marking the object as changed:
-
-    >>> m
-    {'a': 1}
-    >>> m.__dict__
-    {'data': {'a': 1}}
-    >>> m._p_changed
-    0
-
-    >>> m.__getstate__()
-    {'data': {'a': 1}}
-    """
 
 def test_suite():
-    import doctest
     return unittest.TestSuite((
-        doctest.DocTestSuite(),
-        unittest.makeSuite(PersistentMappingTests),
         unittest.makeSuite(Test_default),
+        unittest.makeSuite(PersistentMappingTests),
+        unittest.makeSuite(Test_legacy_PersistentDict),
     ))
