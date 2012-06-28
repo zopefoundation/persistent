@@ -73,6 +73,8 @@ class PersistentWeakKeyDictionary(Persistent):
     # It would be helpful if the data manager/connection cached these.
 
     def __init__(self, adict=None, **kwargs):
+        # XXX 'kwargs' is pointles, because keys must be strings, but we
+        #     are going to try (and fail) to wrap a WeakRef around them.
         self.data = {}
         if adict is not None:
             keys = getattr(adict, "keys", None)
