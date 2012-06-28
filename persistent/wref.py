@@ -53,6 +53,8 @@ class WeakRef(object):
         return hash(self)
 
     def __eq__(self, other):
+        if not isinstance(other, WeakRef):
+            return False
         self = self()
         if self is None:
             raise TypeError('Weakly-referenced object has gone away')
@@ -73,15 +75,15 @@ class PersistentWeakKeyDictionary(Persistent):
     # It would be helpful if the data manager/connection cached these.
 
     def __init__(self, adict=None, **kwargs):
-        # XXX 'kwargs' is pointles, because keys must be strings, but we
-        #     are going to try (and fail) to wrap a WeakRef around them.
         self.data = {}
         if adict is not None:
             keys = getattr(adict, "keys", None)
             if keys is None:
                 adict = dict(adict)
             self.update(adict)
-        if kwargs:
+        # XXX 'kwargs' is pointless, because keys must be strings, but we
+        #     are going to try (and fail) to wrap a WeakRef around them.
+        if kwargs: #pragma NO COVER
             self.update(kwargs)
 
     def __getstate__(self):
@@ -119,9 +121,9 @@ class PersistentWeakKeyDictionary(Persistent):
 
     def update(self, adict):
         if isinstance(adict, PersistentWeakKeyDictionary):
-            self.data.update(adict.update)
+            self.data.update(adict.data)
         else:
             for k, v in adict.items():
                 self.data[WeakRef(k)] = v
 
-    # TODO:  May need more methods, and tests.
+    # TODO:  May need more methods and tests.
