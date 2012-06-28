@@ -7,12 +7,10 @@ machinery happy:
 .. doctest::
 
    >>> import pickle
-   >>> from persistent.tests.test_pickle import Simple
-   >>> from persistent.tests.test_pickle import print_dict
+   >>> from persistent.tests.cucumbers import Simple
+   >>> from persistent.tests.cucumbers import print_dict
 
    >>> x = Simple('x', aaa=1, bbb='foo')
-   >>> print_dict(x.__dict__)
-   {'__name__': 'x', 'aaa': 1, 'bbb': 'foo'}
 
    >>> print_dict(x.__getstate__())
    {'__name__': 'x', 'aaa': 1, 'bbb': 'foo'}
@@ -49,7 +47,7 @@ by overriding :meth:`__getnewargs__`, :meth:`__getstate__` and
 
 .. doctest::
 
-   >>> from persistent.tests.test_pickle import Custom
+   >>> from persistent.tests.cucumbers import Custom
 
    >>> x = Custom('x', 'y')
    >>> x.__getnewargs__()
@@ -82,7 +80,7 @@ ignores any slots which map onto the "persistent" namespace (prefixed with
 .. doctest::
 
    >>> import copy_reg
-   >>> from persistent.tests.test_pickle import SubSlotted
+   >>> from persistent.tests.cucumbers import SubSlotted
    >>> x = SubSlotted('x', 'y', 'z')
 
 Note that we haven't yet assiged a value to the ``s4`` attribute:
@@ -131,7 +129,7 @@ themselves:
 
 .. doctest::
 
-   >>> from persistent.tests.test_pickle import SubSubSlotted
+   >>> from persistent.tests.cucumbers import SubSubSlotted
    >>> x = SubSubSlotted('x', 'y', 'z')
 
    >>> d, s = x.__getstate__()
@@ -142,13 +140,13 @@ themselves:
 
    >>> import pickle
    >>> pickle.loads(pickle.dumps(x)) == x
-   1
+   True
    >>> pickle.loads(pickle.dumps(x, 0)) == x
-   1
+   True
    >>> pickle.loads(pickle.dumps(x, 1)) == x
-   1
+   True
    >>> pickle.loads(pickle.dumps(x, 2)) == x
-   1
+   True
 
    >>> x.s4 = 'spam'
    >>> x.foo = 'bar'
@@ -161,11 +159,10 @@ themselves:
    {'s1': 'x', 's2': 'y', 's3': 'z', 's4': 'spam'}
 
    >>> pickle.loads(pickle.dumps(x)) == x
-   1
+   True
    >>> pickle.loads(pickle.dumps(x, 0)) == x
-   1
+   True
    >>> pickle.loads(pickle.dumps(x, 1)) == x
-   1
+   True
    >>> pickle.loads(pickle.dumps(x, 2)) == x
-   1
-
+   True

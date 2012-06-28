@@ -826,7 +826,7 @@ class _Persistent_Base(object):
     def test_pickle_roundtrip_simple(self):
         import pickle
         # XXX s.b. 'examples'
-        from persistent.tests.test_pickle import Simple
+        from persistent.tests.cucumbers import Simple
         inst = Simple('testing')
         copy = pickle.loads(pickle.dumps(inst))
         self.assertEqual(copy, inst)
@@ -837,7 +837,7 @@ class _Persistent_Base(object):
     def test_pickle_roundtrip_w_getnewargs_and_getstate(self):
         import pickle
         # XXX s.b. 'examples'
-        from persistent.tests.test_pickle import Custom
+        from persistent.tests.cucumbers import Custom
         inst = Custom('x', 'y')
         copy = pickle.loads(pickle.dumps(inst))
         self.assertEqual(copy, inst)
@@ -848,7 +848,7 @@ class _Persistent_Base(object):
     def test_pickle_roundtrip_w_slots_missing_slot(self):
         import pickle
         # XXX s.b. 'examples'
-        from persistent.tests.test_pickle import SubSlotted
+        from persistent.tests.cucumbers import SubSlotted
         inst = SubSlotted('x', 'y', 'z')
         copy = pickle.loads(pickle.dumps(inst))
         self.assertEqual(copy, inst)
@@ -859,7 +859,7 @@ class _Persistent_Base(object):
     def test_pickle_roundtrip_w_slots_filled_slot(self):
         import pickle
         # XXX s.b. 'examples'
-        from persistent.tests.test_pickle import SubSlotted
+        from persistent.tests.cucumbers import SubSlotted
         inst = SubSlotted('x', 'y', 'z')
         inst.s4 = 'a'
         copy = pickle.loads(pickle.dumps(inst))
@@ -871,7 +871,7 @@ class _Persistent_Base(object):
     def test_pickle_roundtrip_w_slots_and_empty_dict(self):
         import pickle
         # XXX s.b. 'examples'
-        from persistent.tests.test_pickle import SubSubSlotted
+        from persistent.tests.cucumbers import SubSubSlotted
         inst = SubSubSlotted('x', 'y', 'z')
         copy = pickle.loads(pickle.dumps(inst))
         self.assertEqual(copy, inst)
@@ -882,7 +882,7 @@ class _Persistent_Base(object):
     def test_pickle_roundtrip_w_slots_and_filled_dict(self):
         import pickle
         # XXX s.b. 'examples'
-        from persistent.tests.test_pickle import SubSubSlotted
+        from persistent.tests.cucumbers import SubSubSlotted
         inst = SubSubSlotted('x', 'y', 'z', foo='bar', baz='bam')
         inst.s4 = 'a'
         copy = pickle.loads(pickle.dumps(inst))
