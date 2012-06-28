@@ -17,8 +17,9 @@ try:
     import transaction
     import ZODB
 except ImportError:
-    pass
+    HAVE_ZODB = False
 else:
+    HAVE_ZODB = True
     def new_ghost_w_persistent_classes():
         """
         Peristent meta classes work too:
@@ -78,6 +79,8 @@ else:
 
 def test_suite():
     from doctest import DocTestSuite
-    return unittest.TestSuite((
-        DocTestSuite(),
-    ))
+    if HAVE_ZODB:
+       return unittest.TestSuite((
+           DocTestSuite(),
+       ))
+    return unittest.TestSuite()
