@@ -1239,4 +1239,4 @@ else:
     _add_to_suite.append(Test_simple_new)
 
 def test_suite():
-    return unittest.TestSuite(_add_to_suite)
+    return unittest.TestSuite([unittest.makeSuite(x) for x in _add_to_suite])
