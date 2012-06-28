@@ -1118,7 +1118,8 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
 
     def _clearMRU(self, jar):
         jar._cache._mru[:] = []
-        
+ 
+_add_to_suite = [PyPersistentTests]
 
 try:
     from persistent import cPersistence
@@ -1140,3 +1141,23 @@ else:
         def _makeCache(self, jar):
             from persistent.cPickleCache import PickleCache
             return PickleCache(jar)
+
+    _add_to_suite.append(CPersistentTests)
+
+    class Test_simple_new(unittest.TestCase):
+
+        def _callFUT(self, x):
+            from persistent.cPersistence import simple_new
+            return simple_new(x)
+
+        def test_w_non_type(self):
+            self.assertRaises(TypeError, self._callFUT, '')
+
+        def test_w_type(self):
+            for typ in (type, list, dict, tuple, object):
+                self.assertTrue(isinstance(self._callFUT(typ), typ))
+
+    _add_to_suite.append(Test_simple_new)
+
+def test_suite():
+    return unittest.TestSuite(_add_to_suite)
