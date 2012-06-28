@@ -11,7 +11,7 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
-import unittest
+# Example objects for pickling.
 
 from persistent import Persistent
 
@@ -42,41 +42,6 @@ class Simple(Persistent):
     def __cmp__(self, other):
         return cmpattrs(self, other, '__class__', *(self.__dict__.keys()))
 
-def test_basic_pickling():
-    """
-    >>> x = Simple('x', aaa=1, bbb='foo')
-
-    >>> print_dict(x.__getstate__())
-    {'__name__': 'x', 'aaa': 1, 'bbb': 'foo'}
-
-    >>> f, (c,), state = x.__reduce__()
-    >>> f.__name__
-    '__newobj__'
-    >>> f.__module__
-    'copy_reg'
-    >>> c.__name__
-    'Simple'
-
-    >>> print_dict(state)
-    {'__name__': 'x', 'aaa': 1, 'bbb': 'foo'}
-
-    >>> import pickle
-    >>> pickle.loads(pickle.dumps(x)) == x
-    1
-    >>> pickle.loads(pickle.dumps(x, 0)) == x
-    1
-    >>> pickle.loads(pickle.dumps(x, 1)) == x
-    1
-
-    >>> pickle.loads(pickle.dumps(x, 2)) == x
-    1
-
-    >>> x.__setstate__({'z': 1})
-    >>> x.__dict__
-    {'z': 1}
-
-    """
-
 class Custom(Simple):
 
     def __new__(cls, x, y):
@@ -97,87 +62,27 @@ class Custom(Simple):
         self.a = a
 
 
-def test_pickling_w_overrides():
-    """
-    >>> x = Custom('x', 'y')
-    >>> x.a = 99
-
-    >>> (f, (c, ax, ay), a) = x.__reduce__()
-    >>> f.__name__
-    '__newobj__'
-    >>> f.__module__
-    'copy_reg'
-    >>> c.__name__
-    'Custom'
-    >>> ax, ay, a
-    ('x', 'y', 99)
-
-    >>> import pickle
-    >>> pickle.loads(pickle.dumps(x)) == x
-    1
-    >>> pickle.loads(pickle.dumps(x, 0)) == x
-    1
-    >>> pickle.loads(pickle.dumps(x, 1)) == x
-    1
-    >>> pickle.loads(pickle.dumps(x, 2)) == x
-    1
-
-    """
-
 class Slotted(Persistent):
+
     __slots__ = 's1', 's2', '_p_splat', '_v_eek'
+
     def __init__(self, s1, s2):
         self.s1, self.s2 = s1, s2
         self._v_eek = 1
         self._p_splat = 2
 
+
 class SubSlotted(Slotted):
+
     __slots__ = 's3', 's4'
+
     def __init__(self, s1, s2, s3):
         Slotted.__init__(self, s1, s2)
         self.s3 = s3
 
-
     def __cmp__(self, other):
         return cmpattrs(self, other, '__class__', 's1', 's2', 's3', 's4')
 
-
-def test_pickling_w_slots_only():
-    """
-    >>> x = SubSlotted('x', 'y', 'z')
-
-    >>> d, s = x.__getstate__()
-    >>> d
-    >>> print_dict(s)
-    {'s1': 'x', 's2': 'y', 's3': 'z'}
-
-    >>> import pickle
-    >>> pickle.loads(pickle.dumps(x)) == x
-    1
-    >>> pickle.loads(pickle.dumps(x, 0)) == x
-    1
-    >>> pickle.loads(pickle.dumps(x, 1)) == x
-    1
-    >>> pickle.loads(pickle.dumps(x, 2)) == x
-    1
-
-    >>> x.s4 = 'spam'
-
-    >>> d, s = x.__getstate__()
-    >>> d
-    >>> print_dict(s)
-    {'s1': 'x', 's2': 'y', 's3': 'z', 's4': 'spam'}
-
-    >>> pickle.loads(pickle.dumps(x)) == x
-    1
-    >>> pickle.loads(pickle.dumps(x, 0)) == x
-    1
-    >>> pickle.loads(pickle.dumps(x, 1)) == x
-    1
-    >>> pickle.loads(pickle.dumps(x, 2)) == x
-    1
-
-    """
 
 class SubSubSlotted(SubSlotted):
 
@@ -191,89 +96,3 @@ class SubSubSlotted(SubSlotted):
         return cmpattrs(self, other,
                         '__class__', 's1', 's2', 's3', 's4',
                         *(self.__dict__.keys()))
-
-def test_pickling_w_slots():
-    """
-    >>> x = SubSubSlotted('x', 'y', 'z', aaa=1, bbb='foo')
-
-    >>> d, s = x.__getstate__()
-    >>> print_dict(d)
-    {'aaa': 1, 'bbb': 'foo'}
-    >>> print_dict(s)
-    {'s1': 'x', 's2': 'y', 's3': 'z'}
-
-    >>> import pickle
-    >>> pickle.loads(pickle.dumps(x)) == x
-    1
-    >>> pickle.loads(pickle.dumps(x, 0)) == x
-    1
-    >>> pickle.loads(pickle.dumps(x, 1)) == x
-    1
-    >>> pickle.loads(pickle.dumps(x, 2)) == x
-    1
-
-    >>> x.s4 = 'spam'
-
-    >>> d, s = x.__getstate__()
-    >>> print_dict(d)
-    {'aaa': 1, 'bbb': 'foo'}
-    >>> print_dict(s)
-    {'s1': 'x', 's2': 'y', 's3': 'z', 's4': 'spam'}
-
-    >>> pickle.loads(pickle.dumps(x)) == x
-    1
-    >>> pickle.loads(pickle.dumps(x, 0)) == x
-    1
-    >>> pickle.loads(pickle.dumps(x, 1)) == x
-    1
-    >>> pickle.loads(pickle.dumps(x, 2)) == x
-    1
-
-    """
-
-def test_pickling_w_slots_w_empty_dict():
-    """
-    >>> x = SubSubSlotted('x', 'y', 'z')
-
-    >>> d, s = x.__getstate__()
-    >>> print_dict(d)
-    {}
-    >>> print_dict(s)
-    {'s1': 'x', 's2': 'y', 's3': 'z'}
-
-    >>> import pickle
-    >>> pickle.loads(pickle.dumps(x)) == x
-    1
-    >>> pickle.loads(pickle.dumps(x, 0)) == x
-    1
-    >>> pickle.loads(pickle.dumps(x, 1)) == x
-    1
-    >>> pickle.loads(pickle.dumps(x, 2)) == x
-    1
-
-    >>> x.s4 = 'spam'
-
-    >>> d, s = x.__getstate__()
-    >>> print_dict(d)
-    {}
-    >>> print_dict(s)
-    {'s1': 'x', 's2': 'y', 's3': 'z', 's4': 'spam'}
-
-    >>> pickle.loads(pickle.dumps(x)) == x
-    1
-    >>> pickle.loads(pickle.dumps(x, 0)) == x
-    1
-    >>> pickle.loads(pickle.dumps(x, 1)) == x
-    1
-    >>> pickle.loads(pickle.dumps(x, 2)) == x
-    1
-
-    """
-
-
-
-def test_suite():
-    from doctest import DocTestSuite
-    return unittest.TestSuite((
-        DocTestSuite(),
-        ))

@@ -5,3 +5,4 @@
    :maxdepth: 2
 
    api/interfaces
+   api/pickling

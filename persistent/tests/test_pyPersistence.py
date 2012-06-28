@@ -788,6 +788,17 @@ class _Persistent_Base(object):
         self.assertEqual(second, (self._getTargetClass(),))
         self.assertEqual(third, None)
 
+    def test___reduce__w_subclass_having_getnewargs(self):
+        from copy_reg import __newobj__
+        class Derived(self._getTargetClass()):
+            def __getnewargs__(self):
+                return ('a', 'b')
+        inst = Derived()
+        first, second, third = inst.__reduce__()
+        self.failUnless(first is __newobj__)
+        self.assertEqual(second, (Derived, 'a', 'b'))
+        self.assertEqual(third, {})
+
     def test___reduce__w_subclass_having_getstate(self):
         from copy_reg import __newobj__
         class Derived(self._getTargetClass()):
@@ -799,7 +810,7 @@ class _Persistent_Base(object):
         self.assertEqual(second, (Derived,))
         self.assertEqual(third, {})
 
-    def test___reduce__w_subclass_having_gna_and_getstate(self):
+    def test___reduce__w_subclass_having_getnewargs_and_getstate(self):
         from copy_reg import __newobj__
         class Derived(self._getTargetClass()):
             def __getnewargs__(self):
@@ -811,6 +822,74 @@ class _Persistent_Base(object):
         self.failUnless(first is __newobj__)
         self.assertEqual(second, (Derived, 'a', 'b'))
         self.assertEqual(third, {'foo': 'bar'})
+
+    def test_pickle_roundtrip_simple(self):
+        import pickle
+        # XXX s.b. 'examples'
+        from persistent.tests.test_pickle import Simple
+        inst = Simple('testing')
+        copy = pickle.loads(pickle.dumps(inst))
+        self.assertEqual(copy, inst)
+        for protocol in 0, 1, 2:
+            copy = pickle.loads(pickle.dumps(inst, protocol))
+            self.assertEqual(copy, inst)
+
+    def test_pickle_roundtrip_w_getnewargs_and_getstate(self):
+        import pickle
+        # XXX s.b. 'examples'
+        from persistent.tests.test_pickle import Custom
+        inst = Custom('x', 'y')
+        copy = pickle.loads(pickle.dumps(inst))
+        self.assertEqual(copy, inst)
+        for protocol in 0, 1, 2:
+            copy = pickle.loads(pickle.dumps(inst, protocol))
+            self.assertEqual(copy, inst)
+
+    def test_pickle_roundtrip_w_slots_missing_slot(self):
+        import pickle
+        # XXX s.b. 'examples'
+        from persistent.tests.test_pickle import SubSlotted
+        inst = SubSlotted('x', 'y', 'z')
+        copy = pickle.loads(pickle.dumps(inst))
+        self.assertEqual(copy, inst)
+        for protocol in 0, 1, 2:
+            copy = pickle.loads(pickle.dumps(inst, protocol))
+            self.assertEqual(copy, inst)
+
+    def test_pickle_roundtrip_w_slots_filled_slot(self):
+        import pickle
+        # XXX s.b. 'examples'
+        from persistent.tests.test_pickle import SubSlotted
+        inst = SubSlotted('x', 'y', 'z')
+        inst.s4 = 'a'
+        copy = pickle.loads(pickle.dumps(inst))
+        self.assertEqual(copy, inst)
+        for protocol in 0, 1, 2:
+            copy = pickle.loads(pickle.dumps(inst, protocol))
+            self.assertEqual(copy, inst)
+
+    def test_pickle_roundtrip_w_slots_and_empty_dict(self):
+        import pickle
+        # XXX s.b. 'examples'
+        from persistent.tests.test_pickle import SubSubSlotted
+        inst = SubSubSlotted('x', 'y', 'z')
+        copy = pickle.loads(pickle.dumps(inst))
+        self.assertEqual(copy, inst)
+        for protocol in 0, 1, 2:
+            copy = pickle.loads(pickle.dumps(inst, protocol))
+            self.assertEqual(copy, inst)
+
+    def test_pickle_roundtrip_w_slots_and_filled_dict(self):
+        import pickle
+        # XXX s.b. 'examples'
+        from persistent.tests.test_pickle import SubSubSlotted
+        inst = SubSubSlotted('x', 'y', 'z', foo='bar', baz='bam')
+        inst.s4 = 'a'
+        copy = pickle.loads(pickle.dumps(inst))
+        self.assertEqual(copy, inst)
+        for protocol in 0, 1, 2:
+            copy = pickle.loads(pickle.dumps(inst, protocol))
+            self.assertEqual(copy, inst)
 
     def test__p_activate_from_unsaved(self):
         inst = self._makeOne()
