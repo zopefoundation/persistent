@@ -19,10 +19,10 @@ from zope.interface import Attribute
 
 # Allowed values for _p_state
 try:
-    from .cPersistence import GHOST
-    from .cPersistence import UPTODATE
-    from .cPersistence import CHANGED
-    from .cPersistence import STICKY
+    from persistent.cPersistence import GHOST
+    from persistent.cPersistence import UPTODATE
+    from persistent.cPersistence import CHANGED
+    from persistent.cPersistence import STICKY
 except ImportError: #pragma NO COVER
     GHOST = -1
     UPTODATE = 0
@@ -169,7 +169,8 @@ class IPersistent(Interface):
     _p_jar = Attribute(
         """The data manager for the object.
 
-        The data manager implements the IPersistentDataManager interface.
+        The data manager should implement IPersistentDataManager (note that
+        this constraint is not enforced).
 
         If there is no data manager, then this is None.
 

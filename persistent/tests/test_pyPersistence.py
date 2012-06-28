@@ -74,12 +74,6 @@ class _Persistent_Base(object):
             inst._p_jar = new_jar
         self.assertRaises(ValueError, _test)
 
-    def test_assign_p_jar_w_invalid_jar(self):
-        inst = self._makeOne()
-        def _test():
-            inst._p_jar = object()
-        self.assertRaises(ValueError, _test)
-
     def test_assign_p_jar_w_valid_jar(self):
         jar = self._makeJar()
         inst = self._makeOne()

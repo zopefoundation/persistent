@@ -70,8 +70,6 @@ class Persistent(object):
             if self.__jar != value:
                 raise ValueError('Already assigned a data manager')
         else:
-            if not IPersistentDataManager.providedBy(value):
-                raise ValueError('Not a data manager: %s' % value)
             self.__jar = value
             self.__flags = 0
 
