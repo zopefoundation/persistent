@@ -7,3 +7,4 @@
    api/interfaces
    api/attributes
    api/pickling
+   api/cache
