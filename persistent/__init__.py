@@ -11,44 +11,28 @@
 # FOR A PARTICULAR PURPOSE
 #
 ##############################################################################
-"""Provide access to Persistent and PersistentMapping.
+"""Prefer C implementations of Persistent / PickleCache / TimeStamp.
 
-$Id$
+Fall back to pure Python implementations.
 """
 try:
-    from cPersistence import Persistent
-    from cPersistence import GHOST
-    from cPersistence import UPTODATE
-    from cPersistence import CHANGED
-    from cPersistence import STICKY
-    from cPersistence import simple_new
+    from persistent.cPersistence import Persistent
+    from persistent.cPersistence import GHOST
+    from persistent.cPersistence import UPTODATE
+    from persistent.cPersistence import CHANGED
+    from persistent.cPersistence import STICKY
+    from persistent.cPersistence import simple_new
 except ImportError: #pragma NO COVER
-    _HAVE_CPERSISTENCE = False
-    from pyPersistence import Persistent
-    from pyPersistence import GHOST
-    from pyPersistence import UPTODATE
-    from pyPersistence import CHANGED
-    from pyPersistence import STICKY
+    from persistent.pyPersistence import Persistent
+    from persistent.pyPersistence import GHOST
+    from persistent.pyPersistence import UPTODATE
+    from persistent.pyPersistence import CHANGED
+    from persistent.pyPersistence import STICKY
 else:
-    _HAVE_CPERSISTENCE = True
     import copy_reg
     copy_reg.constructor(simple_new)
-
-try:
-    from cPickleCache import PickleCache
-except ImportError: #pragma NO COVER
-    from picklecache import PickleCache
-
-try:
-    import TimeStamp
-except ImportError: #pragma NO COVER
-    import timestamp as TimeStamp
-    import sys
-    sys.modules['persistent.TimeStamp'] = sys.modules['persistent.timestamp']
-
-if _HAVE_CPERSISTENCE:
     # Make an interface declaration for Persistent, if zope.interface
-    # is available.  XXX that the pyPersistent version already does this?
+    # is available.  Note that the pyPersistent version already does this.
     try:
         from zope.interface import classImplements
     except ImportError: #pragma NO COVER
@@ -56,3 +40,15 @@ if _HAVE_CPERSISTENCE:
     else:
         from persistent.interfaces import IPersistent
         classImplements(Persistent, IPersistent)
+
+try:
+    from persistent.cPickleCache import PickleCache
+except ImportError: #pragma NO COVER
+    from persistent.picklecache import PickleCache
+
+try:
+    import persistent.TimeStamp
+except ImportError: #pragma NO COVER
+    import persistent.timestamp as TimeStamp
+    import sys
+    sys.modules['persistent.TimeStamp'] = sys.modules['persistent.timestamp']
