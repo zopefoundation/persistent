@@ -701,6 +701,15 @@ class _Persistent_Base(object):
         inst._v_qux = 'spam'
         self.assertEqual(inst.__getstate__(), {'foo': 'bar'})
 
+    def test___getstate___derived_w_slots(self):
+        class Derived(self._getTargetClass()):
+            __slots__ = ('foo', '_p_baz', '_v_qux')
+        inst = Derived()
+        inst.foo = 'bar'
+        inst._p_baz = 'bam'
+        inst._v_qux = 'spam'
+        self.assertEqual(inst.__getstate__(), (None, {'foo': 'bar'}))
+
     def test___setstate___empty(self):
         inst = self._makeOne()
         inst.__setstate__(None) # doesn't raise, but doesn't change anything

@@ -262,6 +262,14 @@ class Persistent(object):
             return dict([x for x in idict.items()
                             if not x[0].startswith('_p_') and
                                not x[0].startswith('_v_')])
+        slots = getattr(type(self), '__slots__', None)
+        if slots is not None:
+            slots = [x for x in slots
+                            if not x.startswith('_p_') and
+                               not x.startswith('_v_') and
+                               x not in Persistent.__slots__]
+            if slots:
+                return None, dict([(x, getattr(self, x)) for x in slots])
         return None
 
     def __setstate__(self, state):
@@ -357,6 +365,7 @@ class Persistent(object):
         # the cache on the persistent object.
         if self.__jar is not None and self.__oid is not None:
             self.__jar._cache.mru(self.__oid)
+
 
 def _estimated_size_in_24_bits(value):
     if value > 1073741696:
