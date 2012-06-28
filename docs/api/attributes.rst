@@ -14,7 +14,7 @@ attribute that isn't handled by the default machinery.
 
 .. doctest::
 
-   >>> from persistent.tests.test_overriding_attrs import OverridesGetattr
+   >>> from persistent.tests.attrhooks import OverridesGetattr
    >>> o = OverridesGetattr()
    >>> o._p_changed
    False
@@ -30,7 +30,7 @@ We'll save the object, so it can be deactivated:
 
 .. doctest::
 
-   >>> from persistent.tests.test_overriding_attrs import _resettingJar
+   >>> from persistent.tests.attrhooks import _resettingJar
    >>> jar = _resettingJar()
    >>> jar.add(o)
    >>> o._p_deactivate()
@@ -61,7 +61,7 @@ Our sample class takes initial values as keyword arguments to the constructor:
 
 .. doctest::
 
-   >>> from persistent.tests.test_overriding_attrs import VeryPrivate
+   >>> from persistent.tests.attrhooks import VeryPrivate
    >>> o = VeryPrivate(x=1)
 
 
@@ -89,7 +89,7 @@ Next, we'll save the object in a database so that we can deactivate it:
 
 .. doctest::
 
-   >>> from persistent.tests.test_overriding_attrs import _rememberingJar
+   >>> from persistent.tests.attrhooks import _rememberingJar
    >>> jar = _rememberingJar()
    >>> jar.add(o)
    >>> o._p_deactivate()
