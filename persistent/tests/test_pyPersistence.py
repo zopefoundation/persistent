@@ -704,6 +704,30 @@ class _Persistent_Base(object):
         inst._v_qux = 'spam'
         self.assertEqual(inst.__getstate__(), (None, {'foo': 'bar'}))
 
+    def test___getstate___derived_w_slots_in_base_and_derived(self):
+        class Base(self._getTargetClass()):
+            __slots__ = ('foo',)
+        class Derived(Base):
+            __slots__ = ('baz', 'qux',)
+        inst = Derived()
+        inst.foo = 'bar'
+        inst.baz = 'bam'
+        inst.qux = 'spam'
+        self.assertEqual(inst.__getstate__(),
+                         (None, {'foo': 'bar', 'baz': 'bam', 'qux': 'spam'}))
+
+    def test___getstate___derived_w_slots_in_base_but_not_derived(self):
+        class Base(self._getTargetClass()):
+            __slots__ = ('foo',)
+        class Derived(Base):
+            pass
+        inst = Derived()
+        inst.foo = 'bar'
+        inst.baz = 'bam'
+        inst.qux = 'spam'
+        self.assertEqual(inst.__getstate__(),
+                         ({'baz': 'bam', 'qux': 'spam'}, {'foo': 'bar'}))
+
     def test___setstate___empty(self):
         inst = self._makeOne()
         inst.__setstate__(None) # doesn't raise, but doesn't change anything
@@ -726,6 +750,35 @@ class _Persistent_Base(object):
         inst.foo = 'bar'
         inst.__setstate__({'baz': 'bam'})
         self.assertEqual(inst.__dict__, {'baz': 'bam'})
+
+    def test___setstate___derived_w_slots(self):
+        class Derived(self._getTargetClass()):
+            __slots__ = ('foo', '_p_baz', '_v_qux')
+        inst = Derived()
+        inst.__setstate__((None, {'foo': 'bar'}))
+        self.assertEqual(inst.foo, 'bar')
+
+    def test___setstate___derived_w_slots_in_base_classes(self):
+        class Base(self._getTargetClass()):
+            __slots__ = ('foo',)
+        class Derived(Base):
+            __slots__ = ('baz', 'qux',)
+        inst = Derived()
+        inst.__setstate__((None, {'foo': 'bar', 'baz': 'bam', 'qux': 'spam'}))
+        self.assertEqual(inst.foo, 'bar')
+        self.assertEqual(inst.baz, 'bam')
+        self.assertEqual(inst.qux, 'spam')
+
+    def test___setstate___derived_w_slots_in_base_but_not_derived(self):
+        class Base(self._getTargetClass()):
+            __slots__ = ('foo',)
+        class Derived(Base):
+            pass
+        inst = Derived()
+        inst.__setstate__(({'baz': 'bam', 'qux': 'spam'}, {'foo': 'bar'}))
+        self.assertEqual(inst.foo, 'bar')
+        self.assertEqual(inst.baz, 'bam')
+        self.assertEqual(inst.qux, 'spam')
 
     def test___reduce__(self):
         from copy_reg import __newobj__
@@ -1067,8 +1120,11 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
         jar._cache._mru[:] = []
         
 
-import os
-if os.environ.get('run_C_tests'):
+try:
+    from persistent import cPersistence
+except ImportError:
+    pass
+else:
     class CPersistentTests(unittest.TestCase, _Persistent_Base):
 
         def _getTargetClass(self):

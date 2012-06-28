@@ -12,6 +12,7 @@
 #
 ##############################################################################
 from copy_reg import __newobj__
+from copy_reg import _slotnames
 import sys
 
 from zope.interface import implements
@@ -252,34 +253,51 @@ class Persistent(object):
                     _OGA(self, '_p_register')()
         object.__delattr__(self, name)
 
+    def _slotnames(self):
+        slotnames = _slotnames(type(self))
+        return [x for x in slotnames
+                   if not x.startswith('_p_') and
+                      not x.startswith('_v_') and
+                      not x.startswith('_Persistent__') and
+                      x not in Persistent.__slots__]
+
     def __getstate__(self):
         """ See IPersistent.
         """
         idict = getattr(self, '__dict__', None)
+        slotnames = self._slotnames()
         if idict is not None:
-            return dict([x for x in idict.items()
-                            if not x[0].startswith('_p_') and
-                               not x[0].startswith('_v_')])
-        slots = getattr(type(self), '__slots__', None)
-        if slots is not None:
-            slots = [x for x in slots
-                            if not x.startswith('_p_') and
-                               not x.startswith('_v_') and
-                               x not in Persistent.__slots__]
-            if slots:
-                return None, dict([(x, getattr(self, x)) for x in slots])
-        return None
+            d = dict([x for x in idict.items()
+                         if not x[0].startswith('_p_') and
+                            not x[0].startswith('_v_')])
+        else:
+            d = None
+        if slotnames:
+            s = {}
+            for slotname in slotnames:
+                value = getattr(self, slotname, self)
+                if value is not self:
+                    s[slotname] = value
+            return d, s
+        return d
 
     def __setstate__(self, state):
         """ See IPersistent.
         """
+        try:
+            inst_dict, slots = state
+        except:
+            inst_dict, slots = state, ()
         idict = getattr(self, '__dict__', None)
-        if idict is not None:
+        if inst_dict is not None:
+            if idict is None:
+                raise TypeError('No instance dict')
             idict.clear()
-            idict.update(state)
-        else:
-            if state != None:
-                raise ValueError('No state allowed on base Persistent class')
+            idict.update(inst_dict)
+        slotnames = self._slotnames()
+        if slotnames:
+            for k, v in slots.items():
+                setattr(self, k, v)
 
     def __reduce__(self):
         """ See IPersistent.
