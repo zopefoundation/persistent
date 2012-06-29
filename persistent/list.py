@@ -17,13 +17,15 @@
 $Id$"""
 
 import persistent
-from UserList import UserList
+from persistent._compat import UserList
+from persistent._compat import PYTHON2
 
 class PersistentList(UserList, persistent.Persistent):
     __super_setitem = UserList.__setitem__
     __super_delitem = UserList.__delitem__
-    __super_setslice = UserList.__setslice__
-    __super_delslice = UserList.__delslice__
+    if PYTHON2:
+        __super_setslice = UserList.__setslice__
+        __super_delslice = UserList.__delslice__
     __super_iadd = UserList.__iadd__
     __super_imul = UserList.__imul__
     __super_append = UserList.append

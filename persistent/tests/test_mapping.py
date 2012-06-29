@@ -67,6 +67,7 @@ class PersistentMappingTests(unittest.TestCase):
         self.failIf('_v_baz' in state)
 
     def testTheWorld(self):
+        from persistent._compat import PYTHON2
         # Test constructors
         l0 = {}
         l1 = {0:0}
@@ -81,7 +82,7 @@ class PersistentMappingTests(unittest.TestCase):
         uu1 = self._makeOne(u1)
         uu2 = self._makeOne(u2)
 
-        class OtherMapping:
+        class OtherMapping(dict):
             def __init__(self, initmapping):
                 self.__data = initmapping
             def items(self):
@@ -97,17 +98,18 @@ class PersistentMappingTests(unittest.TestCase):
 
         # Test __cmp__ and __len__
 
-        def mycmp(a, b):
-            r = cmp(a, b)
-            if r < 0: return -1
-            if r > 0: return 1
-            return r
+        if PYTHON2:
+            def mycmp(a, b):
+                r = cmp(a, b)
+                if r < 0: return -1
+                if r > 0: return 1
+                return r
 
-        all = [l0, l1, l2, u, u0, u1, u2, uu, uu0, uu1, uu2]
-        for a in all:
-            for b in all:
-                eq(mycmp(a, b), mycmp(len(a), len(b)),
-                      "mycmp(a, b) == mycmp(len(a), len(b))")
+            all = [l0, l1, l2, u, u0, u1, u2, uu, uu0, uu1, uu2]
+            for a in all:
+                for b in all:
+                    eq(mycmp(a, b), mycmp(len(a), len(b)),
+                        "mycmp(a, b) == mycmp(len(a), len(b))")
 
         # Test __getitem__
 

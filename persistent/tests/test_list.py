@@ -44,6 +44,7 @@ class TestPList(unittest.TestCase):
         self.failIf('_v_baz' in state)
 
     def testTheWorld(self):
+        from persistent._compat import PYTHON2
         # Test constructors
         pl = self._getTargetClass()
         u = pl()
@@ -68,17 +69,18 @@ class TestPList(unittest.TestCase):
 
         # Test __cmp__ and __len__
 
-        def mycmp(a, b):
-            r = cmp(a, b)
-            if r < 0: return -1
-            if r > 0: return 1
-            return r
+        if PYTHON2:
+            def mycmp(a, b):
+                r = cmp(a, b)
+                if r < 0: return -1
+                if r > 0: return 1
+                return r
 
-        all = [l0, l1, l2, u, u0, u1, u2, uu, uu0, uu1, uu2]
-        for a in all:
-            for b in all:
-                eq(mycmp(a, b), mycmp(len(a), len(b)),
-                      "mycmp(a, b) == mycmp(len(a), len(b))")
+            all = [l0, l1, l2, u, u0, u1, u2, uu, uu0, uu1, uu2]
+            for a in all:
+                for b in all:
+                    eq(mycmp(a, b), mycmp(len(a), len(b)),
+                        "mycmp(a, b) == mycmp(len(a), len(b))")
 
         # Test __getitem__
 
@@ -218,8 +220,9 @@ class TestPList(unittest.TestCase):
         eq(u, u2, "u == u2")
 
         # Test keyword arguments to sort
-        u.sort(cmp=lambda x,y: cmp(y, x))
-        eq(u, [1, 0], "u == [1, 0]")
+        if PYTHON2:
+            u.sort(cmp=lambda x,y: cmp(y, x))
+            eq(u, [1, 0], "u == [1, 0]")
 
         u.sort(key=lambda x:-x)
         eq(u, [1, 0], "u == [1, 0]")

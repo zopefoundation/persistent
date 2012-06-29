@@ -18,8 +18,6 @@ import os
 import platform
 import sys
 
-from ez_setup import use_setuptools
-use_setuptools()
 
 from setuptools import Extension
 from setuptools import find_packages
@@ -40,7 +38,7 @@ is_jython = 'java' in sys.platform
 # Jython cannot build the C optimizations, while on PyPy they are
 # anti-optimizations (the C extension compatibility layer is known-slow,
 # and defeats JIT opportunities).
-if is_pypy or is_jython:
+if is_pypy or is_jython or sys.version_info[0] > 2:
     ext_modules = headers = []
 else:
     ext_modules = [Extension(name = 'persistent.cPersistence',

@@ -16,13 +16,22 @@ import sys
 
 if sys.version_info[0] > 2: #pragma NO COVER
     import copyreg as copy_reg
+    from collections import UserDict as IterableUserDict
+    from collections import UserList
 
     def _u(s):
         return s
 
+    PYTHON3 = True
+    PYTHON2 = False
+
 else: #pragma NO COVER
     import copy_reg
+    from UserDict import IterableUserDict
+    from UserList import UserList
 
     def _u(s):
         return unicode(s, 'unicode_escape')
 
+    PYTHON3 = False
+    PYTHON2 = True

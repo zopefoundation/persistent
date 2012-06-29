@@ -17,7 +17,7 @@
 $Id$"""
 
 import persistent
-import UserDict
+from persistent._compat import IterableUserDict
 
 class default(object):
 
@@ -30,7 +30,7 @@ class default(object):
         return self.func(inst)
 
 
-class PersistentMapping(UserDict.IterableUserDict, persistent.Persistent):
+class PersistentMapping(IterableUserDict, persistent.Persistent):
     """A persistent wrapper for mapping objects.
 
     This class allows wrapping of mapping objects so that object
@@ -47,13 +47,13 @@ class PersistentMapping(UserDict.IterableUserDict, persistent.Persistent):
     # state as changed when a method actually changes the state.  At
     # the mapping API evolves, we may need to add more methods here.
 
-    __super_delitem = UserDict.IterableUserDict.__delitem__
-    __super_setitem = UserDict.IterableUserDict.__setitem__
-    __super_clear = UserDict.IterableUserDict.clear
-    __super_update = UserDict.IterableUserDict.update
-    __super_setdefault = UserDict.IterableUserDict.setdefault
-    __super_pop = UserDict.IterableUserDict.pop
-    __super_popitem = UserDict.IterableUserDict.popitem
+    __super_delitem = IterableUserDict.__delitem__
+    __super_setitem = IterableUserDict.__setitem__
+    __super_clear = IterableUserDict.clear
+    __super_update = IterableUserDict.update
+    __super_setdefault = IterableUserDict.setdefault
+    __super_pop = IterableUserDict.pop
+    __super_popitem = IterableUserDict.popitem
 
     def __delitem__(self, key):
         self.__super_delitem(key)
@@ -75,7 +75,7 @@ class PersistentMapping(UserDict.IterableUserDict, persistent.Persistent):
         # We could inline all of UserDict's implementation into the
         # method here, but I'd rather not depend at all on the
         # implementation in UserDict (simple as it is).
-        if not self.has_key(key):
+        if not key in self.data:
             self._p_changed = 1
         return self.__super_setdefault(key, failobj)
 
