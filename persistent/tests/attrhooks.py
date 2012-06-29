@@ -122,8 +122,3 @@ class VeryPrivate(Persistent):
 
         if not name.startswith('tmp_'):
             self._p_changed = 1
-
-
-def test_suite():
-    from doctest import DocTestSuite
-    return DocTestSuite()
