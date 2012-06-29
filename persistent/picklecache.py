@@ -21,7 +21,6 @@ from persistent.interfaces import GHOST
 from persistent.interfaces import IPickleCache
 from persistent.interfaces import STICKY
 from persistent.interfaces import OID_TYPE
-from persistent.interfaces import SERIAL_TYPE
 
 class RingNode(object):
     # 32 byte fixed size wrapper.
@@ -83,7 +82,7 @@ class PickleCache(object):
         """ See IPickleCache.
         """
         if not isinstance(oid, OID_TYPE):
-            raise ValueError('OID must be string: %s' % oid)
+            raise ValueError('OID must be %s: %s' % (OID_TYPE, oid))
         if oid in self.persistent_classes:
             del self.persistent_classes[oid]
         else:
@@ -205,7 +204,7 @@ class PickleCache(object):
     def invalidate(self, to_invalidate):
         """ See IPickleCache.
         """
-        if isinstance(to_invalidate, str):
+        if isinstance(to_invalidate, OID_TYPE):
             self._invalidate(to_invalidate)
         else:
             for oid in to_invalidate:

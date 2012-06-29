@@ -88,7 +88,7 @@ class PersistentWeakKeyDictionary(Persistent):
 
     def __getstate__(self):
         state = Persistent.__getstate__(self)
-        state['data'] = state['data'].items()
+        state['data'] = list(state['data'].items())
         return state
 
     def __setstate__(self, state):

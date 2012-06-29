@@ -147,9 +147,10 @@ class pyTimeStampTests(unittest.TestCase):
 
     def test_repr(self):
         from persistent.timestamp import _makeOctets
+        from persistent._compat import _native
         SERIAL = _makeOctets('\x01' * 8)
         ts = self._makeOne(SERIAL)
-        self.assertEqual(SERIAL, repr(ts))
+        self.assertEqual(repr(ts), _native(SERIAL))
 
 class TimeStampTests(unittest.TestCase):
 

@@ -24,19 +24,21 @@ class WeakRefTests(unittest.TestCase):
         return self._getTargetClass()(ob)
 
     def test_ctor_target_wo_jar(self):
+        from persistent._compat import _b
         target = _makeTarget()
         wref = self._makeOne(target)
         self.assertTrue(wref._v_ob is target)
-        self.assertEqual(wref.oid, 'OID')
+        self.assertEqual(wref.oid, _b('OID'))
         self.assertTrue(wref.dm is None)
         self.assertFalse('database_name' in wref.__dict__)
 
     def test_ctor_target_w_jar(self):
+        from persistent._compat import _b
         target = _makeTarget()
         target._p_jar = jar = _makeJar()
         wref = self._makeOne(target)
         self.assertTrue(wref._v_ob is target)
-        self.assertEqual(wref.oid, 'OID')
+        self.assertEqual(wref.oid, _b('OID'))
         self.assertTrue(wref.dm is jar)
         self.assertEqual(wref.database_name, 'testing')
 

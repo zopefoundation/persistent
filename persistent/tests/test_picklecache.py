@@ -125,20 +125,21 @@ class PickleCacheTests(unittest.TestCase):
     def test___setitem___non_ghost(self):
         from persistent.interfaces import UPTODATE
         from persistent._compat import _b
+        KEY = _b('uptodate')
         cache = self._makeOne()
         uptodate = self._makePersist(state=UPTODATE)
 
-        cache[_b('uptodate')] = uptodate
+        cache[KEY] = uptodate
 
         self.assertEqual(len(cache), 1)
         items = list(cache.items())
         self.assertEqual(len(items), 1)
         self.assertEqual(_len(cache.klass_items()), 0)
-        self.assertEqual(items[0][0], 'uptodate')
+        self.assertEqual(items[0][0], KEY)
         self.assertEqual(cache.ringlen(), 1)
         self.failUnless(items[0][1] is uptodate)
-        self.failUnless(cache['uptodate'] is uptodate)
-        self.failUnless(cache.get('uptodate') is uptodate)
+        self.failUnless(cache[KEY] is uptodate)
+        self.failUnless(cache.get(KEY) is uptodate)
 
     def test___setitem___persistent_class(self):
         from persistent._compat import _b
