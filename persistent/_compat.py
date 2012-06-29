@@ -17,6 +17,12 @@ import sys
 if sys.version_info[0] > 2: #pragma NO COVER
     import copyreg as copy_reg
 
+    def _u(s):
+        return s
+
 else: #pragma NO COVER
     import copy_reg
+
+    def _u(s):
+        return unicode(s, 'unicode_escape')
 

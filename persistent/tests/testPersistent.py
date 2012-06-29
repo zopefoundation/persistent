@@ -191,6 +191,7 @@ class PersistenceTest(unittest.TestCase):
 
     def test_setting_serial_w_invalid_types_raises(self):
         # Serial must be an 8-digit string
+        from persistent._compat import _u
         obj = self._makeOne()
 
         def set(val):
@@ -199,7 +200,7 @@ class PersistenceTest(unittest.TestCase):
         self.assertRaises(ValueError, set, 1)
         self.assertRaises(ValueError, set, "0123")
         self.assertRaises(ValueError, set, "012345678")
-        self.assertRaises(ValueError, set, u"01234567")
+        self.assertRaises(ValueError, set, _u("01234567"))
 
     def test_del_serial_returns_to_initial(self):
         NOSERIAL = "\000" * 8
