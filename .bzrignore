@@ -5,3 +5,4 @@ persistent.egg-info
 nosetests.xml
 coverage.xml
 docs/_build
+__pycache__
