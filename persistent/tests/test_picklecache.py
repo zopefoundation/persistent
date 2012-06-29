@@ -77,7 +77,7 @@ class PickleCacheTests(unittest.TestCase):
         cache = self._makeOne()
         default = object
 
-        self.failUnless(cache.get('nonesuch', default) is default)
+        self.assertTrue(cache.get('nonesuch', default) is default)
 
     def test___setitem___non_string_oid_raises_ValueError(self):
         cache = self._makeOne()
@@ -119,8 +119,8 @@ class PickleCacheTests(unittest.TestCase):
         self.assertEqual(_len(cache.klass_items()), 0)
         self.assertEqual(items[0][0], KEY)
         self.assertEqual(cache.ringlen(), 0)
-        self.failUnless(items[0][1] is ghost)
-        self.failUnless(cache[KEY] is ghost)
+        self.assertTrue(items[0][1] is ghost)
+        self.assertTrue(cache[KEY] is ghost)
 
     def test___setitem___non_ghost(self):
         from persistent.interfaces import UPTODATE
@@ -137,9 +137,9 @@ class PickleCacheTests(unittest.TestCase):
         self.assertEqual(_len(cache.klass_items()), 0)
         self.assertEqual(items[0][0], KEY)
         self.assertEqual(cache.ringlen(), 1)
-        self.failUnless(items[0][1] is uptodate)
-        self.failUnless(cache[KEY] is uptodate)
-        self.failUnless(cache.get(KEY) is uptodate)
+        self.assertTrue(items[0][1] is uptodate)
+        self.assertTrue(cache[KEY] is uptodate)
+        self.assertTrue(cache.get(KEY) is uptodate)
 
     def test___setitem___persistent_class(self):
         from persistent._compat import _b
@@ -155,9 +155,9 @@ class PickleCacheTests(unittest.TestCase):
         self.assertEqual(_len(cache.items()), 0)
         self.assertEqual(len(kitems), 1)
         self.assertEqual(kitems[0][0], KEY)
-        self.failUnless(kitems[0][1] is pclass)
-        self.failUnless(cache[KEY] is pclass)
-        self.failUnless(cache.get(KEY) is pclass)
+        self.assertTrue(kitems[0][1] is pclass)
+        self.assertTrue(cache[KEY] is pclass)
+        self.assertTrue(cache.get(KEY) is pclass)
 
     def test___delitem___non_string_oid_raises_ValueError(self):
         cache = self._makeOne()
@@ -389,10 +389,10 @@ class PickleCacheTests(unittest.TestCase):
         self.assertEqual(items[9][0], _b('oid_0099'))
 
         for oid in oids[:90]:
-            self.failUnless(cache.get(oid) is None)
+            self.assertTrue(cache.get(oid) is None)
 
         for oid in oids[90:]:
-            self.failIf(cache.get(oid) is None)
+            self.assertFalse(cache.get(oid) is None)
 
     def test_incrgc_w_smaller_drain_resistance(self):
         from persistent.interfaces import UPTODATE
@@ -443,10 +443,10 @@ class PickleCacheTests(unittest.TestCase):
         gc.collect() # banish the ghosts who are no longer in the ring
 
         self.assertEqual(cache.cache_non_ghost_count, 0)
-        self.failUnless(cache.ring.next is cache.ring)
+        self.assertTrue(cache.ring.next is cache.ring)
 
         for oid in oids:
-            self.failUnless(cache.get(oid) is None)
+            self.assertTrue(cache.get(oid) is None)
 
     def test_minimize(self):
         import gc
@@ -466,7 +466,7 @@ class PickleCacheTests(unittest.TestCase):
         self.assertEqual(cache.cache_non_ghost_count, 0)
 
         for oid in oids:
-            self.failUnless(cache.get(oid) is None)
+            self.assertTrue(cache.get(oid) is None)
 
     def test_new_ghost_non_persistent_object(self):
         from persistent._compat import _b
@@ -504,7 +504,7 @@ class PickleCacheTests(unittest.TestCase):
         cache = self._makeOne()
         candidate = self._makePersist(oid=None, jar=None)
         cache.new_ghost(KEY, candidate)
-        self.failUnless(cache.get(KEY) is candidate)
+        self.assertTrue(cache.get(KEY) is candidate)
         self.assertEqual(candidate._p_oid, KEY)
         self.assertEqual(candidate._p_jar, cache.jar)
         self.assertEqual(candidate._p_state, GHOST)
@@ -517,7 +517,7 @@ class PickleCacheTests(unittest.TestCase):
         cache = self._makeOne()
         candidate = self._makePersist(oid=None, jar=None, state=UPTODATE)
         cache.new_ghost(KEY, candidate)
-        self.failUnless(cache.get(KEY) is candidate)
+        self.assertTrue(cache.get(KEY) is candidate)
         self.assertEqual(candidate._p_oid, KEY)
         self.assertEqual(candidate._p_jar, cache.jar)
         self.assertEqual(candidate._p_state, GHOST)
@@ -530,8 +530,8 @@ class PickleCacheTests(unittest.TestCase):
             _p_jar = None
         cache = self._makeOne()
         cache.new_ghost(KEY, Pclass)
-        self.failUnless(cache.get(KEY) is Pclass)
-        self.failUnless(cache.persistent_classes[KEY] is Pclass)
+        self.assertTrue(cache.get(KEY) is Pclass)
+        self.assertTrue(cache.persistent_classes[KEY] is Pclass)
         self.assertEqual(Pclass._p_oid, KEY)
         self.assertEqual(Pclass._p_jar, cache.jar)
 
@@ -543,8 +543,8 @@ class PickleCacheTests(unittest.TestCase):
             _p_jar = None
         cache = self._makeOne()
         cache.new_ghost(KEY, Pclass)
-        self.failUnless(cache.get(KEY) is Pclass)
-        self.failUnless(cache.persistent_classes[KEY] is Pclass)
+        self.assertTrue(cache.get(KEY) is Pclass)
+        self.assertTrue(cache.persistent_classes[KEY] is Pclass)
         self.assertEqual(Pclass._p_oid, KEY)
         self.assertEqual(Pclass._p_jar, cache.jar)
 
@@ -574,7 +574,7 @@ class PickleCacheTests(unittest.TestCase):
         self.assertEqual(cache.ringlen(), 1)
         items = cache.lru_items()
         self.assertEqual(items[0][0], KEY)
-        self.failUnless(items[0][1] is candidate)
+        self.assertTrue(items[0][1] is candidate)
         self.assertEqual(candidate._p_state, UPTODATE)
 
     def test_reify_hit_single_non_ghost(self):
@@ -669,9 +669,9 @@ class PickleCacheTests(unittest.TestCase):
             _p_jar = None
         cache = self._makeOne()
         cache[KEY] = Pclass
-        self.failUnless(cache.persistent_classes[KEY] is Pclass)
+        self.assertTrue(cache.persistent_classes[KEY] is Pclass)
         cache.invalidate(KEY)
-        self.failIf(KEY in cache.persistent_classes)
+        self.assertFalse(KEY in cache.persistent_classes)
 
     def test_debug_info_w_persistent_class(self):
         import gc

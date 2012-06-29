@@ -79,7 +79,7 @@ class _Persistent_Base(object):
         inst = self._makeOne()
         inst._p_jar = jar
         self.assertEqual(inst._p_status, 'saved')
-        self.failUnless(inst._p_jar is jar)
+        self.assertTrue(inst._p_jar is jar)
         inst._p_jar = jar # reassign only to same DM
 
     def test_assign_p_oid_w_invalid_oid(self):
@@ -370,14 +370,14 @@ class _Persistent_Base(object):
         inst._p_activate() # XXX
         inst._p_changed = False
         inst._p_sticky = True
-        self.failUnless(inst._p_sticky)
+        self.assertTrue(inst._p_sticky)
 
     def test_assign_p_sticky_false_non_ghost(self):
         inst, jar, OID = self._makeOneWithJar()
         inst._p_activate() # XXX
         inst._p_changed = False
         inst._p_sticky = False
-        self.failIf(inst._p_sticky)
+        self.assertFalse(inst._p_sticky)
 
     def test__p_status_unsaved(self):
         inst = self._makeOne()
@@ -784,7 +784,7 @@ class _Persistent_Base(object):
         from persistent._compat import copy_reg
         inst = self._makeOne()
         first, second, third = inst.__reduce__()
-        self.failUnless(first is copy_reg.__newobj__)
+        self.assertTrue(first is copy_reg.__newobj__)
         self.assertEqual(second, (self._getTargetClass(),))
         self.assertEqual(third, None)
 
@@ -795,7 +795,7 @@ class _Persistent_Base(object):
                 return ('a', 'b')
         inst = Derived()
         first, second, third = inst.__reduce__()
-        self.failUnless(first is copy_reg.__newobj__)
+        self.assertTrue(first is copy_reg.__newobj__)
         self.assertEqual(second, (Derived, 'a', 'b'))
         self.assertEqual(third, {})
 
@@ -806,7 +806,7 @@ class _Persistent_Base(object):
                 return {}
         inst = Derived()
         first, second, third = inst.__reduce__()
-        self.failUnless(first is copy_reg.__newobj__)
+        self.assertTrue(first is copy_reg.__newobj__)
         self.assertEqual(second, (Derived,))
         self.assertEqual(third, {})
 
@@ -819,7 +819,7 @@ class _Persistent_Base(object):
                 return {'foo': 'bar'}
         inst = Derived()
         first, second, third = inst.__reduce__()
-        self.failUnless(first is copy_reg.__newobj__)
+        self.assertTrue(first is copy_reg.__newobj__)
         self.assertEqual(second, (Derived, 'a', 'b'))
         self.assertEqual(third, {'foo': 'bar'})
 
@@ -1104,7 +1104,7 @@ class _Persistent_Base(object):
         inst, jar, OID = self._makeOneWithJar()
         inst._p_deactivate()
         for name in NAMES:
-            self.failUnless(inst._p_getattr(name))
+            self.assertTrue(inst._p_getattr(name))
         self.assertEqual(inst._p_status, 'ghost')
         self.assertEqual(list(jar._loaded), [])
         self._checkMRU(jar, [])
@@ -1114,7 +1114,7 @@ class _Persistent_Base(object):
         inst, jar, OID = self._makeOneWithJar()
         inst._p_deactivate()
         for name in SPECIAL_NAMES:
-            self.failUnless(inst._p_getattr(name))
+            self.assertTrue(inst._p_getattr(name))
             self.assertEqual(inst._p_status, 'ghost')
         self.assertEqual(list(jar._loaded), [])
         self._checkMRU(jar, [])
@@ -1122,7 +1122,7 @@ class _Persistent_Base(object):
     def test__p_getattr_w_normal_name(self):
         inst, jar, OID = self._makeOneWithJar()
         inst._p_deactivate()
-        self.failIf(inst._p_getattr('normal'))
+        self.assertFalse(inst._p_getattr('normal'))
         self.assertEqual(inst._p_status, 'saved')
         self.assertEqual(list(jar._loaded), [OID])
         self._checkMRU(jar, [OID])
@@ -1132,7 +1132,7 @@ class _Persistent_Base(object):
         SERIAL = _makeOctets('\x01' * 8)
         inst, jar, OID = self._makeOneWithJar()
         inst._p_deactivate()
-        self.failUnless(inst._p_setattr('_p_serial', SERIAL))
+        self.assertTrue(inst._p_setattr('_p_serial', SERIAL))
         self.assertEqual(inst._p_status, 'ghost')
         self.assertEqual(inst._p_serial, SERIAL)
         self.assertEqual(list(jar._loaded), [])
@@ -1141,7 +1141,7 @@ class _Persistent_Base(object):
     def test__p_setattr_w_normal_name(self):
         inst, jar, OID = self._makeOneWithJar()
         inst._p_deactivate()
-        self.failIf(inst._p_setattr('normal', 'value'))
+        self.assertFalse(inst._p_setattr('normal', 'value'))
         # _p_setattr doesn't do the actual write for normal names
         self.assertEqual(inst._p_status, 'saved')
         self.assertEqual(list(jar._loaded), [OID])
@@ -1155,7 +1155,7 @@ class _Persistent_Base(object):
         inst._p_changed = True
         jar._loaded = []
         for name in NAMES:
-            self.failUnless(inst._p_delattr(name))
+            self.assertTrue(inst._p_delattr(name))
         self.assertEqual(inst._p_status, 'ghost')
         self.assertEqual(inst._p_changed, None)
         self.assertEqual(list(jar._loaded), [])
@@ -1166,7 +1166,7 @@ class _Persistent_Base(object):
             normal = 'value'
         inst, jar, OID = self._makeOneWithJar(Derived)
         inst._p_deactivate()
-        self.failIf(inst._p_delattr('normal'))
+        self.assertFalse(inst._p_delattr('normal'))
         # _p_delattr doesn't do the actual delete for normal names
         self.assertEqual(inst._p_status, 'saved')
         self.assertEqual(list(jar._loaded), [OID])

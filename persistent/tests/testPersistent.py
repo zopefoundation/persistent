@@ -73,7 +73,7 @@ class PersistenceTest(unittest.TestCase):
 
         self.assertEqual(obj._p_changed, 1)
         self.assertEqual(obj._p_state, CHANGED)
-        self.assert_(obj in jar.registered)
+        self.assertTrue(obj in jar.registered)
 
     def test_setattr_then_mark_uptodate(self):
         from persistent import UPTODATE
@@ -97,7 +97,7 @@ class PersistenceTest(unittest.TestCase):
 
         self.assertEqual(obj._p_changed, 1)
         self.assertEqual(obj._p_state, CHANGED)
-        self.assert_(obj in jar.registered)
+        self.assertTrue(obj in jar.registered)
 
     def test_cant_ghostify_if_changed(self):
         from persistent import CHANGED
@@ -225,7 +225,7 @@ class PersistenceTest(unittest.TestCase):
         obj._p_serial = ts.raw()
 
         self.assertEqual(obj._p_mtime, ts.timeTime())
-        self.assert_(isinstance(obj._p_mtime, float))
+        self.assertTrue(isinstance(obj._p_mtime, float))
 
     def test_pickle_unpickle(self):
         import pickle

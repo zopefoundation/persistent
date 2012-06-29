@@ -143,7 +143,7 @@ class pyTimeStampTests(unittest.TestCase):
         ts1 = self._makeOne(SERIAL1)
         ts2 = self._makeOne(SERIAL2)
         later = ts2.laterThan(ts1)
-        self.failUnless(later is ts2)
+        self.assertTrue(later is ts2)
 
     def test_repr(self):
         from persistent.timestamp import _makeOctets

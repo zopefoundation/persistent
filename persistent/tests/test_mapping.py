@@ -63,8 +63,8 @@ class PersistentMappingTests(unittest.TestCase):
         m.foo = 'bar'
         m._v_baz = 'qux'
         state = m.__getstate__()
-        self.failUnless('foo' in state)
-        self.failIf('_v_baz' in state)
+        self.assertTrue('foo' in state)
+        self.assertFalse('_v_baz' in state)
 
     def testTheWorld(self):
         from persistent._compat import PYTHON2
@@ -145,9 +145,9 @@ class PersistentMappingTests(unittest.TestCase):
 
         # Test __contains__
         for i in u2:
-            self.failUnless(i in u2, "i in u2")
+            self.assertTrue(i in u2, "i in u2")
         for i in min(u2)-1, max(u2)+1:
-            self.failUnless(i not in u2, "i not in u2")
+            self.assertTrue(i not in u2, "i not in u2")
 
         # Test update
 
@@ -155,11 +155,11 @@ class PersistentMappingTests(unittest.TestCase):
         u = self._makeOne(l)
         u.update(u2)
         for i in u:
-            self.failUnless(i in l or i in u2, "i in l or i in u2")
+            self.assertTrue(i in l or i in u2, "i in l or i in u2")
         for i in l:
-            self.failUnless(i in u, "i in u")
+            self.assertTrue(i in u, "i in u")
         for i in u2:
-            self.failUnless(i in u, "i in u")
+            self.assertTrue(i in u, "i in u")
 
         # Test setdefault
 
@@ -168,13 +168,13 @@ class PersistentMappingTests(unittest.TestCase):
 
         x = u2.setdefault(5, 5)
         eq(x, 5, "u2.setdefault(5, 5) == 5")
-        self.failUnless(5 in u2, "5 in u2")
+        self.assertTrue(5 in u2, "5 in u2")
 
         # Test pop
 
         x = u2.pop(1)
         eq(x, 1, "u2.pop(1) == 1")
-        self.failUnless(1 not in u2, "1 not in u2")
+        self.assertTrue(1 not in u2, "1 not in u2")
 
         try:
             u2.pop(1)
@@ -190,8 +190,8 @@ class PersistentMappingTests(unittest.TestCase):
 
         items = list(u2.items())
         key, value = u2.popitem()
-        self.failUnless((key, value) in items, "key, value in items")
-        self.failUnless(key not in u2, "key not in u2")
+        self.assertTrue((key, value) in items, "key, value in items")
+        self.assertTrue(key not in u2, "key not in u2")
 
         # Test clear
 
