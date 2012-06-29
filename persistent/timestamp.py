@@ -18,6 +18,7 @@ import math
 import struct
 import sys
 
+from persistent._compat import _native
 
 _RAWTYPE = bytes
 
@@ -89,7 +90,7 @@ class pyTimeStamp(object):
         return self._raw
 
     def __repr__(self):
-        return self._raw
+        return _native(self._raw)
 
     def year(self):
         return self._elements[0]
