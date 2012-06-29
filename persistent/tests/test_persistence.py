@@ -36,6 +36,24 @@ class _Persistent_Base(object):
         jar._cache = self._makeCache(jar)
         return jar
 
+    def _makeBrokenJar(self):
+        from zope.interface import implementer
+        from persistent.interfaces import IPersistentDataManager
+
+        @implementer(IPersistentDataManager)
+        class _BrokenJar(object):
+            def __init__(self):
+                self.called = 0
+            def register(self,ob):
+                self.called += 1
+                raise NotImplementedError
+            def setstate(self,ob):
+                raise NotImplementedError
+
+        jar = _BrokenJar()
+        jar._cache = self._makeCache(jar)
+        return jar
+
     def _makeOneWithJar(self, klass=None):
         from persistent.timestamp import _makeOctets
         OID = _makeOctets('\x01' * 8)
@@ -1171,6 +1189,90 @@ class _Persistent_Base(object):
         self.assertEqual(inst._p_status, 'saved')
         self.assertEqual(list(jar._loaded), [OID])
         self._checkMRU(jar, [OID])
+
+    def test_set__p_changed_w_broken_jar(self):
+        # When an object is modified, it registers with its data manager.
+        # If that registration fails, the exception is propagated and the
+        # object stays in the up-to-date state.
+        # It shouldn't change to the modified state, because it won't
+        # be saved when the transaction commits.
+        from persistent._compat import _b
+        class P(self._getTargetClass()):
+            def __init__(self):
+                self.x = 0
+            def inc(self):
+                self.x += 1
+        p = P()
+        p._p_oid = _b('1')
+        p._p_jar = self._makeBrokenJar()
+        self.assertEqual(p._p_state, 0)
+        self.assertEqual(p._p_jar.called, 0)
+        def _try():
+            p._p_changed = 1
+        self.assertRaises(NotImplementedError, _try)
+        self.assertEqual(p._p_jar.called, 1)
+        self.assertEqual(p._p_state, 0)
+
+    def test__p_activate_w_broken_jar(self):
+        # Make sure that exceptions that occur inside the data manager's
+        # ``setstate()`` method propagate out to the caller.
+        from persistent._compat import _b
+        class P(self._getTargetClass()):
+            def __init__(self):
+                self.x = 0
+            def inc(self):
+                self.x += 1
+        p = P()
+        p._p_oid = _b('1')
+        p._p_jar = self._makeBrokenJar()
+        p._p_deactivate()
+        self.assertEqual(p._p_state, -1)
+        self.assertRaises(NotImplementedError, p._p_activate)
+        self.assertEqual(p._p_state, -1)
+
+    def test__ancient_dict_layout_bug(self):
+        # We once had a bug in the `Persistent` class that calculated an
+        # incorrect offset for the ``__dict__`` attribute.  It assigned
+        # ``__dict__`` and ``_p_jar`` to the same location in memory. 
+        # This is a simple test to make sure they have different locations.
+        class P(self._getTargetClass()):
+            def __init__(self):
+                self.x = 0
+            def inc(self):
+                self.x += 1
+        p = P()
+        p.inc()
+        p.inc()
+        self.assertTrue('x' in p.__dict__)
+        self.assertTrue(p._p_jar is None)
+
+    def test_w_diamond_inheritance(self):
+        class A(self._getTargetClass()):
+            pass
+        class B(self._getTargetClass()):
+            pass
+        class C(A, B):
+            pass
+        class D(object):
+            pass
+        class E(D, B):
+            pass
+        # no raise
+        A(), B(), C(), D(), E()
+
+    def test_w_alternate_metaclass(self):
+        class alternateMeta(type):
+            pass
+        class alternate(object):
+            __metaclass__ = alternateMeta
+        class mixedMeta(alternateMeta, type):
+            pass
+        # no raise
+        class mixed1(alternate, self._getTargetClass()):
+            pass
+        class mixed2(self._getTargetClass(), alternate):
+            pass
+
 
 class PyPersistentTests(unittest.TestCase, _Persistent_Base):
 

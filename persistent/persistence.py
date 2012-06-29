@@ -307,10 +307,15 @@ class Persistent(object):
     def _p_activate(self):
         """ See IPersistent.
         """
+        before = self.__flags
         if self.__flags is None:
             self.__flags = 0
         if self.__jar is not None and self.__oid is not None:
-            self.__jar.setstate(self)
+            try:
+                self.__jar.setstate(self)
+            except:
+                self.__flags = before
+                raise
 
     def _p_deactivate(self):
         """ See IPersistent.
@@ -366,9 +371,10 @@ class Persistent(object):
     def _p_set_changed_flag(self, value):
         if value:
             before = self.__flags
-            self.__flags |= _CHANGED
-            if before != self.__flags:
+            after = self.__flags | _CHANGED
+            if before != after:
                 self._p_register()
+            self.__flags = after
         else:
             self.__flags &= ~_CHANGED
 
