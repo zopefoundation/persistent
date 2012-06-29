@@ -6,7 +6,7 @@
 
 - 100% unit test coverage.
 
-- Added explicity support for PyPy.
+- Added explicit support for PyPy.
 
 - Dropped explicit support for Python < 2.6.
 
