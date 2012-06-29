@@ -19,11 +19,11 @@ class _Persistent_Base(object):
         return self._getTargetClass()(*args, **kw)
 
     def _makeJar(self):
-        from zope.interface import implements
+        from zope.interface import implementer
         from persistent.interfaces import IPersistentDataManager
 
+        @implementer(IPersistentDataManager)
         class _Jar(object):
-            implements(IPersistentDataManager)
             def __init__(self):
                 self._loaded = []
                 self._registered = []

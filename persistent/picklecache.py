@@ -20,6 +20,8 @@ from persistent.interfaces import CHANGED
 from persistent.interfaces import GHOST
 from persistent.interfaces import IPickleCache
 from persistent.interfaces import STICKY
+from persistent.interfaces import OID_TYPE
+from persistent.interfaces import SERIAL_TYPE
 
 class RingNode(object):
     # 32 byte fixed size wrapper.
@@ -61,8 +63,8 @@ class PickleCache(object):
     def __setitem__(self, oid, value):
         """ See IPickleCache.
         """
-        if not isinstance(oid, str): # XXX bytes
-            raise ValueError('OID must be string: %s' % oid)
+        if not isinstance(oid, OID_TYPE): # XXX bytes
+            raise ValueError('OID must be %s: %s' % (OID_TYPE, oid))
         # XXX
         if oid in self.persistent_classes or oid in self.data:
             if self.data[oid] is not value:
@@ -80,7 +82,7 @@ class PickleCache(object):
     def __delitem__(self, oid):
         """ See IPickleCache.
         """
-        if not isinstance(oid, str):
+        if not isinstance(oid, OID_TYPE):
             raise ValueError('OID must be string: %s' % oid)
         if oid in self.persistent_classes:
             del self.persistent_classes[oid]
@@ -189,7 +191,7 @@ class PickleCache(object):
     def reify(self, to_reify):
         """ See IPickleCache.
         """
-        if isinstance(to_reify, str): #bytes
+        if isinstance(to_reify, OID_TYPE): #bytes
             to_reify = [to_reify]
         for oid in to_reify:
             value = self[oid]

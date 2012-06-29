@@ -34,7 +34,8 @@ class PersistenceTest(unittest.TestCase):
         self.assertEqual(obj._p_oid, None)
 
     def test_oid_mutable_and_deletable_when_no_jar(self):
-        OID = '\x01' * 8
+        from persistent._compat import _b
+        OID = _b('\x01' * 8)
         obj = self._makeOne()
         obj._p_oid = OID
         self.assertEqual(obj._p_oid, OID)
@@ -42,7 +43,8 @@ class PersistenceTest(unittest.TestCase):
         self.assertEqual(obj._p_oid, None)
 
     def test_oid_immutable_when_in_jar(self):
-        OID = '\x01' * 8
+        from persistent._compat import _b
+        OID = _b('\x01' * 8)
         obj = self._makeOne()
         jar = self._makeJar()
         jar.add(obj)
@@ -185,9 +187,9 @@ class PersistenceTest(unittest.TestCase):
         self.assertEqual(obj._p_state, GHOST)
 
     def test_initial_serial(self):
-        NOSERIAL = "\000" * 8
+        from persistent.timestamp import _ZERO
         obj = self._makeOne()
-        self.assertEqual(obj._p_serial, NOSERIAL)
+        self.assertEqual(obj._p_serial, _ZERO)
 
     def test_setting_serial_w_invalid_types_raises(self):
         # Serial must be an 8-digit string
@@ -203,11 +205,12 @@ class PersistenceTest(unittest.TestCase):
         self.assertRaises(ValueError, set, _u("01234567"))
 
     def test_del_serial_returns_to_initial(self):
-        NOSERIAL = "\000" * 8
+        from persistent.timestamp import _ZERO
+        from persistent._compat import _b
         obj = self._makeOne()
-        obj._p_serial = "01234567"
+        obj._p_serial = _b("01234567")
         del obj._p_serial
-        self.assertEqual(obj._p_serial, NOSERIAL)
+        self.assertEqual(obj._p_serial, _ZERO)
 
     def test_initial_mtime(self):
         obj = self._makeOne()

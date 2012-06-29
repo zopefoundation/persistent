@@ -177,23 +177,30 @@ class PersistentWeakKeyDictionaryTests(unittest.TestCase):
 
     def test___setstate___empty(self):
         from persistent.wref import WeakRef
+        from persistent._compat import _b
         jar = _makeJar()
-        key = jar['key'] = _makeTarget(oid='KEY')
+        KEY = _b('KEY')
+        KEY2 = _b('KEY2')
+        KEY3 = _b('KEY3')
+        VALUE = _b('VALUE')
+        VALUE2 = _b('VALUE2')
+        VALUE3 = _b('VALUE3')
+        key = jar[KEY] = _makeTarget(oid=KEY)
         key._p_jar = jar
         kref = WeakRef(key)
-        value = jar['value'] = _makeTarget(oid='VALUE')
+        value = jar[VALUE] = _makeTarget(oid=VALUE)
         value._p_jar = jar
-        key2 = _makeTarget(oid='KEY2')
+        key2 = _makeTarget(oid=KEY2)
         key2._p_jar = jar # not findable
         kref2 = WeakRef(key2)
         del kref2._v_ob  # force a miss
-        value2 = jar['value2'] = _makeTarget(oid='VALUE2')
+        value2 = jar[VALUE2] = _makeTarget(oid=VALUE2)
         value2._p_jar = jar
-        key3 = jar['KEY3'] = _makeTarget(oid='KEY3') # findable
+        key3 = jar[KEY3] = _makeTarget(oid=KEY3) # findable
         key3._p_jar = jar
         kref3 = WeakRef(key3)
         del kref3._v_ob  # force a miss, but win in the lookup
-        value3 = jar['value3'] = _makeTarget(oid='VALUE3')
+        value3 = jar[VALUE3] = _makeTarget(oid=VALUE3)
         value3._p_jar = jar
         pwkd = self._makeOne(None)
         pwkd.__setstate__({'data':
@@ -308,6 +315,7 @@ class PersistentWeakKeyDictionaryTests(unittest.TestCase):
 
 def _makeTarget(oid='OID', **kw):
     from persistent import Persistent
+    from persistent._compat import _b
     class Derived(Persistent):
         def __hash__(self):
             return hash(self._p_oid)
@@ -318,7 +326,7 @@ def _makeTarget(oid='OID', **kw):
     derived = Derived()
     for k, v in kw.items():
         setattr(derived, k, v)
-    derived._p_oid = oid
+    derived._p_oid = _b(oid)
     return derived
 
 def _makeJar():

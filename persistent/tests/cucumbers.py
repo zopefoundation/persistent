@@ -14,6 +14,7 @@
 # Example objects for pickling.
 
 from persistent import Persistent
+from persistent._compat import PYTHON2
 
 
 def print_dict(d):
@@ -27,9 +28,14 @@ def cmpattrs(self, other, *attrs):
     for attr in attrs:
         if attr[:3] in ('_v_', '_p_'):
             continue
-        c = cmp(getattr(self, attr, None), getattr(other, attr, None))
-        if c:
-            return c
+        lhs, rhs = getattr(self, attr, None), getattr(other, attr, None)
+        if PYTHON2:
+           c = cmp(lhs, rhs)
+           if c:
+               return c
+        else:
+            if lhs != rhs:
+                return 1
     return 0
 
 class Simple(Persistent):
@@ -39,8 +45,13 @@ class Simple(Persistent):
         self._v_favorite_color = 'blue'
         self._p_foo = 'bar'
 
-    def __cmp__(self, other):
-        return cmpattrs(self, other, '__class__', *(self.__dict__.keys()))
+    @property
+    def _attrs(self):
+        return list(self.__dict__.keys())
+
+    def __eq__(self, other):
+        return cmpattrs(self, other, '__class__', *self._attrs) == 0
+
 
 class Custom(Simple):
 
@@ -71,6 +82,13 @@ class Slotted(Persistent):
         self._v_eek = 1
         self._p_splat = 2
 
+    @property
+    def _attrs(self):
+        return list(self.__dict__.keys())
+
+    def __eq__(self, other):
+        return cmpattrs(self, other, '__class__', *self._attrs) == 0
+
 
 class SubSlotted(Slotted):
 
@@ -80,8 +98,9 @@ class SubSlotted(Slotted):
         Slotted.__init__(self, s1, s2)
         self.s3 = s3
 
-    def __cmp__(self, other):
-        return cmpattrs(self, other, '__class__', 's1', 's2', 's3', 's4')
+    @property
+    def _attrs(self):
+        return ('s1', 's2', 's3', 's4')
 
 
 class SubSubSlotted(SubSlotted):
@@ -92,7 +111,6 @@ class SubSubSlotted(SubSlotted):
         self._v_favorite_color = 'blue'
         self._p_foo = 'bar'
 
-    def __cmp__(self, other):
-        return cmpattrs(self, other,
-                        '__class__', 's1', 's2', 's3', 's4',
-                        *(self.__dict__.keys()))
+    @property
+    def _attrs(self):
+        return ['s1', 's2', 's3', 's4'] + list(self.__dict__.keys())

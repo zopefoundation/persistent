@@ -22,6 +22,11 @@ if sys.version_info[0] > 2: #pragma NO COVER
     def _u(s):
         return s
 
+    def _b(s):
+        if isinstance(s, str):
+            return s.encode('unicode_escape')
+        return s
+
     def _native(s):
         if isinstance(s, bytes):
             return s.decode('unicode_escape')
@@ -42,6 +47,8 @@ else: #pragma NO COVER
         if isinstance(s, unicode):
             return s.encode('unicode_escape')
         return s
+
+    _b = _native
 
     PYTHON3 = False
     PYTHON2 = True

@@ -28,13 +28,14 @@ class PickleCacheTests(unittest.TestCase):
 
     def _makePersist(self, state=None, oid='foo', jar=_marker):
         from persistent.interfaces import GHOST
+        from persistent._compat import _b
         if state is None:
             state = GHOST
         if jar is _marker:
             jar = DummyConnection()
         persist = DummyPersistent()
         persist._p_state = state
-        persist._p_oid = oid
+        persist._p_oid = _b(oid)
         persist._p_jar = jar
         return persist
 
@@ -89,13 +90,15 @@ class PickleCacheTests(unittest.TestCase):
             self.fail("Didn't raise ValueError with non-string OID.")
 
     def test___setitem___duplicate_oid_raises_KeyError(self):
+        from persistent._compat import _b
+        KEY = _b('original')
         cache = self._makeOne()
         original = self._makePersist()
-        cache['original'] = original
+        cache[KEY] = original
         duplicate = self._makePersist()
 
         try:
-            cache['original'] = duplicate
+            cache[KEY] = duplicate
         except KeyError:
             pass
         else:
@@ -103,49 +106,57 @@ class PickleCacheTests(unittest.TestCase):
 
     def test___setitem___ghost(self):
         from persistent.interfaces import GHOST
+        from persistent._compat import _b
+        KEY = _b('ghost')
         cache = self._makeOne()
         ghost = self._makePersist(state=GHOST)
 
-        cache['ghost'] = ghost
+        cache[KEY] = ghost
 
         self.assertEqual(len(cache), 1)
-        self.assertEqual(_len(cache.items()), 1)
+        items = list(cache.items())
+        self.assertEqual(len(items), 1)
         self.assertEqual(_len(cache.klass_items()), 0)
-        self.assertEqual(cache.items()[0][0], 'ghost')
+        self.assertEqual(items[0][0], KEY)
         self.assertEqual(cache.ringlen(), 0)
-        self.failUnless(cache.items()[0][1] is ghost)
-        self.failUnless(cache['ghost'] is ghost)
+        self.failUnless(items[0][1] is ghost)
+        self.failUnless(cache[KEY] is ghost)
 
     def test___setitem___non_ghost(self):
         from persistent.interfaces import UPTODATE
+        from persistent._compat import _b
         cache = self._makeOne()
         uptodate = self._makePersist(state=UPTODATE)
 
-        cache['uptodate'] = uptodate
+        cache[_b('uptodate')] = uptodate
 
         self.assertEqual(len(cache), 1)
-        self.assertEqual(_len(cache.items()), 1)
+        items = list(cache.items())
+        self.assertEqual(len(items), 1)
         self.assertEqual(_len(cache.klass_items()), 0)
-        self.assertEqual(cache.items()[0][0], 'uptodate')
+        self.assertEqual(items[0][0], 'uptodate')
         self.assertEqual(cache.ringlen(), 1)
-        self.failUnless(cache.items()[0][1] is uptodate)
+        self.failUnless(items[0][1] is uptodate)
         self.failUnless(cache['uptodate'] is uptodate)
         self.failUnless(cache.get('uptodate') is uptodate)
 
     def test___setitem___persistent_class(self):
+        from persistent._compat import _b
+        KEY = _b('pclass')
         class pclass(object):
             pass
         cache = self._makeOne()
 
-        cache['pclass'] = pclass
+        cache[KEY] = pclass
 
+        kitems = list(cache.klass_items())
         self.assertEqual(len(cache), 1)
         self.assertEqual(_len(cache.items()), 0)
-        self.assertEqual(_len(cache.klass_items()), 1)
-        self.assertEqual(cache.klass_items()[0][0], 'pclass')
-        self.failUnless(cache.klass_items()[0][1] is pclass)
-        self.failUnless(cache['pclass'] is pclass)
-        self.failUnless(cache.get('pclass') is pclass)
+        self.assertEqual(len(kitems), 1)
+        self.assertEqual(kitems[0][0], KEY)
+        self.failUnless(kitems[0][1] is pclass)
+        self.failUnless(cache[KEY] is pclass)
+        self.failUnless(cache.get(KEY) is pclass)
 
     def test___delitem___non_string_oid_raises_ValueError(self):
         cache = self._makeOne()
@@ -158,173 +169,203 @@ class PickleCacheTests(unittest.TestCase):
             self.fail("Didn't raise ValueError with non-string OID.")
 
     def test___delitem___nonesuch_raises_KeyError(self):
+        from persistent._compat import _b
         cache = self._makeOne()
         original = self._makePersist()
 
         try:
-            del cache['nonesuch']
+            del cache[_b('nonesuch')]
         except KeyError:
             pass
         else:
             self.fail("Didn't raise KeyError with nonesuch OID.")
 
     def test___delitem___w_persistent_class(self):
+        from persistent._compat import _b
+        KEY = _b('pclass')
         cache = self._makeOne()
         class pclass(object):
             pass
         cache = self._makeOne()
 
-        cache['pclass'] = pclass
-        del cache['pclass']
-        self.assertTrue(cache.get('pclass', self) is self)
-        self.assertFalse('pclass' in cache.persistent_classes)
+        cache[KEY] = pclass
+        del cache[KEY]
+        self.assertTrue(cache.get(KEY, self) is self)
+        self.assertFalse(KEY in cache.persistent_classes)
         self.assertEqual(cache.ringlen(), 0)
 
     def test___delitem___w_normal_object(self):
         from persistent.interfaces import UPTODATE
+        from persistent._compat import _b
+        KEY = _b('uptodate')
         cache = self._makeOne()
         uptodate = self._makePersist(state=UPTODATE)
 
-        cache['uptodate'] = uptodate
+        cache[KEY] = uptodate
 
-        del cache['uptodate']
-        self.assertTrue(cache.get('uptodate', self) is self)
+        del cache[KEY]
+        self.assertTrue(cache.get(KEY, self) is self)
 
     def test___delitem___w_ghost(self):
         from persistent.interfaces import GHOST
+        from persistent._compat import _b
         cache = self._makeOne()
         ghost = self._makePersist(state=GHOST)
 
-        cache['ghost'] = ghost
+        KEY = _b('ghost')
+        cache[KEY] = ghost
 
-        del cache['ghost']
-        self.assertTrue(cache.get('ghost', self) is self)
+        del cache[KEY]
+        self.assertTrue(cache.get(KEY, self) is self)
 
     def test___delitem___w_remaining_object(self):
         from persistent.interfaces import UPTODATE
+        from persistent._compat import _b
         cache = self._makeOne()
         remains = self._makePersist(state=UPTODATE)
         uptodate = self._makePersist(state=UPTODATE)
 
-        cache['remains'] = remains
-        cache['uptodate'] = uptodate
+        REMAINS = _b('remains')
+        UPTODATE = _b('uptodate')
+        cache[REMAINS] = remains
+        cache[UPTODATE] = uptodate
 
-        del cache['uptodate']
-        self.assertTrue(cache.get('uptodate', self) is self)
-        self.assertTrue(cache.get('remains', self) is remains)
+        del cache[UPTODATE]
+        self.assertTrue(cache.get(UPTODATE, self) is self)
+        self.assertTrue(cache.get(REMAINS, self) is remains)
 
     def test_lruitems(self):
         from persistent.interfaces import UPTODATE
+        from persistent._compat import _b
         cache = self._makeOne()
-        cache['one'] = self._makePersist(oid='one', state=UPTODATE)
-        cache['two'] = self._makePersist(oid='two', state=UPTODATE)
-        cache['three'] = self._makePersist(oid='three', state=UPTODATE)
+        ONE = _b('one')
+        TWO = _b('two')
+        THREE = _b('three')
+        cache[ONE] = self._makePersist(oid='one', state=UPTODATE)
+        cache[TWO] = self._makePersist(oid='two', state=UPTODATE)
+        cache[THREE] = self._makePersist(oid='three', state=UPTODATE)
 
         items = cache.lru_items()
         self.assertEqual(_len(items), 3)
-        self.assertEqual(items[0][0], 'one')
-        self.assertEqual(items[1][0], 'two')
-        self.assertEqual(items[2][0], 'three')
+        self.assertEqual(items[0][0], ONE)
+        self.assertEqual(items[1][0], TWO)
+        self.assertEqual(items[2][0], THREE)
 
     def test_mru_nonesuch_raises_KeyError(self):
         cache = self._makeOne()
-
-        try:
-            cache.mru('nonesuch')
-        except KeyError:
-            pass
-        else:
-            self.fail("Didn't raise KeyError with nonesuch OID.")
+        from persistent._compat import _b
+        self.assertRaises(KeyError, cache.mru, _b('nonesuch'))
 
     def test_mru_normal(self):
         from persistent.interfaces import UPTODATE
+        from persistent._compat import _b
+        ONE = _b('one')
+        TWO = _b('two')
+        THREE = _b('three')
         cache = self._makeOne()
-        cache['one'] = self._makePersist(oid='one', state=UPTODATE)
-        cache['two'] = self._makePersist(oid='two', state=UPTODATE)
-        cache['three'] = self._makePersist(oid='three', state=UPTODATE)
+        cache[ONE] = self._makePersist(oid='one', state=UPTODATE)
+        cache[TWO] = self._makePersist(oid='two', state=UPTODATE)
+        cache[THREE] = self._makePersist(oid='three', state=UPTODATE)
 
-        cache.mru('two')
+        cache.mru(TWO)
 
         self.assertEqual(cache.ringlen(), 3)
         items = cache.lru_items()
         self.assertEqual(_len(items), 3)
-        self.assertEqual(items[0][0], 'one')
-        self.assertEqual(items[1][0], 'three')
-        self.assertEqual(items[2][0], 'two')
+        self.assertEqual(items[0][0], ONE)
+        self.assertEqual(items[1][0], THREE)
+        self.assertEqual(items[2][0], TWO)
 
     def test_mru_ghost(self):
         from persistent.interfaces import UPTODATE
         from persistent.interfaces import GHOST
+        from persistent._compat import _b
+        ONE = _b('one')
+        TWO = _b('two')
+        THREE = _b('three')
         cache = self._makeOne()
-        cache['one'] = self._makePersist(oid='one', state=UPTODATE)
-        two = cache['two'] = self._makePersist(oid='two', state=GHOST)
-        cache['three'] = self._makePersist(oid='three', state=UPTODATE)
+        cache[ONE] = self._makePersist(oid='one', state=UPTODATE)
+        two = cache[TWO] = self._makePersist(oid='two', state=GHOST)
+        cache[THREE] = self._makePersist(oid='three', state=UPTODATE)
 
-        cache.mru('two')
+        cache.mru(TWO)
 
         self.assertEqual(cache.ringlen(), 2)
         items = cache.lru_items()
         self.assertEqual(_len(items), 2)
-        self.assertEqual(items[0][0], 'one')
-        self.assertEqual(items[1][0], 'three')
+        self.assertEqual(items[0][0], ONE)
+        self.assertEqual(items[1][0], THREE)
 
     def test_mru_was_ghost_now_active(self):
         from persistent.interfaces import UPTODATE
         from persistent.interfaces import GHOST
+        from persistent._compat import _b
+        ONE = _b('one')
+        TWO = _b('two')
+        THREE = _b('three')
         cache = self._makeOne()
-        cache['one'] = self._makePersist(oid='one', state=UPTODATE)
-        two = cache['two'] = self._makePersist(oid='two', state=GHOST)
-        cache['three'] = self._makePersist(oid='three', state=UPTODATE)
+        cache[ONE] = self._makePersist(oid='one', state=UPTODATE)
+        two = cache[TWO] = self._makePersist(oid='two', state=GHOST)
+        cache[THREE] = self._makePersist(oid='three', state=UPTODATE)
 
         two._p_state = UPTODATE
-        cache.mru('two')
+        cache.mru(TWO)
 
         self.assertEqual(cache.ringlen(), 3)
         items = cache.lru_items()
         self.assertEqual(_len(items), 3)
-        self.assertEqual(items[0][0], 'one')
-        self.assertEqual(items[1][0], 'three')
-        self.assertEqual(items[2][0], 'two')
+        self.assertEqual(items[0][0], ONE)
+        self.assertEqual(items[1][0], THREE)
+        self.assertEqual(items[2][0], TWO)
 
     def test_mru_first(self):
         from persistent.interfaces import UPTODATE
+        from persistent._compat import _b
+        ONE = _b('one')
+        TWO = _b('two')
+        THREE = _b('three')
         cache = self._makeOne()
-        cache['one'] = self._makePersist(oid='one', state=UPTODATE)
-        cache['two'] = self._makePersist(oid='two', state=UPTODATE)
-        cache['three'] = self._makePersist(oid='three', state=UPTODATE)
+        cache[ONE] = self._makePersist(oid='one', state=UPTODATE)
+        cache[TWO] = self._makePersist(oid='two', state=UPTODATE)
+        cache[THREE] = self._makePersist(oid='three', state=UPTODATE)
 
-        cache.mru('one')
+        cache.mru(ONE)
 
         self.assertEqual(cache.ringlen(), 3)
         items = cache.lru_items()
         self.assertEqual(_len(items), 3)
-        self.assertEqual(items[0][0], 'two')
-        self.assertEqual(items[1][0], 'three')
-        self.assertEqual(items[2][0], 'one')
+        self.assertEqual(items[0][0], TWO)
+        self.assertEqual(items[1][0], THREE)
+        self.assertEqual(items[2][0], ONE)
 
     def test_mru_last(self):
         from persistent.interfaces import UPTODATE
+        from persistent._compat import _b
+        ONE = _b('one')
+        TWO = _b('two')
+        THREE = _b('three')
         cache = self._makeOne()
-        cache['one'] = self._makePersist(oid='one', state=UPTODATE)
-        cache['two'] = self._makePersist(oid='two', state=UPTODATE)
-        cache['three'] = self._makePersist(oid='three', state=UPTODATE)
+        cache[ONE] = self._makePersist(oid='one', state=UPTODATE)
+        cache[TWO] = self._makePersist(oid='two', state=UPTODATE)
+        cache[THREE] = self._makePersist(oid='three', state=UPTODATE)
 
-        cache.mru('three')
+        cache.mru(THREE)
 
         self.assertEqual(cache.ringlen(), 3)
         items = cache.lru_items()
         self.assertEqual(_len(items), 3)
-        self.assertEqual(items[0][0], 'one')
-        self.assertEqual(items[1][0], 'two')
-        self.assertEqual(items[2][0], 'three')
+        self.assertEqual(items[0][0], ONE)
+        self.assertEqual(items[1][0], TWO)
+        self.assertEqual(items[2][0], THREE)
 
     def test_incrgc_simple(self):
         import gc
         from persistent.interfaces import UPTODATE
+        from persistent._compat import _b
         cache = self._makeOne()
         oids = []
         for i in range(100):
-            oid = 'oid_%04d' % i
+            oid = _b('oid_%04d' % i)
             oids.append(oid)
             cache[oid] = self._makePersist(oid=oid, state=UPTODATE)
         self.assertEqual(cache.cache_non_ghost_count, 100)
@@ -335,16 +376,16 @@ class PickleCacheTests(unittest.TestCase):
         self.assertEqual(cache.cache_non_ghost_count, 10)
         items = cache.lru_items()
         self.assertEqual(_len(items), 10)
-        self.assertEqual(items[0][0], 'oid_0090')
-        self.assertEqual(items[1][0], 'oid_0091')
-        self.assertEqual(items[2][0], 'oid_0092')
-        self.assertEqual(items[3][0], 'oid_0093')
-        self.assertEqual(items[4][0], 'oid_0094')
-        self.assertEqual(items[5][0], 'oid_0095')
-        self.assertEqual(items[6][0], 'oid_0096')
-        self.assertEqual(items[7][0], 'oid_0097')
-        self.assertEqual(items[8][0], 'oid_0098')
-        self.assertEqual(items[9][0], 'oid_0099')
+        self.assertEqual(items[0][0], _b('oid_0090'))
+        self.assertEqual(items[1][0], _b('oid_0091'))
+        self.assertEqual(items[2][0], _b('oid_0092'))
+        self.assertEqual(items[3][0], _b('oid_0093'))
+        self.assertEqual(items[4][0], _b('oid_0094'))
+        self.assertEqual(items[5][0], _b('oid_0095'))
+        self.assertEqual(items[6][0], _b('oid_0096'))
+        self.assertEqual(items[7][0], _b('oid_0097'))
+        self.assertEqual(items[8][0], _b('oid_0098'))
+        self.assertEqual(items[9][0], _b('oid_0099'))
 
         for oid in oids[:90]:
             self.failUnless(cache.get(oid) is None)
@@ -354,11 +395,12 @@ class PickleCacheTests(unittest.TestCase):
 
     def test_incrgc_w_smaller_drain_resistance(self):
         from persistent.interfaces import UPTODATE
+        from persistent._compat import _b
         cache = self._makeOne()
         cache.drain_resistance = 2
         oids = []
         for i in range(100):
-            oid = 'oid_%04d' % i
+            oid = _b('oid_%04d' % i)
             oids.append(oid)
             cache[oid] = self._makePersist(oid=oid, state=UPTODATE)
         self.assertEqual(cache.cache_non_ghost_count, 100)
@@ -369,12 +411,13 @@ class PickleCacheTests(unittest.TestCase):
 
     def test_incrgc_w_larger_drain_resistance(self):
         from persistent.interfaces import UPTODATE
+        from persistent._compat import _b
         cache = self._makeOne()
         cache.drain_resistance = 2
         cache.target_size = 90
         oids = []
         for i in range(100):
-            oid = 'oid_%04d' % i
+            oid = _b('oid_%04d' % i)
             oids.append(oid)
             cache[oid] = self._makePersist(oid=oid, state=UPTODATE)
         self.assertEqual(cache.cache_non_ghost_count, 100)
@@ -386,10 +429,11 @@ class PickleCacheTests(unittest.TestCase):
     def test_full_sweep(self):
         import gc
         from persistent.interfaces import UPTODATE
+        from persistent._compat import _b
         cache = self._makeOne()
         oids = []
         for i in range(100):
-            oid = 'oid_%04d' % i
+            oid = _b('oid_%04d' % i)
             oids.append(oid)
             cache[oid] = self._makePersist(oid=oid, state=UPTODATE)
         self.assertEqual(cache.cache_non_ghost_count, 100)
@@ -406,10 +450,11 @@ class PickleCacheTests(unittest.TestCase):
     def test_minimize(self):
         import gc
         from persistent.interfaces import UPTODATE
+        from persistent._compat import _b
         cache = self._makeOne()
         oids = []
         for i in range(100):
-            oid = 'oid_%04d' % i
+            oid = _b('oid_%04d' % i)
             oids.append(oid)
             cache[oid] = self._makePersist(oid=oid, state=UPTODATE)
         self.assertEqual(cache.cache_non_ghost_count, 100)
@@ -423,185 +468,226 @@ class PickleCacheTests(unittest.TestCase):
             self.failUnless(cache.get(oid) is None)
 
     def test_new_ghost_non_persistent_object(self):
+        from persistent._compat import _b
         cache = self._makeOne()
-        self.assertRaises(AttributeError, cache.new_ghost, '123', object())
+        self.assertRaises(AttributeError, cache.new_ghost, _b('123'), object())
 
     def test_new_ghost_obj_already_has_oid(self):
+        from persistent._compat import _b
         from persistent.interfaces import GHOST
-        candidate = self._makePersist(oid='123', state=GHOST)
+        candidate = self._makePersist(oid=_b('123'), state=GHOST)
         cache = self._makeOne()
-        self.assertRaises(ValueError, cache.new_ghost, '123', candidate)
+        self.assertRaises(ValueError, cache.new_ghost, _b('123'), candidate)
 
     def test_new_ghost_obj_already_has_jar(self):
+        from persistent._compat import _b
         class Dummy(object):
             _p_oid = None
             _p_jar = object()
         cache = self._makeOne()
         candidate = self._makePersist(oid=None, jar=object())
-        self.assertRaises(ValueError, cache.new_ghost, '123', candidate)
+        self.assertRaises(ValueError, cache.new_ghost, _b('123'), candidate)
 
     def test_new_ghost_obj_already_in_cache(self):
+        from persistent._compat import _b
+        KEY = _b('123')
         cache = self._makeOne()
         candidate = self._makePersist(oid=None, jar=None)
-        cache['123'] = candidate
-        self.assertRaises(KeyError, cache.new_ghost, '123', candidate)
+        cache[KEY] = candidate
+        self.assertRaises(KeyError, cache.new_ghost, KEY, candidate)
 
     def test_new_ghost_success_already_ghost(self):
         from persistent.interfaces import GHOST
+        from persistent._compat import _b
+        KEY = _b('123')
         cache = self._makeOne()
         candidate = self._makePersist(oid=None, jar=None)
-        cache.new_ghost('123', candidate)
-        self.failUnless(cache.get('123') is candidate)
-        self.assertEqual(candidate._p_oid, '123')
+        cache.new_ghost(KEY, candidate)
+        self.failUnless(cache.get(KEY) is candidate)
+        self.assertEqual(candidate._p_oid, KEY)
         self.assertEqual(candidate._p_jar, cache.jar)
         self.assertEqual(candidate._p_state, GHOST)
 
     def test_new_ghost_success_not_already_ghost(self):
         from persistent.interfaces import GHOST
         from persistent.interfaces import UPTODATE
+        from persistent._compat import _b
+        KEY = _b('123')
         cache = self._makeOne()
         candidate = self._makePersist(oid=None, jar=None, state=UPTODATE)
-        cache.new_ghost('123', candidate)
-        self.failUnless(cache.get('123') is candidate)
-        self.assertEqual(candidate._p_oid, '123')
+        cache.new_ghost(KEY, candidate)
+        self.failUnless(cache.get(KEY) is candidate)
+        self.assertEqual(candidate._p_oid, KEY)
         self.assertEqual(candidate._p_jar, cache.jar)
         self.assertEqual(candidate._p_state, GHOST)
 
     def test_new_ghost_w_pclass_non_ghost(self):
+        from persistent._compat import _b
+        KEY = _b('123')
         class Pclass(object):
             _p_oid = None
             _p_jar = None
         cache = self._makeOne()
-        cache.new_ghost('123', Pclass)
-        self.failUnless(cache.get('123') is Pclass)
-        self.failUnless(cache.persistent_classes['123'] is Pclass)
-        self.assertEqual(Pclass._p_oid, '123')
+        cache.new_ghost(KEY, Pclass)
+        self.failUnless(cache.get(KEY) is Pclass)
+        self.failUnless(cache.persistent_classes[KEY] is Pclass)
+        self.assertEqual(Pclass._p_oid, KEY)
         self.assertEqual(Pclass._p_jar, cache.jar)
 
     def test_new_ghost_w_pclass_ghost(self):
+        from persistent._compat import _b
+        KEY = _b('123')
         class Pclass(object):
             _p_oid = None
             _p_jar = None
         cache = self._makeOne()
-        cache.new_ghost('123', Pclass)
-        self.failUnless(cache.get('123') is Pclass)
-        self.failUnless(cache.persistent_classes['123'] is Pclass)
-        self.assertEqual(Pclass._p_oid, '123')
+        cache.new_ghost(KEY, Pclass)
+        self.failUnless(cache.get(KEY) is Pclass)
+        self.failUnless(cache.persistent_classes[KEY] is Pclass)
+        self.assertEqual(Pclass._p_oid, KEY)
         self.assertEqual(Pclass._p_jar, cache.jar)
 
     def test_reify_miss_single(self):
+        from persistent._compat import _b
+        KEY = _b('123')
         cache = self._makeOne()
-        self.assertRaises(KeyError, cache.reify, '123')
+        self.assertRaises(KeyError, cache.reify, KEY)
 
     def test_reify_miss_multiple(self):
+        from persistent._compat import _b
+        KEY = _b('123')
+        KEY2 = _b('456')
         cache = self._makeOne()
-        self.assertRaises(KeyError, cache.reify, ['123', '456'])
+        self.assertRaises(KeyError, cache.reify, [KEY, KEY2])
 
     def test_reify_hit_single_ghost(self):
         from persistent.interfaces import GHOST
+        from persistent._compat import _b
+        KEY = _b('123')
         from persistent.interfaces import UPTODATE
         cache = self._makeOne()
-        candidate = self._makePersist(oid='123', jar=cache.jar, state=GHOST)
-        cache['123'] = candidate
+        candidate = self._makePersist(oid=KEY, jar=cache.jar, state=GHOST)
+        cache[KEY] = candidate
         self.assertEqual(cache.ringlen(), 0)
-        cache.reify('123')
+        cache.reify(KEY)
         self.assertEqual(cache.ringlen(), 1)
         items = cache.lru_items()
-        self.assertEqual(items[0][0], '123')
+        self.assertEqual(items[0][0], KEY)
         self.failUnless(items[0][1] is candidate)
         self.assertEqual(candidate._p_state, UPTODATE)
 
     def test_reify_hit_single_non_ghost(self):
         from persistent.interfaces import UPTODATE
+        from persistent._compat import _b
+        KEY = _b('123')
         cache = self._makeOne()
-        candidate = self._makePersist(oid='123', jar=cache.jar, state=UPTODATE)
-        cache['123'] = candidate
+        candidate = self._makePersist(oid=KEY, jar=cache.jar, state=UPTODATE)
+        cache[KEY] = candidate
         self.assertEqual(cache.ringlen(), 1)
-        cache.reify('123')
+        cache.reify(KEY)
         self.assertEqual(cache.ringlen(), 1)
         self.assertEqual(candidate._p_state, UPTODATE)
 
     def test_reify_hit_multiple_mixed(self):
         from persistent.interfaces import GHOST
         from persistent.interfaces import UPTODATE
+        from persistent._compat import _b
+        KEY = _b('123')
+        KEY2 = _b('456')
         cache = self._makeOne()
-        c1 = self._makePersist(oid='123', jar=cache.jar, state=GHOST)
-        cache['123'] = c1
-        c2 = self._makePersist(oid='456', jar=cache.jar, state=UPTODATE)
-        cache['456'] = c2
+        c1 = self._makePersist(oid=KEY, jar=cache.jar, state=GHOST)
+        cache[KEY] = c1
+        c2 = self._makePersist(oid=KEY2, jar=cache.jar, state=UPTODATE)
+        cache[KEY2] = c2
         self.assertEqual(cache.ringlen(), 1)
-        cache.reify(['123', '456'])
+        cache.reify([KEY, KEY2])
         self.assertEqual(cache.ringlen(), 2)
         self.assertEqual(c1._p_state, UPTODATE)
         self.assertEqual(c2._p_state, UPTODATE)
 
     def test_invalidate_miss_single(self):
+        from persistent._compat import _b
+        KEY = _b('123')
         cache = self._makeOne()
-        cache.invalidate('123') # doesn't raise
+        cache.invalidate(KEY) # doesn't raise
 
     def test_invalidate_miss_multiple(self):
+        from persistent._compat import _b
+        KEY = _b('123')
+        KEY2 = _b('456')
         cache = self._makeOne()
-        cache.invalidate(['123', '456']) # doesn't raise
+        cache.invalidate([KEY, KEY2]) # doesn't raise
 
     def test_invalidate_hit_single_ghost(self):
         from persistent.interfaces import GHOST
+        from persistent._compat import _b
+        KEY = _b('123')
         cache = self._makeOne()
         candidate = self._makePersist(oid='123', jar=cache.jar, state=GHOST)
-        cache['123'] = candidate
+        cache[KEY] = candidate
         self.assertEqual(cache.ringlen(), 0)
-        cache.invalidate('123')
+        cache.invalidate(KEY)
         self.assertEqual(cache.ringlen(), 0)
         self.assertEqual(candidate._p_state, GHOST)
 
     def test_invalidate_hit_single_non_ghost(self):
         from persistent.interfaces import GHOST
         from persistent.interfaces import UPTODATE
+        from persistent._compat import _b
+        KEY = _b('123')
         cache = self._makeOne()
         candidate = self._makePersist(oid='123', jar=cache.jar, state=UPTODATE)
-        cache['123'] = candidate
+        cache[KEY] = candidate
         self.assertEqual(cache.ringlen(), 1)
-        cache.invalidate('123')
+        cache.invalidate(KEY)
         self.assertEqual(cache.ringlen(), 0)
         self.assertEqual(candidate._p_state, GHOST)
 
     def test_invalidate_hit_multiple_mixed(self):
         from persistent.interfaces import GHOST
         from persistent.interfaces import UPTODATE
+        from persistent._compat import _b
+        KEY = _b('123')
+        KEY2 = _b('456')
         cache = self._makeOne()
-        c1 = self._makePersist(oid='123', jar=cache.jar, state=GHOST)
-        cache['123'] = c1
-        c2 = self._makePersist(oid='456', jar=cache.jar, state=UPTODATE)
-        cache['456'] = c2
+        c1 = self._makePersist(oid=KEY, jar=cache.jar, state=GHOST)
+        cache[KEY] = c1
+        c2 = self._makePersist(oid=KEY2, jar=cache.jar, state=UPTODATE)
+        cache[KEY2] = c2
         self.assertEqual(cache.ringlen(), 1)
-        cache.invalidate(['123', '456'])
+        cache.invalidate([KEY, KEY2])
         self.assertEqual(cache.ringlen(), 0)
         self.assertEqual(c1._p_state, GHOST)
         self.assertEqual(c2._p_state, GHOST)
 
     def test_invalidate_hit_pclass(self):
+        from persistent._compat import _b
+        KEY = _b('123')
         class Pclass(object):
             _p_oid = None
             _p_jar = None
         cache = self._makeOne()
-        cache['123'] = Pclass
-        self.failUnless(cache.persistent_classes['123'] is Pclass)
-        cache.invalidate('123')
-        self.failIf('123' in cache.persistent_classes)
+        cache[KEY] = Pclass
+        self.failUnless(cache.persistent_classes[KEY] is Pclass)
+        cache.invalidate(KEY)
+        self.failIf(KEY in cache.persistent_classes)
 
     def test_debug_info_w_persistent_class(self):
         import gc
         from persistent.interfaces import UPTODATE
+        from persistent._compat import _b
+        KEY = _b('pclass')
         class pclass(object):
             pass
         cache = self._makeOne()
         pclass._p_state = UPTODATE
-        cache['pclass'] = pclass
+        cache[KEY] = pclass
 
         info = cache.debug_info()
 
         self.assertEqual(len(info), 1)
         oid, refc, typ, state = info[0]
-        self.assertEqual(oid, 'pclass')
+        self.assertEqual(oid, KEY)
         self.assertEqual(refc, len(gc.get_referents(pclass)))
         self.assertEqual(typ, 'type')
         self.assertEqual(state, UPTODATE)
@@ -609,15 +695,17 @@ class PickleCacheTests(unittest.TestCase):
     def test_debug_info_w_normal_object(self):
         import gc
         from persistent.interfaces import UPTODATE
+        from persistent._compat import _b
+        KEY = _b('uptodate')
         cache = self._makeOne()
         uptodate = self._makePersist(state=UPTODATE)
-        cache['uptodate'] = uptodate
+        cache[KEY] = uptodate
 
         info = cache.debug_info()
 
         self.assertEqual(len(info), 1)
         oid, refc, typ, state = info[0]
-        self.assertEqual(oid, 'uptodate')
+        self.assertEqual(oid, KEY)
         self.assertEqual(refc, len(gc.get_referents(uptodate)))
         self.assertEqual(typ, 'DummyPersistent')
         self.assertEqual(state, UPTODATE)
@@ -626,15 +714,17 @@ class PickleCacheTests(unittest.TestCase):
     def test_debug_info_w_ghost(self):
         import gc
         from persistent.interfaces import GHOST
+        from persistent._compat import _b
+        KEY = _b('ghost')
         cache = self._makeOne()
         ghost = self._makePersist(state=GHOST)
-        cache['ghost'] = ghost
+        cache[KEY] = ghost
 
         info = cache.debug_info()
 
         self.assertEqual(len(info), 1)
         oid, refc, typ, state = info[0]
-        self.assertEqual(oid, 'ghost')
+        self.assertEqual(oid, KEY)
         self.assertEqual(refc, len(gc.get_referents(ghost)))
         self.assertEqual(typ, 'DummyPersistent')
         self.assertEqual(state, GHOST)

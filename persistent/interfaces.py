@@ -30,6 +30,8 @@ except ImportError: #pragma NO COVER
     STICKY = 2
 
 
+OID_TYPE = SERIAL_TYPE = bytes
+
 class IPersistent(Interface):
     """Python persistent interface
 

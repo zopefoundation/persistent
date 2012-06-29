@@ -181,14 +181,14 @@ class PersistentMappingTests(unittest.TestCase):
         except KeyError:
             pass
         else:
-            raise TestFailed("1 should not be poppable from u2")
+            self.fail("1 should not be poppable from u2")
 
         x = u2.pop(1, 7)
         eq(x, 7, "u2.pop(1, 7) == 7")
 
         # Test popitem
 
-        items = u2.items()
+        items = list(u2.items())
         key, value = u2.popitem()
         self.failUnless((key, value) in items, "key, value in items")
         self.failUnless(key not in u2, "key not in u2")

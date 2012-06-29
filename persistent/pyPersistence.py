@@ -20,11 +20,11 @@ from persistent.interfaces import GHOST
 from persistent.interfaces import UPTODATE
 from persistent.interfaces import CHANGED
 from persistent.interfaces import STICKY
+from persistent.interfaces import OID_TYPE
+from persistent.interfaces import SERIAL_TYPE
 from persistent.timestamp import TimeStamp
 from persistent.timestamp import _ZERO
 from persistent._compat import copy_reg
-
-OID_TYPE = SERIAL_TYPE = bytes
 
 _INITIAL_SERIAL = _ZERO
 
