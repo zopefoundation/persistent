@@ -23,16 +23,16 @@ try:
     from persistent.cPersistence import STICKY
     from persistent.cPersistence import simple_new
 except ImportError: #pragma NO COVER
-    from persistent.pyPersistence import Persistent
-    from persistent.pyPersistence import GHOST
-    from persistent.pyPersistence import UPTODATE
-    from persistent.pyPersistence import CHANGED
-    from persistent.pyPersistence import STICKY
+    from persistent.persistence import Persistent
+    from persistent.persistence import GHOST
+    from persistent.persistence import UPTODATE
+    from persistent.persistence import CHANGED
+    from persistent.persistence import STICKY
 else:
     from persistent._compat import copy_reg
     copy_reg.constructor(simple_new)
     # Make an interface declaration for Persistent, if zope.interface
-    # is available.  Note that the pyPersistent version already does this.
+    # is available.  Note that the Python version already does this.
     try:
         from zope.interface import classImplements
     except ImportError: #pragma NO COVER

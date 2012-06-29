@@ -58,7 +58,7 @@ class _Persistent_Base(object):
         verifyObject(IPersistent, self._makeOne())
 
     def test_ctor(self):
-        from persistent.pyPersistence import _INITIAL_SERIAL
+        from persistent.persistence import _INITIAL_SERIAL
         inst = self._makeOne()
         self.assertEqual(inst._p_jar, None)
         self.assertEqual(inst._p_oid, None)
@@ -160,7 +160,7 @@ class _Persistent_Base(object):
 
     def test_delete_p_serial(self):
         from persistent.timestamp import _makeOctets
-        from persistent.pyPersistence import _INITIAL_SERIAL
+        from persistent.persistence import _INITIAL_SERIAL
         SERIAL = _makeOctets('\x01' * 8)
         inst = self._makeOne()
         inst._p_serial = SERIAL 
@@ -507,7 +507,7 @@ class _Persistent_Base(object):
         self._checkMRU(jar, [])
 
     def test___getattribute__special_name(self):
-        from persistent.pyPersistence import SPECIAL_NAMES
+        from persistent.persistence import SPECIAL_NAMES
         inst, jar, OID = self._makeOneWithJar()
         self._clearMRU(jar)
         for name in SPECIAL_NAMES:
@@ -733,7 +733,7 @@ class _Persistent_Base(object):
         inst.__setstate__(None) # doesn't raise, but doesn't change anything
 
     def test___setstate___nonempty(self):
-        from persistent.pyPersistence import _INITIAL_SERIAL
+        from persistent.persistence import _INITIAL_SERIAL
         inst = self._makeOne()
         self.assertRaises((ValueError, TypeError),
                            inst.__setstate__, {'bogus': 1})
@@ -1110,7 +1110,7 @@ class _Persistent_Base(object):
         self._checkMRU(jar, [])
 
     def test__p_getattr_w_special_names(self):
-        from persistent.pyPersistence import SPECIAL_NAMES
+        from persistent.persistence import SPECIAL_NAMES
         inst, jar, OID = self._makeOneWithJar()
         inst._p_deactivate()
         for name in SPECIAL_NAMES:
@@ -1175,7 +1175,7 @@ class _Persistent_Base(object):
 class PyPersistentTests(unittest.TestCase, _Persistent_Base):
 
     def _getTargetClass(self):
-        from persistent.pyPersistence import Persistent
+        from persistent.persistence import Persistent
         return Persistent
 
     def _makeCache(self, jar):
