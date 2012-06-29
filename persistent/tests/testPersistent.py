@@ -15,19 +15,19 @@ import unittest
 
 Picklable = None # avoid global import of Persistent;  updated later
 
-class PersistenceTest(unittest.TestCase):
+class _Base(object):
 
     def _makeOne(self):
-        from persistent import Persistent
-
-        class P(Persistent):
+        class P(self._getTargetClass()):
             pass
 
         return P()
 
     def _makeJar(self):
         from persistent.tests.utils import ResettingJar
-        return ResettingJar()
+        jar = ResettingJar()
+        jar.cache = jar._cache = self._makeCache(jar)
+        return jar
 
     def test_oid_initial_value(self):
         obj = self._makeOne()
@@ -316,6 +316,36 @@ class PersistenceTest(unittest.TestCase):
     # TODO:  Need to decide how __setattr__ and __delattr__ should work,
     # then write tests.
 
+class PythonPersistentTests(unittest.TestCase, _Base):
+
+    def _getTargetClass(self):
+        from persistent.persistence import Persistent
+        return Persistent
+
+    def _makeCache(self, jar):
+        from persistent.picklecache import PickleCache
+        return PickleCache(jar)
+
+_add_to_suite = [PythonPersistentTests]
+
+try:
+    import persistent.cPersistence
+except ImportError:
+    pass
+else:
+    class CPersistentTests(unittest.TestCase, _Base):
+
+        def _getTargetClass(self):
+            from persistent.cPersistence import Persistent
+            return Persistent
+
+        def _makeCache(self, jar):
+            from persistent.cPickleCache import PickleCache
+            return PickleCache(jar)
+
+    _add_to_suite.append(CPersistentTests)
 
 def test_suite():
-    return unittest.makeSuite(PersistenceTest)
+    return unittest.TestSuite((
+           [unittest.makeSuite(x) for x in _add_to_suite]
+    ))
