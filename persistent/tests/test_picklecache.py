@@ -52,8 +52,8 @@ class PickleCacheTests(unittest.TestCase):
         cache = self._makeOne()
 
         self.assertEqual(len(cache), 0)
-        self.assertEqual(len(cache.items()), 0)
-        self.assertEqual(len(cache.klass_items()), 0)
+        self.assertEqual(_len(cache.items()), 0)
+        self.assertEqual(_len(cache.klass_items()), 0)
         self.assertEqual(cache.ringlen(), 0)
         self.assertEqual(len(cache.lru_items()), 0)
         self.assertEqual(cache.cache_size, 10)
@@ -109,8 +109,8 @@ class PickleCacheTests(unittest.TestCase):
         cache['ghost'] = ghost
 
         self.assertEqual(len(cache), 1)
-        self.assertEqual(len(cache.items()), 1)
-        self.assertEqual(len(cache.klass_items()), 0)
+        self.assertEqual(_len(cache.items()), 1)
+        self.assertEqual(_len(cache.klass_items()), 0)
         self.assertEqual(cache.items()[0][0], 'ghost')
         self.assertEqual(cache.ringlen(), 0)
         self.failUnless(cache.items()[0][1] is ghost)
@@ -124,8 +124,8 @@ class PickleCacheTests(unittest.TestCase):
         cache['uptodate'] = uptodate
 
         self.assertEqual(len(cache), 1)
-        self.assertEqual(len(cache.items()), 1)
-        self.assertEqual(len(cache.klass_items()), 0)
+        self.assertEqual(_len(cache.items()), 1)
+        self.assertEqual(_len(cache.klass_items()), 0)
         self.assertEqual(cache.items()[0][0], 'uptodate')
         self.assertEqual(cache.ringlen(), 1)
         self.failUnless(cache.items()[0][1] is uptodate)
@@ -140,8 +140,8 @@ class PickleCacheTests(unittest.TestCase):
         cache['pclass'] = pclass
 
         self.assertEqual(len(cache), 1)
-        self.assertEqual(len(cache.items()), 0)
-        self.assertEqual(len(cache.klass_items()), 1)
+        self.assertEqual(_len(cache.items()), 0)
+        self.assertEqual(_len(cache.klass_items()), 1)
         self.assertEqual(cache.klass_items()[0][0], 'pclass')
         self.failUnless(cache.klass_items()[0][1] is pclass)
         self.failUnless(cache['pclass'] is pclass)
@@ -221,7 +221,7 @@ class PickleCacheTests(unittest.TestCase):
         cache['three'] = self._makePersist(oid='three', state=UPTODATE)
 
         items = cache.lru_items()
-        self.assertEqual(len(items), 3)
+        self.assertEqual(_len(items), 3)
         self.assertEqual(items[0][0], 'one')
         self.assertEqual(items[1][0], 'two')
         self.assertEqual(items[2][0], 'three')
@@ -247,7 +247,7 @@ class PickleCacheTests(unittest.TestCase):
 
         self.assertEqual(cache.ringlen(), 3)
         items = cache.lru_items()
-        self.assertEqual(len(items), 3)
+        self.assertEqual(_len(items), 3)
         self.assertEqual(items[0][0], 'one')
         self.assertEqual(items[1][0], 'three')
         self.assertEqual(items[2][0], 'two')
@@ -264,7 +264,7 @@ class PickleCacheTests(unittest.TestCase):
 
         self.assertEqual(cache.ringlen(), 2)
         items = cache.lru_items()
-        self.assertEqual(len(items), 2)
+        self.assertEqual(_len(items), 2)
         self.assertEqual(items[0][0], 'one')
         self.assertEqual(items[1][0], 'three')
 
@@ -281,7 +281,7 @@ class PickleCacheTests(unittest.TestCase):
 
         self.assertEqual(cache.ringlen(), 3)
         items = cache.lru_items()
-        self.assertEqual(len(items), 3)
+        self.assertEqual(_len(items), 3)
         self.assertEqual(items[0][0], 'one')
         self.assertEqual(items[1][0], 'three')
         self.assertEqual(items[2][0], 'two')
@@ -297,7 +297,7 @@ class PickleCacheTests(unittest.TestCase):
 
         self.assertEqual(cache.ringlen(), 3)
         items = cache.lru_items()
-        self.assertEqual(len(items), 3)
+        self.assertEqual(_len(items), 3)
         self.assertEqual(items[0][0], 'two')
         self.assertEqual(items[1][0], 'three')
         self.assertEqual(items[2][0], 'one')
@@ -313,7 +313,7 @@ class PickleCacheTests(unittest.TestCase):
 
         self.assertEqual(cache.ringlen(), 3)
         items = cache.lru_items()
-        self.assertEqual(len(items), 3)
+        self.assertEqual(_len(items), 3)
         self.assertEqual(items[0][0], 'one')
         self.assertEqual(items[1][0], 'two')
         self.assertEqual(items[2][0], 'three')
@@ -334,7 +334,7 @@ class PickleCacheTests(unittest.TestCase):
 
         self.assertEqual(cache.cache_non_ghost_count, 10)
         items = cache.lru_items()
-        self.assertEqual(len(items), 10)
+        self.assertEqual(_len(items), 10)
         self.assertEqual(items[0][0], 'oid_0090')
         self.assertEqual(items[1][0], 'oid_0091')
         self.assertEqual(items[2][0], 'oid_0092')
@@ -654,6 +654,9 @@ class DummyPersistent(object):
 class DummyConnection:
     pass
 
+
+def _len(seq):
+    return len(list(seq))
 
 def test_suite():
     return unittest.TestSuite((
