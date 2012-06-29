@@ -11,20 +11,18 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
-from copy_reg import __newobj__
-from copy_reg import _slotnames
 import sys
 
-from zope.interface import implements
+from zope.interface import implementer
 
 from persistent.interfaces import IPersistent
-from persistent.interfaces import IPersistentDataManager
 from persistent.interfaces import GHOST
 from persistent.interfaces import UPTODATE
 from persistent.interfaces import CHANGED
 from persistent.interfaces import STICKY
 from persistent.timestamp import TimeStamp
 from persistent.timestamp import _ZERO
+from persistent._compat import copy_reg
 
 OID_TYPE = SERIAL_TYPE = bytes
 
@@ -47,11 +45,11 @@ SPECIAL_NAMES = ('__class__',
                 )
 
 
+@implementer(IPersistent)
 class Persistent(object):
     """ Pure Python implmentation of Persistent base class
     """
     __slots__ = ('__jar', '__oid', '__serial', '__flags', '__size')
-    implements(IPersistent)
 
     def __new__(cls, *args, **kw):
         inst = super(Persistent, cls).__new__(cls)
@@ -254,7 +252,7 @@ class Persistent(object):
         object.__delattr__(self, name)
 
     def _slotnames(self):
-        slotnames = _slotnames(type(self))
+        slotnames = copy_reg._slotnames(type(self))
         return [x for x in slotnames
                    if not x.startswith('_p_') and
                       not x.startswith('_v_') and
@@ -303,7 +301,8 @@ class Persistent(object):
         """ See IPersistent.
         """
         gna = getattr(self, '__getnewargs__', lambda: ())
-        return (__newobj__, (type(self),) + gna(), self.__getstate__())
+        return (copy_reg.__newobj__,
+                (type(self),) + gna(), self.__getstate__())
 
     def _p_activate(self):
         """ See IPersistent.

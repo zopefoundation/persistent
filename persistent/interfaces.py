@@ -548,11 +548,11 @@ class IPickleCache(Interface):
         """Update the cache's size estimation for 'oid', if known to the cache.
         """
 
-    cache_size = Attribute(u'Target size of the cache')
-    cache_drain_resistance = Attribute(u'Factor for draining cache below '
-                                        u'target size')
-    cache_non_ghost_count = Attribute(u'Number of non-ghosts in the cache '
-                                        u'(XXX how is it different from '
-                                        u'ringlen?')
-    cache_data = Attribute(u"Property:  copy of our 'data' dict")
-    cache_klass_count = Attribute(u"Property: len of 'persistent_classes'")
+    cache_size = Attribute('Target size of the cache')
+    cache_drain_resistance = Attribute('Factor for draining cache below '
+                                        'target size')
+    cache_non_ghost_count = Attribute('Number of non-ghosts in the cache '
+                                        '(XXX how is it different from '
+                                        'ringlen?')
+    cache_data = Attribute("Property:  copy of our 'data' dict")
+    cache_klass_count = Attribute("Property: len of 'persistent_classes'")

@@ -781,37 +781,37 @@ class _Persistent_Base(object):
         self.assertEqual(inst.qux, 'spam')
 
     def test___reduce__(self):
-        from copy_reg import __newobj__
+        from persistent._compat import copy_reg
         inst = self._makeOne()
         first, second, third = inst.__reduce__()
-        self.failUnless(first is __newobj__)
+        self.failUnless(first is copy_reg.__newobj__)
         self.assertEqual(second, (self._getTargetClass(),))
         self.assertEqual(third, None)
 
     def test___reduce__w_subclass_having_getnewargs(self):
-        from copy_reg import __newobj__
+        from persistent._compat import copy_reg
         class Derived(self._getTargetClass()):
             def __getnewargs__(self):
                 return ('a', 'b')
         inst = Derived()
         first, second, third = inst.__reduce__()
-        self.failUnless(first is __newobj__)
+        self.failUnless(first is copy_reg.__newobj__)
         self.assertEqual(second, (Derived, 'a', 'b'))
         self.assertEqual(third, {})
 
     def test___reduce__w_subclass_having_getstate(self):
-        from copy_reg import __newobj__
+        from persistent._compat import copy_reg
         class Derived(self._getTargetClass()):
             def __getstate__(self):
                 return {}
         inst = Derived()
         first, second, third = inst.__reduce__()
-        self.failUnless(first is __newobj__)
+        self.failUnless(first is copy_reg.__newobj__)
         self.assertEqual(second, (Derived,))
         self.assertEqual(third, {})
 
     def test___reduce__w_subclass_having_getnewargs_and_getstate(self):
-        from copy_reg import __newobj__
+        from persistent._compat import copy_reg
         class Derived(self._getTargetClass()):
             def __getnewargs__(self):
                 return ('a', 'b')
@@ -819,7 +819,7 @@ class _Persistent_Base(object):
                 return {'foo': 'bar'}
         inst = Derived()
         first, second, third = inst.__reduce__()
-        self.failUnless(first is __newobj__)
+        self.failUnless(first is copy_reg.__newobj__)
         self.assertEqual(second, (Derived, 'a', 'b'))
         self.assertEqual(third, {'foo': 'bar'})
 

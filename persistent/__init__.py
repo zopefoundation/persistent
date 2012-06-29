@@ -29,7 +29,7 @@ except ImportError: #pragma NO COVER
     from persistent.pyPersistence import CHANGED
     from persistent.pyPersistence import STICKY
 else:
-    import copy_reg
+    from persistent._compat import copy_reg
     copy_reg.constructor(simple_new)
     # Make an interface declaration for Persistent, if zope.interface
     # is available.  Note that the pyPersistent version already does this.

@@ -14,7 +14,7 @@
 import gc
 import weakref
 
-from zope.interface import implements
+from zope.interface import implementer
 
 from persistent.interfaces import CHANGED
 from persistent.interfaces import GHOST
@@ -29,8 +29,8 @@ class RingNode(object):
         self.next = next
         self.prev = prev
 
+@implementer(IPickleCache)
 class PickleCache(object):
-    implements(IPickleCache)
 
     def __init__(self, jar, target_size=0, cache_size_bytes=0):
         # TODO:  forward-port Dieter's bytes stuff
