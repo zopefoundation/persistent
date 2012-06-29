@@ -94,7 +94,6 @@ class PersistentMappingTests(unittest.TestCase):
 
         eq(str(u0), str(l0), "str(u0) == str(l0)")
         eq(repr(u1), repr(l1), "repr(u1) == repr(l1)")
-        eq(`u2`, `l2`, "`u2` == `l2`")
 
         # Test __cmp__ and __len__
 
