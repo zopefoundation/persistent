@@ -19,9 +19,9 @@ from persistent import Persistent
 def print_dict(d):
     d = d.items()
     d.sort()
-    print '{%s}' % (', '.join(
+    print('{%s}' % (', '.join(
         [('%r: %r' % (k, v)) for (k, v) in d]
-        ))
+        )))
 
 def cmpattrs(self, other, *attrs):
     for attr in attrs:
