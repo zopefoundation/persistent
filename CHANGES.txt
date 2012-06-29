@@ -4,9 +4,12 @@
 4.0 (unreleased)
 -----------------
 
-- 100% unit test coverage.
+- Added explicit support for Python 3.2 and PyPy.
 
-- Added explicit support for PyPy.
+  - Note that the C implementations of Persistent, PickleCache, and Timestamp
+    are not built (yet) on these platforms.
+
+- 100% unit test coverage.
 
 - Dropped explicit support for Python < 2.6.
 
