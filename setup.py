@@ -23,9 +23,6 @@ from setuptools import Extension
 from setuptools import find_packages
 from setuptools import setup
 
-TESTS_REQUIRE = [
-]
-
 here = os.path.abspath(os.path.dirname(__file__))
 README = (open(os.path.join(here, 'README.txt')).read()
           + '\n\n' +
@@ -97,10 +94,9 @@ setup(name='persistent',
       zip_safe=False,
       ext_modules = ext_modules,
       headers = headers,
-      tests_require = TESTS_REQUIRE,
       extras_require = {
-        'test': TESTS_REQUIRE,
-        'testing': TESTS_REQUIRE + ['nose', 'coverage'],
+        'test': (),
+        'testing': ['nose', 'coverage'],
         'docs': ['Sphinx', 'repoze.sphinx.autointerface'],
       },
       test_suite="persistent.tests",
@@ -109,5 +105,4 @@ setup(name='persistent',
       ],
       entry_points = """\
       """
-      )
-
+     )

@@ -4,6 +4,8 @@
 4.0 (unreleased)
 -----------------
 
+- Removed all ``ZODB``-dependent tests.
+
 - Added explicit support for Python 3.2 and PyPy.
 
   - Note that the C implementations of Persistent, PickleCache, and Timestamp
