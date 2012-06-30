@@ -1,28 +1,47 @@
 ``persistent`` Changelog
 ========================
 
-4.0 (unreleased)
------------------
-
-- Removed all ``ZODB``-dependent tests.
+4.0.0 (unreleased)
+------------------
 
 - Added explicit support for Python 3.2 and PyPy.
 
   - Note that the C implementations of Persistent, PickleCache, and Timestamp
     are not built (yet) on these platforms.
 
+- Dropped support for Python < 2.6.
+
+Testing Changes
+---------------
+
 - 100% unit test coverage.
 
-- Dropped explicit support for Python < 2.6.
+- Removed all ``ZODB``-dependent tests:
+
+  - Rewrote some to avoid the dependency
+  
+  - Cloned the remainder into new ``ZODB.tests`` modules.
+
+- Refactored some doctests refactored as unittests.
+
+- Completed pure-Python reference implementations of 'Persistent',
+  'PickleCache', and 'TimeStamp'.
+
+- All covered platforms tested under ``tox``.
 
 - Added support for continuous integration using ``tox`` and ``jenkins``.
-
-- Added ``setup.py docs`` alias (installs ``Sphinx`` and
-  ``repoze.sphinx.autointerface``).
 
 - Added ``setup.py dev`` alias (installs ``nose`` and ``coverage``).
 
 - Dropped dependency on ``zope.testing`` / ``zope.testrunner``:  tests now
   run with ``setup.py test``.
 
-- Initial release, branched from ZODB trunk on 2011-02-16.
+
+Documentation Changes
+---------------------
+
+- Refactored many Doctests as Sphinx documentation (snippets are exercised
+  via 'tox').
+
+- Added ``setup.py docs`` alias (installs ``Sphinx`` and
+  ``repoze.sphinx.autointerface``).
