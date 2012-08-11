@@ -1,8 +1,11 @@
 ``persistent`` Changelog
 ========================
 
-4.0.0 (unreleased)
+4.0.0 (2012-08-11)
 ------------------
+
+Platform Changes
+################
 
 - Added explicit support for Python 3.2 and PyPy.
 
@@ -12,7 +15,7 @@
 - Dropped support for Python < 2.6.
 
 Testing Changes
----------------
+###############
 
 - 100% unit test coverage.
 
@@ -36,9 +39,8 @@ Testing Changes
 - Dropped dependency on ``zope.testing`` / ``zope.testrunner``:  tests now
   run with ``setup.py test``.
 
-
 Documentation Changes
----------------------
+#####################
 
 - Refactored many Doctests as Sphinx documentation (snippets are exercised
   via 'tox').
