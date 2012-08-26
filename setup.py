@@ -56,8 +56,8 @@ else:
                                         'persistent/ring.c',
                                        ]
                             ),
-                   Extension(name = 'persistent.TimeStamp',
-                             sources= ['persistent/TimeStamp.c',
+                   Extension(name = 'persistent._timestamp',
+                             sources= ['persistent/_timestamp.c',
                                       ],
                             ),
                   ]

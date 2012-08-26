@@ -132,6 +132,6 @@ class pyTimeStamp(object):
         return self.__class__(later)
 
 try:
-    from persistent.TimeStamp import TimeStamp
+    from persistent._timestamp import TimeStamp
 except ImportError: #pragma NO COVER
     TimeStamp = pyTimeStamp

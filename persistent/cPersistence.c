@@ -1417,7 +1417,7 @@ initcPersistence(void)
 
   if (!TimeStamp)
     {
-      m = PyImport_ImportModule("persistent.TimeStamp");
+      m = PyImport_ImportModule("persistent.timestamp");
       if (!m)
         return;
       TimeStamp = PyObject_GetAttrString(m, "TimeStamp");

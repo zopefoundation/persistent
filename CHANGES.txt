@@ -4,7 +4,15 @@
 4.0.1 (unreleased)
 ------------------
 
-- TBD
+- Renamed ``TimeStamp`` extension module to avoid clash with pure-Python
+  ``timestamp`` module on case-insensitive filesystems.
+
+  N.B:  the canonical way to import the ``TimeStamp`` class is now::
+
+    from persistent.timestamp import TimeStamp
+
+  which will yield the class from the extension module (if available),
+  falling back to the pure-Python reference implementation.
 
 
 4.0.0 (2012-08-11)
