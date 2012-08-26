@@ -1120,7 +1120,7 @@ Per_set_estimated_size(cPersistentObject *self, PyObject *v)
     {
       if (PyLong_Check(v))
       {
-          long long llv = PyInt_AsLongLong(v);
+          long long llv = PyLong_AsLongLong(v);
           if (llv > sys_maxint)
           {
              v = sys_maxint;  /* borrow reference */
