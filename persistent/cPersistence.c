@@ -24,7 +24,7 @@ struct ccobject_head_struct {
 };
 
 /* These two objects are initialized when the module is loaded */
-static PyObject *TimeStamp, *py_simple_new;
+static PyObject *TimeStamp, *py_simple_new, *sys_maxint;
 
 /* Strings initialized by init_strings() below. */
 static PyObject *py_keys, *py_setstate, *py___dict__, *py_timeTime;
@@ -1118,6 +1118,14 @@ Per_set_estimated_size(cPersistentObject *self, PyObject *v)
 {
   if (v)
     {
+      if (PyLong_Check(v))
+      {
+          long long llv = PyInt_AsLongLong(v);
+          if (llv > sys_maxint)
+          {
+             v = sys_maxint;  /* borrow reference */
+          }
+      }
       if (PyInt_Check(v))
         {
           long lv = PyInt_AS_LONG(v);
@@ -1422,6 +1430,18 @@ initcPersistence(void)
         return;
       TimeStamp = PyObject_GetAttrString(m, "TimeStamp");
       Py_DECREF(m);
-      /* fall through to immediate return on error */
+      if (!TimeStamp)
+        return;
+    }
+
+  if (!sys_maxint)
+    {
+      m = PyImport_ImportModule("sys");
+      if (!m)
+        return;
+      sys_maxint = PyObject_GetAttrString(m, "maxint");
+      Py_DECREF(m);
+      if (!sys_maxint)
+        return;
     }
 }

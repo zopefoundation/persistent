@@ -4,6 +4,8 @@
 4.0.1 (unreleased)
 ------------------
 
+- Worked around test failure due to overflow to long on 32-bit systems.
+
 - Renamed ``TimeStamp`` extension module to avoid clash with pure-Python
   ``timestamp`` module on case-insensitive filesystems.
 
