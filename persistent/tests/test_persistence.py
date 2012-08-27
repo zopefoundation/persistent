@@ -508,12 +508,8 @@ class _Persistent_Base(object):
         self.assertEqual(inst._p_estimated_size, 16777215 * 64)
 
     def test_assign_p_estimated_size_bigger_than_sys_maxint(self):
-        try:
-            from sys import maxint
-        except ImportError: #pragma NO COVER PYTHON3
-            maxint = 2**32 - 1
         inst = self._makeOne()
-        inst._p_estimated_size = maxint + 1
+        inst._p_estimated_size = 2**63 -1 #largest 'long long' in C
         self.assertEqual(inst._p_estimated_size, 16777215 * 64)
 
     def test___getattribute___p__names(self):
