@@ -1,7 +1,7 @@
 ``persistent`` Changelog
 ========================
 
-4.0.2 (unreleased)
+4.0.2 (2012-08-27)
 ------------------
 
 - Correct initialization functions in renamed `_timestamp` extension.
