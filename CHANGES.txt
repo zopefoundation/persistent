@@ -4,7 +4,7 @@
 4.0.2 (unreleased)
 ------------------
 
-- TBD
+- Correct initialization functions in renamed `_timestamp` extension.
 
 
 4.0.1 (2012-08-26)

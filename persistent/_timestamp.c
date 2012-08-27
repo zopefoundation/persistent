@@ -420,14 +420,14 @@ static PyMethodDef TimeStampModule_functions[] = {
 
 
 void
-initTimeStamp(void)
+init_timestamp(void)
 {
     PyObject *m;
 
     if (TimeStamp_init_gmoff() < 0)
 	return;
 
-    m = Py_InitModule4("TimeStamp", TimeStampModule_functions,
+    m = Py_InitModule4("_timestamp", TimeStampModule_functions,
 		       TimeStampModule_doc, NULL, PYTHON_API_VERSION);
     if (m == NULL)
 	return;
