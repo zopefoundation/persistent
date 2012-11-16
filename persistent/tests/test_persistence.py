@@ -497,8 +497,13 @@ class _Persistent_Base(object):
         inst = self._makeOne()
         self.assertRaises(TypeError,
                           lambda : setattr(inst, '_p_estimated_size', None))
-        self.assertRaises(TypeError,
-                          lambda : setattr(inst, '_p_estimated_size', 1L))
+        try:
+            long
+        except NameError: #pragma NO COVER Py3k
+            pass
+        else:
+            self.assertRaises(TypeError,
+                          lambda : setattr(inst, '_p_estimated_size', long(1)))
 
     def test_assign_p_estimated_size_negative(self):
         inst = self._makeOne()
