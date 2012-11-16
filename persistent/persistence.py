@@ -166,12 +166,18 @@ class Persistent(object):
         return self.__size * 64
 
     def _set_estimated_size(self, value):
-        value = int(value)
-        if value < 0:
-            raise ValueError('_p_estimated_size must not be negative')
-        self.__size = _estimated_size_in_24_bits(value)
+        if isinstance(value, int):
+            if value < 0:
+                raise ValueError('_p_estimated_size must not be negative')
+            self.__size = _estimated_size_in_24_bits(value)
+        else:
+            raise TypeError("_p_estimated_size must be an integer")
 
-    _p_estimated_size = property(_get_estimated_size, _set_estimated_size)
+    def _del_estimated_size(self):
+        self.__size = 0
+
+    _p_estimated_size = property(
+        _get_estimated_size, _set_estimated_size, _del_estimated_size)
 
     # The '_p_sticky' property is not (yet) part of the API:  for now,
     # it exists to simplify debugging and testing assertions.
