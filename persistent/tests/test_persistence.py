@@ -486,6 +486,20 @@ class _Persistent_Base(object):
         inst = self._makeOne()
         self.assertEqual(inst._p_estimated_size, 0)
 
+    def test_query_p_estimated_size_del(self):
+        inst = self._makeOne()
+        inst._p_estimated_size = 123
+        self.assertEqual(inst._p_estimated_size, 128)
+        del inst._p_estimated_size
+        self.assertEqual(inst._p_estimated_size, 0)
+
+    def test_assign_p_estimated_size_wrong_type(self):
+        inst = self._makeOne()
+        self.assertRaises(TypeError,
+                          lambda : setattr(inst, '_p_estimated_size', None))
+        self.assertRaises(TypeError,
+                          lambda : setattr(inst, '_p_estimated_size', 1L))
+
     def test_assign_p_estimated_size_negative(self):
         inst = self._makeOne()
         def _test():
@@ -504,12 +518,7 @@ class _Persistent_Base(object):
 
     def test_assign_p_estimated_size_bigger(self):
         inst = self._makeOne()
-        inst._p_estimated_size = 1073741697 * 4 #still <= 32 bits
-        self.assertEqual(inst._p_estimated_size, 16777215 * 64)
-
-    def test_assign_p_estimated_size_bigger_than_sys_maxint(self):
-        inst = self._makeOne()
-        inst._p_estimated_size = 2**63 -1 #largest 'long long' in C
+        inst._p_estimated_size = 1073741697 * 2
         self.assertEqual(inst._p_estimated_size, 16777215 * 64)
 
     def test___getattribute___p__names(self):
