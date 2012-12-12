@@ -12,10 +12,10 @@
 - Fixed: In the C implimentation, an integer was compared with a
   pointer, with undefined results and a compiler warning.
 
-- Fixed: the Python implementation of the _p_estimated_size propety
+- Fixed: the Python implementation of the ``_p_estimated_size`` propety
   didn't support deletion.
 
-- Simplified implementation of the _p_estimated_size property to
+- Simplified implementation of the ``_p_estimated_size`` property to
   only accept integers.  A TypeError is raised if an incorrect type is
   provided.
 
@@ -23,7 +23,7 @@
 4.0.2 (2012-08-27)
 ------------------
 
-- Correct initialization functions in renamed `_timestamp` extension.
+- Correct initialization functions in renamed ``_timestamp`` extension.
 
 
 4.0.1 (2012-08-26)
