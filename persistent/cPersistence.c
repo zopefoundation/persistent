@@ -39,7 +39,7 @@ static int
 init_strings(void)
 {
 #define INIT_STRING(S)                              \
-  if (!(py_ ## S = PyString_InternFromString(#S)))  \
+  if (!(py_ ## S = INTERN(#S)))  \
     return -1;
   INIT_STRING(keys);
   INIT_STRING(setstate);
@@ -75,7 +75,7 @@ fatal_1350(cPersistentObject *self, const char *caller, const char *detail)
                 "unghost the object simultaneously.\n"
                 "That's not legal, but ZODB can't stop it.\n"
                 "See Collector #1350.\n",
-                caller, self, self->ob_type->tp_name, detail);
+                caller, self, Py_TYPE(self)->tp_name, detail);
 	Py_FatalError(buf);
 }
 #endif
@@ -124,7 +124,7 @@ unghostify(cPersistentObject *self)
 #else
           PyErr_Format(PyExc_SystemError, "object at %p with type "
                        "%.200s not in the cache despite that we just "
-                       "unghostified it", self, self->ob_type->tp_name);
+                       "unghostified it", self, Py_TYPE(self)->tp_name);
           return -1;
 #endif
         }
@@ -204,7 +204,7 @@ changed(cPersistentObject *self)
       static PyObject *s_register;
 
       if (s_register == NULL)
-        s_register = PyString_InternFromString("register");
+        s_register = INTERN("register");
       meth = PyObject_GetAttr((PyObject *)self->jar, s_register);
       if (meth == NULL)
         return -1;
@@ -240,7 +240,7 @@ readCurrent(cPersistentObject *self)
       PyObject *r;
 
       if (s_readCurrent == NULL)
-        s_readCurrent = PyString_InternFromString("readCurrent");
+        s_readCurrent = INTERN("readCurrent");
 
       r = PyObject_CallMethodObjArgs(self->jar, s_readCurrent, self, NULL);
       if (r == NULL)
@@ -348,9 +348,9 @@ pickle_copy_dict(PyObject *state)
 
   while (PyDict_Next(state, &pos, &key, &value))
     {
-      if (key && PyString_Check(key))
+      if (key && PyBytes_Check(key))
         {
-          ckey = PyString_AS_STRING(key);
+          ckey = PyBytes_AS_STRING(key);
           if (*ckey == '_' &&
               (ckey[1] == 'v' || ckey[1] == 'p') &&
               ckey[2] == '_')
@@ -392,7 +392,7 @@ pickle___getstate__(PyObject *self)
   PyObject **dictp;
   int n=0;
 
-  slotnames = pickle_slotnames(self->ob_type);
+  slotnames = pickle_slotnames(Py_TYPE(self));
   if (!slotnames)
     return NULL;
 
@@ -419,9 +419,9 @@ pickle___getstate__(PyObject *self)
           char *cname;
 
           name = PyList_GET_ITEM(slotnames, i);
-          if (PyString_Check(name))
+          if (PyBytes_Check(name))
             {
-              cname = PyString_AS_STRING(name);
+              cname = PyBytes_AS_STRING(name);
               if (*cname == '_' &&
                   (cname[1] == 'v' || cname[1] == 'p') &&
                   cname[2] == '_')
@@ -567,8 +567,8 @@ pickle___reduce__(PyObject *self)
   if (args == NULL)
     goto end;
 
-  Py_INCREF(self->ob_type);
-  PyTuple_SET_ITEM(args, 0, (PyObject*)(self->ob_type));
+  Py_INCREF(Py_TYPE(self));
+  PyTuple_SET_ITEM(args, 0, (PyObject*)(Py_TYPE(self)));
   for (i = 0; i < l; i++)
     {
       Py_INCREF(PyTuple_GET_ITEM(bargs, i));
@@ -647,7 +647,7 @@ Per_dealloc(cPersistentObject *self)
   Py_XDECREF(self->cache);
   Py_XDECREF(self->jar);
   Py_XDECREF(self->oid);
-  self->ob_type->tp_free(self);
+  Py_TYPE(self)->tp_free(self);
 }
 
 static int
@@ -687,7 +687,7 @@ convert_name(PyObject *name)
     }
   else
 #endif
-    if (!PyString_Check(name))
+    if (!PyBytes_Check(name))
       {
         PyErr_SetString(PyExc_TypeError, "attribute name must be a string");
         return NULL;
@@ -755,7 +755,7 @@ Per_getattro(cPersistentObject *self, PyObject *name)
   name = convert_name(name);
   if (!name)
     goto Done;
-  s = PyString_AS_STRING(name);
+  s = PyBytes_AS_STRING(name);
 
   if (unghost_getattr(s))
     {
@@ -780,7 +780,7 @@ Per__p_getattr(cPersistentObject *self, PyObject *name)
   name = convert_name(name);
   if (!name)
     goto Done;
-  s = PyString_AS_STRING(name);
+  s = PyBytes_AS_STRING(name);
 
   if (*s != '_' || unghost_getattr(s))
     {
@@ -812,7 +812,7 @@ Per_setattro(cPersistentObject *self, PyObject *name, PyObject *v)
   name = convert_name(name);
   if (!name)
     goto Done;
-  s = PyString_AS_STRING(name);
+  s = PyBytes_AS_STRING(name);
 
   if (strncmp(s, "_p_", 3) != 0)
     {
@@ -843,7 +843,7 @@ Per_p_set_or_delattro(cPersistentObject *self, PyObject *name, PyObject *v)
   name = convert_name(name);
   if (!name)
     goto Done;
-  s = PyString_AS_STRING(name);
+  s = PyBytes_AS_STRING(name);
 
   if (strncmp(s, "_p_", 3))
     {
@@ -1001,7 +1001,8 @@ Per_set_oid(cPersistentObject *self, PyObject *v)
                           "can't delete _p_oid of cached object");
           return -1;
         }
-      if (PyObject_Cmp(self->oid, v, &result) < 0)
+      result = PyObject_RichCompareBool(self->oid, v, Py_NE);
+      if (result < 0)
         return -1;
       if (result)
         {
@@ -1037,7 +1038,8 @@ Per_set_jar(cPersistentObject *self, PyObject *v)
                           "can't delete _p_jar of cached object");
           return -1;
         }
-      if (PyObject_Cmp(self->jar, v, &result) < 0)
+      result = PyObject_RichCompareBool(self->jar, v, Py_NE);
+      if (result < 0)
         return -1;
       if (result)
         {
@@ -1055,7 +1057,7 @@ Per_set_jar(cPersistentObject *self, PyObject *v)
 static PyObject *
 Per_get_serial(cPersistentObject *self)
 {
-  return PyString_FromStringAndSize(self->serial, 8);
+  return PyBytes_FromStringAndSize(self->serial, 8);
 }
 
 static int
@@ -1063,8 +1065,8 @@ Per_set_serial(cPersistentObject *self, PyObject *v)
 {
   if (v)
     {
-      if (PyString_Check(v) && PyString_GET_SIZE(v) == 8)
-        memcpy(self->serial, PyString_AS_STRING(v), 8);
+      if (PyBytes_Check(v) && PyBytes_GET_SIZE(v) == 8)
+        memcpy(self->serial, PyBytes_AS_STRING(v), 8);
       else
         {
           PyErr_SetString(PyExc_ValueError,
@@ -1104,13 +1106,13 @@ Per_get_mtime(cPersistentObject *self)
 static PyObject *
 Per_get_state(cPersistentObject *self)
 {
-  return PyInt_FromLong(self->state);
+  return INT_FROM_LONG(self->state);
 }
 
 static PyObject *
 Per_get_estimated_size(cPersistentObject *self)
 {
-  return PyInt_FromLong(_estimated_size_in_bytes(self->estimated_size));
+  return INT_FROM_LONG(_estimated_size_in_bytes(self->estimated_size));
 }
 
 static int
@@ -1118,9 +1120,9 @@ Per_set_estimated_size(cPersistentObject *self, PyObject *v)
 {
   if (v)
     {
-      if (PyInt_Check(v))
+      if (INT_CHECK(v))
         {
-          long lv = PyInt_AS_LONG(v);
+          long lv = INT_AS_LONG(v);
           if (lv < 0)
             {
               PyErr_SetString(PyExc_ValueError,
@@ -1270,8 +1272,7 @@ static struct PyMethodDef Per_methods[] = {
 #define DEFERRED_ADDRESS(ADDR) 0
 
 static PyTypeObject Pertype = {
-  PyObject_HEAD_INIT(DEFERRED_ADDRESS(&PyPersist_MetaType))
-  0,					/* ob_size */
+  PyVarObject_HEAD_INIT(DEFERRED_ADDRESS(&PyPersist_MetaType), 0)
   "persistent.Persistent",		/* tp_name */
   sizeof(cPersistentObject),		/* tp_basicsize */
   0,					/* tp_itemsize */
@@ -1355,6 +1356,21 @@ truecPersistenceCAPI = {
   readCurrent
 };
 
+#ifdef PY3K
+static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "cPersistence",     /* m_name */
+        cPersistence_doc_string,  /* m_doc */
+        -1,                  /* m_size */
+        cPersistence_methods,    /* m_methods */
+        NULL,                /* m_reload */
+        NULL,                /* m_traverse */
+        NULL,                /* m_clear */
+        NULL,                /* m_free */
+    };
+
+#endif
+
 void
 initcPersistence(void)
 {
@@ -1364,10 +1380,18 @@ initcPersistence(void)
   if (init_strings() < 0)
     return;
 
+#ifdef PY3K
+  m = PyModule_Create(&moduledef);
+#else
   m = Py_InitModule3("cPersistence", cPersistence_methods,
                      cPersistence_doc_string);
+#endif
 
+#ifdef PY3K
+  ((PyObject*)&Pertype)->ob_type = &PyType_Type;
+#else
   Pertype.ob_type = &PyType_Type;
+#endif
   Pertype.tp_new = PyType_GenericNew;
   if (PyType_Ready(&Pertype) < 0)
     return;
@@ -1375,7 +1399,11 @@ initcPersistence(void)
     return;
 
   cPersistenceCAPI = &truecPersistenceCAPI;
+#ifdef PY3K
+  s = PyCapsule_New(cPersistenceCAPI, "CAPI", NULL);
+#else
   s = PyCObject_FromVoidPtr(cPersistenceCAPI, NULL);
+#endif
   if (!s)
     return;
   if (PyModule_AddObject(m, "CAPI", s) < 0)

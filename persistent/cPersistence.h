@@ -17,6 +17,28 @@
 
 #include "Python.h"
 
+#if PY_MAJOR_VERSION >= 3
+#define PY3K
+#endif
+
+#ifdef PY3K
+#define INTERN PyUnicode_InternFromString
+#else
+#define INTERN PyString_InternFromString
+#endif
+
+#ifdef PY3K
+#define INT_FROM_LONG(x) PyLong_FromLong(x)
+#define INT_CHECK(x) PyLong_Check(x)
+#define INT_AS_LONG(x) PyLong_AS_LONG(x)
+#else
+#define INT_FROM_LONG(x) PyInt_FromLong(x)
+#define INT_CHECK(x) PyInt_Check(x)
+#define INT_AS_LONG(x) PyInt_AS_LONG(x)
+#endif
+
+#include "bytesobject.h"
+
 #include "ring.h"
 
 #define CACHE_HEAD \
