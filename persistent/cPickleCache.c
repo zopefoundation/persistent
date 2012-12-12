@@ -363,7 +363,7 @@ _invalidate(ccobject *self, PyObject *key)
 
   if (_p_invalidate == NULL)
     {
-      _p_invalidate = PyString_InternFromString("_p_invalidate");
+      _p_invalidate = INTERN("_p_invalidate");
       if (_p_invalidate == NULL)
         {
           /* It doesn't make any sense to ignore this error, but
@@ -416,7 +416,7 @@ cc_invalidate(ccobject *self, PyObject *inv)
     }
   else
     {
-      if (PyString_Check(inv))
+      if (PyBytes_Check(inv))
         {
           if (_invalidate(self, inv) < 0)
             return NULL;
@@ -664,7 +664,7 @@ cc_ringlen(ccobject *self)
   for (here = self->ring_home.r_next; here != &self->ring_home;
        here = here->r_next)
     c++;
-  return PyInt_FromLong(c);
+  return INT_FROM_LONG(c);
 }
 
 static PyObject *
@@ -1041,7 +1041,7 @@ cc_add_item(ccobject *self, PyObject *key, PyObject *v)
   oid = PyObject_GetAttr(v, py__p_oid);
   if (oid == NULL)
     return -1;
-  if (! PyString_Check(oid))
+  if (! PyBytes_Check(oid))
     {
       Py_DECREF(oid);
       PyErr_Format(PyExc_TypeError,
@@ -1054,13 +1054,12 @@ cc_add_item(ccobject *self, PyObject *key, PyObject *v)
   /*  we know they are both strings.
    *  now check if they are the same string.
    */
-  result = PyObject_Compare(key, oid);
-  if (PyErr_Occurred())
+  result = PyObject_RichCompareBool(key, oid, Py_NE);
+  Py_DECREF(oid);
+  if (result < 0)
     {
-      Py_DECREF(oid);
       return -1;
     }
-  Py_DECREF(oid);
   if (result)
     {
       PyErr_SetString(PyExc_ValueError, "Cache key does not match oid");
@@ -1199,7 +1198,7 @@ cc_del_item(ccobject *self, PyObject *key)
 static int
 cc_ass_sub(ccobject *self, PyObject *key, PyObject *v)
 {
-  if (!PyString_Check(key))
+  if (!PyBytes_Check(key))
     {
       PyErr_Format(PyExc_TypeError,
                    "cPickleCache key must be a string, not a %s",
@@ -1236,11 +1235,11 @@ static PyMemberDef cc_members[] = {
   {"cache_size", T_INT, offsetof(ccobject, cache_size)},
   {"cache_size_bytes", T_LONG, offsetof(ccobject, cache_size_bytes)},
   {"total_estimated_size", T_LONG, offsetof(ccobject, total_estimated_size),
-   RO},
+   READONLY},
   {"cache_drain_resistance", T_INT,
    offsetof(ccobject, cache_drain_resistance)},
-  {"cache_non_ghost_count", T_INT, offsetof(ccobject, non_ghost_count), RO},
-  {"cache_klass_count", T_INT, offsetof(ccobject, klass_count), RO},
+  {"cache_non_ghost_count", T_INT, offsetof(ccobject, non_ghost_count), READONLY},
+  {"cache_klass_count", T_INT, offsetof(ccobject, klass_count), READONLY},
   {NULL}
 };
 
@@ -1254,8 +1253,7 @@ static PyMemberDef cc_members[] = {
 #define DEFERRED_ADDRESS(ADDR) 0
 
 static PyTypeObject Cctype = {
-  PyObject_HEAD_INIT(DEFERRED_ADDRESS(&PyType_Type))
-  0,					/* ob_size */
+  PyVarObject_HEAD_INIT(DEFERRED_ADDRESS(&PyType_Type), 0)
   "persistent.PickleCache",		/* tp_name */
   sizeof(ccobject),			/* tp_basicsize */
   0,					/* tp_itemsize */
@@ -1294,36 +1292,66 @@ static PyTypeObject Cctype = {
   (initproc)cc_init,			/* tp_init */
 };
 
+#ifdef PY3K
+static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "cPickleCache",     /* m_name */
+        cPickleCache_doc_string,  /* m_doc */
+        -1,                  /* m_size */
+        NULL,                /* m_methods */
+        NULL,                /* m_reload */
+        NULL,                /* m_traverse */
+        NULL,                /* m_clear */
+        NULL,                /* m_free */
+    };
+
+#endif
+
 void
 initcPickleCache(void)
 {
   PyObject *m;
 
+
+#ifdef PY3K
+  ((PyObject*)&Cctype)->ob_type = &PyType_Type;
+#else
   Cctype.ob_type = &PyType_Type;
+#endif
   Cctype.tp_new = &PyType_GenericNew;
   if (PyType_Ready(&Cctype) < 0)
     {
       return;
     }
 
-  m = Py_InitModule3("cPickleCache", NULL, cPickleCache_doc_string);
 
+#ifdef PY3K
+  m = PyModule_Create(&moduledef);
+#else
+  m = Py_InitModule3("cPickleCache", NULL, cPickleCache_doc_string);
+#endif
+
+#ifdef PY3K
+  capi = (cPersistenceCAPIstruct *)PyCapsule_Import(
+                "persistent.cPersistence.CAPI", 0);
+#else
   capi = (cPersistenceCAPIstruct *)PyCObject_Import(
                 "persistent.cPersistence", "CAPI");
+#endif
   if (!capi)
     return;
   capi->percachedel = (percachedelfunc)cc_oid_unreferenced;
 
-  py__p_changed = PyString_InternFromString("_p_changed");
+  py__p_changed = INTERN("_p_changed");
   if (!py__p_changed)
     return;
-  py__p_deactivate = PyString_InternFromString("_p_deactivate");
+  py__p_deactivate = INTERN("_p_deactivate");
   if (!py__p_deactivate)
     return;
-  py__p_jar = PyString_InternFromString("_p_jar");
+  py__p_jar = INTERN("_p_jar");
   if (!py__p_jar)
     return;
-  py__p_oid = PyString_InternFromString("_p_oid");
+  py__p_oid = INTERN("_p_oid");
   if (!py__p_oid)
     return;
 
