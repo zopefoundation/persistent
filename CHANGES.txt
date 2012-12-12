@@ -1,7 +1,7 @@
 ``persistent`` Changelog
 ========================
 
-4.0.4 (unreleased)
+4.0.4 (2012-12-11)
 ------------------
 
 - Added support for Python 3.3.
