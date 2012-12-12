@@ -4,6 +4,8 @@
 4.0.3 (2012-11-19)
 ------------------
 
+- Added support for Python 3.3.
+
 - C extenstions now build under Python 3.2, passing the same tests as
   the pure-Python reference implementation.
 
