@@ -1,6 +1,12 @@
 ``persistent`` Changelog
 ========================
 
+4.0.5 (unreleased)
+------------------
+
+- TBD
+
+
 4.0.4 (2012-12-11)
 ------------------
 
@@ -8,7 +14,6 @@
 
 - C extenstions now build under Python 3.2, passing the same tests as
   the pure-Python reference implementation.
-
 
 4.0.3 (2012-11-19)
 ------------------
