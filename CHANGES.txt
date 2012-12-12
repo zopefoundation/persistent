@@ -4,6 +4,9 @@
 4.0.3 (2012-11-19)
 ------------------
 
+- C extenstions now build under Python 3.2, passing the same tests as
+  the pure-Python reference implementation.
+
 - Fixed: In the C implimentation, an integer was compared with a
   pointer, with undefined results and a compiler warning.
 
