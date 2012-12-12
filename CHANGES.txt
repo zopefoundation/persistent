@@ -1,13 +1,17 @@
 ``persistent`` Changelog
 ========================
 
-4.0.3 (2012-11-19)
+4.0.4 (unreleased)
 ------------------
 
 - Added support for Python 3.3.
 
 - C extenstions now build under Python 3.2, passing the same tests as
   the pure-Python reference implementation.
+
+
+4.0.3 (2012-11-19)
+------------------
 
 - Fixed: In the C implimentation, an integer was compared with a
   pointer, with undefined results and a compiler warning.
