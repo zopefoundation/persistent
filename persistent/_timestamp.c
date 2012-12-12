@@ -13,7 +13,19 @@
  ****************************************************************************/
 
 #include "Python.h"
+#include "bytesobject.h"
 #include <time.h>
+
+#if PY_MAJOR_VERSION >= 3
+#define PY3K
+#define Py_TPFLAGS_HAVE_RICHCOMPARE 0
+#endif
+
+#ifdef PY3K
+#define INT_FROM_LONG(x) PyLong_FromLong(x)
+#else
+#define INT_FROM_LONG(x) PyInt_FromLong(x)
+#endif
 
 PyObject *TimeStamp_FromDate(int, int, int, int, int, double);
 PyObject *TimeStamp_FromString(const char *);
@@ -106,13 +118,41 @@ TimeStamp_dealloc(TimeStamp *ts)
     PyObject_Del(ts);
 }
 
-static int
-TimeStamp_compare(TimeStamp *v, TimeStamp *w)
+static PyObject*
+TimeStamp_richcompare(TimeStamp *self, TimeStamp *other, int op)
 {
-    int cmp = memcmp(v->data, w->data, 8);
-    if (cmp < 0) return -1;
-    if (cmp > 0) return 1;
-    return 0;
+    PyObject *result = NULL;
+    int cmp;
+
+    if (Py_TYPE(other) != Py_TYPE(self)) {
+        result = Py_NotImplemented;
+    }
+    else {
+        cmp = memcmp(self->data, other->data, 8);
+        switch (op) {
+        case Py_LT:
+            result = (cmp < 0) ? Py_True : Py_False;
+            break;
+        case Py_LE:
+            result = (cmp <= 0) ? Py_True : Py_False;
+            break;
+        case Py_EQ:
+            result = (cmp == 0) ? Py_True : Py_False;
+            break;
+        case Py_NE:
+            result = (cmp != 0) ? Py_True : Py_False;
+            break;
+        case Py_GT:
+            result = (cmp > 0) ? Py_True : Py_False;
+            break;
+        case Py_GE:
+            result = (cmp >= 0) ? Py_True : Py_False;
+            break;
+        }
+    }
+
+    Py_XINCREF(result);
+    return result;
 }
 
 static long
@@ -165,7 +205,7 @@ TimeStamp_year(TimeStamp *self)
 {
     TimeStampParts p;
     TimeStamp_unpack(self, &p);
-    return PyInt_FromLong(p.y);
+    return INT_FROM_LONG(p.y);
 }
 
 static PyObject *
@@ -173,7 +213,7 @@ TimeStamp_month(TimeStamp *self)
 {
     TimeStampParts p;
     TimeStamp_unpack(self, &p);
-    return PyInt_FromLong(p.m);
+    return INT_FROM_LONG(p.m);
 }
 
 static PyObject *
@@ -181,7 +221,7 @@ TimeStamp_day(TimeStamp *self)
 {
     TimeStampParts p;
     TimeStamp_unpack(self, &p);
-    return PyInt_FromLong(p.d);
+    return INT_FROM_LONG(p.d);
 }
 
 static PyObject *
@@ -189,7 +229,7 @@ TimeStamp_hour(TimeStamp *self)
 {
     TimeStampParts p;
     TimeStamp_unpack(self, &p);
-    return PyInt_FromLong(p.mi / 60);
+    return INT_FROM_LONG(p.mi / 60);
 }
 
 static PyObject *
@@ -197,7 +237,7 @@ TimeStamp_minute(TimeStamp *self)
 {
     TimeStampParts p;
     TimeStamp_unpack(self, &p);
-    return PyInt_FromLong(p.mi % 60);
+    return INT_FROM_LONG(p.mi % 60);
 }
 
 static PyObject *
@@ -218,7 +258,7 @@ TimeStamp_timeTime(TimeStamp *self)
 static PyObject *
 TimeStamp_raw(TimeStamp *self)
 {
-    return PyString_FromStringAndSize((const char*)self->data, 8);
+    return PyBytes_FromStringAndSize((const char*)self->data, 8);
 }
 
 static PyObject *
@@ -233,7 +273,7 @@ TimeStamp_str(TimeStamp *self)
 	         p.y, p.m, p.d, p.mi / 60, p.mi % 60,
 	         TimeStamp_sec(self));
 
-    return PyString_FromStringAndSize(buf, len);
+    return PyBytes_FromStringAndSize(buf, len);
 }
 
 
@@ -245,7 +285,7 @@ TimeStamp_laterThan(TimeStamp *self, PyObject *obj)
     unsigned char new[8];
     int i;
 
-    if (obj->ob_type != self->ob_type) {
+    if (Py_TYPE(obj) != Py_TYPE(self)) {
 	PyErr_SetString(PyExc_TypeError, "expected TimeStamp object");
 	return NULL;
     }
@@ -298,42 +338,45 @@ static struct PyMethodDef TimeStamp_methods[] = {
     {NULL,	NULL},
 };
 
+#define DEFERRED_ADDRESS(ADDR) 0
+
 static PyTypeObject TimeStamp_type = {
-    PyObject_HEAD_INIT(NULL)
-    0,
+    PyVarObject_HEAD_INIT(DEFERRED_ADDRESS(NULL), 0)
     "persistent.TimeStamp",
-    sizeof(TimeStamp),
-    0,
-    (destructor)TimeStamp_dealloc,	/* tp_dealloc */
-    0,					/* tp_print */
-    0,					/* tp_getattr */
-    0,					/* tp_setattr */
-    (cmpfunc)TimeStamp_compare,		/* tp_compare */
-    (reprfunc)TimeStamp_raw,		/* tp_repr */
-    0,					/* tp_as_number */
-    0,					/* tp_as_sequence */
-    0,					/* tp_as_mapping */
-    (hashfunc)TimeStamp_hash,		/* tp_hash */
-    0,					/* tp_call */
-    (reprfunc)TimeStamp_str,		/* tp_str */
-    0,					/* tp_getattro */
-    0,					/* tp_setattro */
-    0,					/* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /* tp_flags */
-    0,					/* tp_doc */
-    0,					/* tp_traverse */
-    0,					/* tp_clear */
-    0,					/* tp_richcompare */
-    0,					/* tp_weaklistoffset */
-    0,					/* tp_iter */
-    0,					/* tp_iternext */
-    TimeStamp_methods,			/* tp_methods */
-    0,					/* tp_members */
-    0,					/* tp_getset */
-    0,					/* tp_base */
-    0,					/* tp_dict */
-    0,					/* tp_descr_get */
-    0,					/* tp_descr_set */
+    sizeof(TimeStamp),                      /* tp_basicsize */
+    0,                                      /* tp_itemsize */
+    (destructor)TimeStamp_dealloc,	        /* tp_dealloc */
+    0,					                    /* tp_print */
+    0,					                    /* tp_getattr */
+    0,					                    /* tp_setattr */
+    0,		                                /* tp_compare */
+    (reprfunc)TimeStamp_raw,		        /* tp_repr */
+    0,					                    /* tp_as_number */
+    0,					                    /* tp_as_sequence */
+    0,					                    /* tp_as_mapping */
+    (hashfunc)TimeStamp_hash,		        /* tp_hash */
+    0,					                    /* tp_call */
+    (reprfunc)TimeStamp_str,		        /* tp_str */
+    0,					                    /* tp_getattro */
+    0,					                    /* tp_setattro */
+    0,					                    /* tp_as_buffer */
+    Py_TPFLAGS_DEFAULT |
+    Py_TPFLAGS_BASETYPE |
+    Py_TPFLAGS_HAVE_RICHCOMPARE,            /* tp_flags */
+    0,					                    /* tp_doc */
+    0,					                    /* tp_traverse */
+    0,					                    /* tp_clear */
+    (richcmpfunc)&TimeStamp_richcompare,    /* tp_richcompare */
+    0,					                    /* tp_weaklistoffset */
+    0,					                    /* tp_iter */
+    0,					                    /* tp_iternext */
+    TimeStamp_methods,			            /* tp_methods */
+    0,					                    /* tp_members */
+    0,					                    /* tp_getset */
+    0,					                    /* tp_base */
+    0,					                    /* tp_dict */
+    0,					                    /* tp_descr_get */
+    0,					                    /* tp_descr_set */
 };
 
 PyObject *
@@ -418,6 +461,20 @@ static PyMethodDef TimeStampModule_functions[] = {
     {NULL,		NULL},
 };
 
+#ifdef PY3K
+static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "_timestamp",               /* m_name */
+        TimeStampModule_doc,        /* m_doc */
+        -1,                         /* m_size */
+        TimeStampModule_functions,  /* m_methods */
+        NULL,                       /* m_reload */
+        NULL,                       /* m_traverse */
+        NULL,                       /* m_clear */
+        NULL,                       /* m_free */
+    };
+#endif
+
 
 void
 init_timestamp(void)
@@ -427,11 +484,19 @@ init_timestamp(void)
     if (TimeStamp_init_gmoff() < 0)
 	return;
 
+#ifdef PY3K
+    m = PyModule_Create(&moduledef);
+#else
     m = Py_InitModule4("_timestamp", TimeStampModule_functions,
 		       TimeStampModule_doc, NULL, PYTHON_API_VERSION);
+#endif
     if (m == NULL)
 	return;
 
+#ifdef PY3K
+  ((PyObject*)&TimeStamp_type)->ob_type = &PyType_Type;
+#else
     TimeStamp_type.ob_type = &PyType_Type;
+#endif
     TimeStamp_type.tp_getattro = PyObject_GenericGetAttr;
 }

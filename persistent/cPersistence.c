@@ -1272,37 +1272,38 @@ static struct PyMethodDef Per_methods[] = {
 #define DEFERRED_ADDRESS(ADDR) 0
 
 static PyTypeObject Pertype = {
-  PyVarObject_HEAD_INIT(DEFERRED_ADDRESS(&PyPersist_MetaType), 0)
-  "persistent.Persistent",		/* tp_name */
+  PyVarObject_HEAD_INIT(DEFERRED_ADDRESS(&PyType_Type), 0)
+  "persistent.Persistent",		    /* tp_name */
   sizeof(cPersistentObject),		/* tp_basicsize */
-  0,					/* tp_itemsize */
-  (destructor)Per_dealloc,		/* tp_dealloc */
-  0,					/* tp_print */
-  0,					/* tp_getattr */
-  0,					/* tp_setattr */
-  0,					/* tp_compare */
-  0,					/* tp_repr */
-  0,					/* tp_as_number */
-  0,					/* tp_as_sequence */
-  0,					/* tp_as_mapping */
-  0,					/* tp_hash */
-  0,					/* tp_call */
-  0,					/* tp_str */
+  0,					            /* tp_itemsize */
+  (destructor)Per_dealloc,		    /* tp_dealloc */
+  0,					            /* tp_print */
+  0,					            /* tp_getattr */
+  0,					            /* tp_setattr */
+  0,					            /* tp_compare */
+  0,					            /* tp_repr */
+  0,					            /* tp_as_number */
+  0,					            /* tp_as_sequence */
+  0,					            /* tp_as_mapping */
+  0,					            /* tp_hash */
+  0,					            /* tp_call */
+  0,					            /* tp_str */
   (getattrofunc)Per_getattro,		/* tp_getattro */
   (setattrofunc)Per_setattro,		/* tp_setattro */
-  0,					/* tp_as_buffer */
-  Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC,
-  /* tp_flags */
-  0,					/* tp_doc */
+  0,					            /* tp_as_buffer */
+  Py_TPFLAGS_DEFAULT |
+  Py_TPFLAGS_BASETYPE |
+  Py_TPFLAGS_HAVE_GC,               /* tp_flags */
+  0,					            /* tp_doc */
   (traverseproc)Per_traverse,		/* tp_traverse */
-  0,					/* tp_clear */
-  0,					/* tp_richcompare */
-  0,					/* tp_weaklistoffset */
-  0,					/* tp_iter */
-  0,					/* tp_iternext */
-  Per_methods,			/* tp_methods */
-  0,					/* tp_members */
-  Per_getsets,			/* tp_getset */
+  0,					            /* tp_clear */
+  0,					            /* tp_richcompare */
+  0,					            /* tp_weaklistoffset */
+  0,					            /* tp_iter */
+  0,					            /* tp_iternext */
+  Per_methods,			            /* tp_methods */
+  0,					            /* tp_members */
+  Per_getsets,			            /* tp_getset */
 };
 
 /* End of code for Persistent objects */

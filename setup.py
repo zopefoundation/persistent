@@ -35,7 +35,7 @@ is_jython = 'java' in sys.platform
 # Jython cannot build the C optimizations, while on PyPy they are
 # anti-optimizations (the C extension compatibility layer is known-slow,
 # and defeats JIT opportunities).
-if is_pypy or is_jython or sys.version_info[0] > 2:
+if is_pypy or is_jython:
     ext_modules = headers = []
 else:
     ext_modules = [Extension(name = 'persistent.cPersistence',
