@@ -768,7 +768,7 @@ Per_getattro(cPersistentObject *self, PyObject *name)
     result = PyObject_GenericGetAttr((PyObject *)self, name);
 
 Done:
-    Py_XDECREF(name);
+    Py_XDECREF(converted);
     return result;
 }
 
@@ -798,7 +798,7 @@ Per__p_getattr(cPersistentObject *self, PyObject *name)
     Py_INCREF(result);
 
 Done:
-    Py_XDECREF(name);
+    Py_XDECREF(converted);
     return result;
 }
 
@@ -833,7 +833,7 @@ Per_setattro(cPersistentObject *self, PyObject *name, PyObject *v)
     result = PyObject_GenericSetAttr((PyObject *)self, name, v);
 
 Done:
-    Py_XDECREF(name);
+    Py_XDECREF(converted);
     return result;
 }
 
@@ -866,7 +866,7 @@ Per_p_set_or_delattro(cPersistentObject *self, PyObject *name, PyObject *v)
     }
 
 Done:
-  Py_XDECREF(name);
+  Py_XDECREF(converted);
   return result;
 }
 
