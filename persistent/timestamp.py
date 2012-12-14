@@ -90,7 +90,7 @@ class pyTimeStamp(object):
         return self._raw
 
     def __repr__(self):
-        return _native(self._raw)
+        return repr(self._raw)
 
     def year(self):
         return self._elements[0]
