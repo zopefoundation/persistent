@@ -1354,7 +1354,13 @@ else:
             self.assertRaises(TypeError, self._callFUT, '')
 
         def test_w_type(self):
-            for typ in (type, list, dict, tuple, object):
+            import sys
+            TO_CREATE = [type, list, tuple, object]
+            # Python 3.3 segfaults when destroying a dict created via
+            # PyType_GenericNew.  See http://bugs.python.org/issue16676
+            if sys.version_info < (3, 3):
+                TO_CREATE.append(dict)
+            for typ in TO_CREATE:
                 self.assertTrue(isinstance(self._callFUT(typ), typ))
 
     _add_to_suite.append(Test_simple_new)
