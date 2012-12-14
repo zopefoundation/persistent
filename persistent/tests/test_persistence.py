@@ -604,7 +604,6 @@ class _Persistent_Base(object):
     def test___setattr___v__name(self):
         class Derived(self._getTargetClass()):
             pass
-        import pdb; pdb.set_trace()
         inst, jar, OID = self._makeOneWithJar(Derived)
         self._clearMRU(jar)
         inst._v_foo = 'bar'
