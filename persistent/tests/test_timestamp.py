@@ -118,14 +118,15 @@ class pyTimeStampTests(unittest.TestCase):
 
     def test_laterThan_invalid(self):
         from persistent.timestamp import _makeOctets
+        ERRORS = (ValueError, TypeError)
         SERIAL = _makeOctets('\x01' * 8)
         ts = self._makeOne(SERIAL)
-        self.assertRaises(ValueError, ts.laterThan, None)
-        self.assertRaises(ValueError, ts.laterThan, '')
-        self.assertRaises(ValueError, ts.laterThan, ())
-        self.assertRaises(ValueError, ts.laterThan, [])
-        self.assertRaises(ValueError, ts.laterThan, {})
-        self.assertRaises(ValueError, ts.laterThan, object())
+        self.assertRaises(ERRORS, ts.laterThan, None)
+        self.assertRaises(ERRORS, ts.laterThan, '')
+        self.assertRaises(ERRORS, ts.laterThan, ())
+        self.assertRaises(ERRORS, ts.laterThan, [])
+        self.assertRaises(ERRORS, ts.laterThan, {})
+        self.assertRaises(ERRORS, ts.laterThan, object())
 
     def test_laterThan_self_is_earlier(self):
         from persistent.timestamp import _makeOctets
@@ -152,7 +153,7 @@ class pyTimeStampTests(unittest.TestCase):
         ts = self._makeOne(SERIAL)
         self.assertEqual(repr(ts), _native(SERIAL))
 
-class TimeStampTests(unittest.TestCase):
+class TimeStampTests(pyTimeStampTests):
 
     def _getTargetClass(self):
         from persistent.timestamp import TimeStamp

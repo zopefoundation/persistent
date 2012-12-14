@@ -19,8 +19,9 @@ static char cPersistence_doc_string[] =
 #include "cPersistence.h"
 #include "structmember.h"
 
-struct ccobject_head_struct {
-  CACHE_HEAD
+struct ccobject_head_struct
+{
+    CACHE_HEAD
 };
 
 /* These two objects are initialized when the module is loaded */
@@ -66,9 +67,9 @@ init_strings(void)
 static void
 fatal_1350(cPersistentObject *self, const char *caller, const char *detail)
 {
-	char buf[1000];
+    char buf[1000];
 
-	PyOS_snprintf(buf, sizeof(buf),
+    PyOS_snprintf(buf, sizeof(buf),
                 "cPersistence.c %s(): object at %p with type %.200s\n"
                 "%s.\n"
                 "The only known cause is multiple threads trying to ghost and\n"
@@ -76,7 +77,7 @@ fatal_1350(cPersistentObject *self, const char *caller, const char *detail)
                 "That's not legal, but ZODB can't stop it.\n"
                 "See Collector #1350.\n",
                 caller, self, Py_TYPE(self)->tp_name, detail);
-	Py_FatalError(buf);
+    Py_FatalError(buf);
 }
 #endif
 
@@ -88,48 +89,48 @@ static void ghostify(cPersistentObject*);
 static int
 unghostify(cPersistentObject *self)
 {
-  if (self->state < 0 && self->jar)
+    if (self->state < 0 && self->jar)
     {
-      PyObject *r;
+        PyObject *r;
 
-      /* Is it ever possible to not have a cache? */
-      if (self->cache)
+        /* Is it ever possible to not have a cache? */
+        if (self->cache)
         {
-          /* Create a node in the ring for this unghostified object. */
-          self->cache->non_ghost_count++;
-          self->cache->total_estimated_size += 
-            _estimated_size_in_bytes(self->estimated_size);
-          ring_add(&self->cache->ring_home, &self->ring);
-          Py_INCREF(self);
+            /* Create a node in the ring for this unghostified object. */
+            self->cache->non_ghost_count++;
+            self->cache->total_estimated_size += 
+                _estimated_size_in_bytes(self->estimated_size);
+            ring_add(&self->cache->ring_home, &self->ring);
+            Py_INCREF(self);
         }
-      /* set state to CHANGED while setstate() call is in progress
-         to prevent a recursive call to _PyPersist_Load().
-      */
-      self->state = cPersistent_CHANGED_STATE;
-      /* Call the object's __setstate__() */
-      r = PyObject_CallMethod(self->jar, "setstate", "O", (PyObject *)self);
-      if (r == NULL)
+        /* set state to CHANGED while setstate() call is in progress
+            to prevent a recursive call to _PyPersist_Load().
+        */
+        self->state = cPersistent_CHANGED_STATE;
+        /* Call the object's __setstate__() */
+        r = PyObject_CallMethod(self->jar, "setstate", "O", (PyObject *)self);
+        if (r == NULL)
         {
-          ghostify(self);
-          return -1;
+            ghostify(self);
+            return -1;
         }
-      self->state = cPersistent_UPTODATE_STATE;
-      Py_DECREF(r);
-      if (self->cache && self->ring.r_next == NULL)
+        self->state = cPersistent_UPTODATE_STATE;
+        Py_DECREF(r);
+        if (self->cache && self->ring.r_next == NULL)
         {
 #ifdef Py_DEBUG
-        	fatal_1350(self, "unghostify",
+            fatal_1350(self, "unghostify",
                      "is not in the cache despite that we just "
                      "unghostified it");
 #else
-          PyErr_Format(PyExc_SystemError, "object at %p with type "
+            PyErr_Format(PyExc_SystemError, "object at %p with type "
                        "%.200s not in the cache despite that we just "
                        "unghostified it", self, Py_TYPE(self)->tp_name);
-          return -1;
+            return -1;
 #endif
         }
     }
-  return 1;
+    return 1;
 }
 
 /****************************************************************************/
@@ -139,148 +140,148 @@ static PyTypeObject Pertype;
 static void
 accessed(cPersistentObject *self)
 {
-  /* Do nothing unless the object is in a cache and not a ghost. */
-  if (self->cache && self->state >= 0 && self->ring.r_next)
-    ring_move_to_head(&self->cache->ring_home, &self->ring);
+    /* Do nothing unless the object is in a cache and not a ghost. */
+    if (self->cache && self->state >= 0 && self->ring.r_next)
+        ring_move_to_head(&self->cache->ring_home, &self->ring);
 }
 
 static void
 ghostify(cPersistentObject *self)
 {
-  PyObject **dictptr;
+    PyObject **dictptr;
 
-  /* are we already a ghost? */
-  if (self->state == cPersistent_GHOST_STATE)
-    return;
+    /* are we already a ghost? */
+    if (self->state == cPersistent_GHOST_STATE)
+        return;
 
-  /* Is it ever possible to not have a cache? */
-  if (self->cache == NULL) 
+    /* Is it ever possible to not have a cache? */
+    if (self->cache == NULL) 
     {
-      self->state = cPersistent_GHOST_STATE;
-      return;
+        self->state = cPersistent_GHOST_STATE;
+        return;
     }
 
-  if (self->ring.r_next == NULL)
+    if (self->ring.r_next == NULL)
     {
-      /* There's no way to raise an error in this routine. */
+        /* There's no way to raise an error in this routine. */
 #ifdef Py_DEBUG
-      fatal_1350(self, "ghostify", "claims to be in a cache but isn't");
+        fatal_1350(self, "ghostify", "claims to be in a cache but isn't");
 #else
-      return;
+        return;
 #endif
     }
 
-  /* If we're ghostifying an object, we better have some non-ghosts. */
-  assert(self->cache->non_ghost_count > 0);
-  self->cache->non_ghost_count--;
-  self->cache->total_estimated_size -= 
-    _estimated_size_in_bytes(self->estimated_size);
-  ring_del(&self->ring);
-  self->state = cPersistent_GHOST_STATE;
-  dictptr = _PyObject_GetDictPtr((PyObject *)self);
-  if (dictptr && *dictptr)
+    /* If we're ghostifying an object, we better have some non-ghosts. */
+    assert(self->cache->non_ghost_count > 0);
+    self->cache->non_ghost_count--;
+    self->cache->total_estimated_size -= 
+        _estimated_size_in_bytes(self->estimated_size);
+    ring_del(&self->ring);
+    self->state = cPersistent_GHOST_STATE;
+    dictptr = _PyObject_GetDictPtr((PyObject *)self);
+    if (dictptr && *dictptr)
     {
-      Py_DECREF(*dictptr);
-      *dictptr = NULL;
+        Py_DECREF(*dictptr);
+        *dictptr = NULL;
     }
 
-  /* We remove the reference to the just ghosted object that the ring
-   * holds.  Note that the dictionary of oids->objects has an uncounted
-   * reference, so if the ring's reference was the only one, this frees
-   * the ghost object.  Note further that the object's dealloc knows to
-   * inform the dictionary that it is going away.
-   */
-  Py_DECREF(self);
+    /* We remove the reference to the just ghosted object that the ring
+    * holds.  Note that the dictionary of oids->objects has an uncounted
+    * reference, so if the ring's reference was the only one, this frees
+    * the ghost object.  Note further that the object's dealloc knows to
+    * inform the dictionary that it is going away.
+    */
+    Py_DECREF(self);
 }
 
 static int
 changed(cPersistentObject *self)
 {
-  if ((self->state == cPersistent_UPTODATE_STATE ||
-       self->state == cPersistent_STICKY_STATE)
-      && self->jar)
+    if ((self->state == cPersistent_UPTODATE_STATE ||
+        self->state == cPersistent_STICKY_STATE)
+        && self->jar)
     {
-      PyObject *meth, *arg, *result;
-      static PyObject *s_register;
+        PyObject *meth, *arg, *result;
+        static PyObject *s_register;
 
-      if (s_register == NULL)
-        s_register = INTERN("register");
-      meth = PyObject_GetAttr((PyObject *)self->jar, s_register);
-      if (meth == NULL)
-        return -1;
-      arg = PyTuple_New(1);
-      if (arg == NULL) 
+        if (s_register == NULL)
+            s_register = INTERN("register");
+        meth = PyObject_GetAttr((PyObject *)self->jar, s_register);
+        if (meth == NULL)
+            return -1;
+        arg = PyTuple_New(1);
+        if (arg == NULL) 
         {
-          Py_DECREF(meth);
-          return -1;
+            Py_DECREF(meth);
+            return -1;
         }
-      Py_INCREF(self);
-      PyTuple_SET_ITEM(arg, 0, (PyObject *)self);
-      result = PyEval_CallObject(meth, arg);
-      Py_DECREF(arg);
-      Py_DECREF(meth);
-      if (result == NULL)
-        return -1;
-      Py_DECREF(result);
+        Py_INCREF(self);
+        PyTuple_SET_ITEM(arg, 0, (PyObject *)self);
+        result = PyEval_CallObject(meth, arg);
+        Py_DECREF(arg);
+        Py_DECREF(meth);
+        if (result == NULL)
+            return -1;
+        Py_DECREF(result);
 
-      self->state = cPersistent_CHANGED_STATE;
+        self->state = cPersistent_CHANGED_STATE;
     }
 
-  return 0;
+    return 0;
 }
 
 static int
 readCurrent(cPersistentObject *self)
 {
-  if ((self->state == cPersistent_UPTODATE_STATE ||
-       self->state == cPersistent_STICKY_STATE)
-      && self->jar && self->oid)
+    if ((self->state == cPersistent_UPTODATE_STATE ||
+        self->state == cPersistent_STICKY_STATE)
+        && self->jar && self->oid)
     {
-      static PyObject *s_readCurrent=NULL;
-      PyObject *r;
+        static PyObject *s_readCurrent=NULL;
+        PyObject *r;
 
-      if (s_readCurrent == NULL)
-        s_readCurrent = INTERN("readCurrent");
+        if (s_readCurrent == NULL)
+            s_readCurrent = INTERN("readCurrent");
 
-      r = PyObject_CallMethodObjArgs(self->jar, s_readCurrent, self, NULL);
-      if (r == NULL)
-        return -1;
+        r = PyObject_CallMethodObjArgs(self->jar, s_readCurrent, self, NULL);
+        if (r == NULL)
+            return -1;
 
-      Py_DECREF(r);
+        Py_DECREF(r);
     }
 
-  return 0;
+    return 0;
 }
 
 static PyObject *
 Per__p_deactivate(cPersistentObject *self)
 {
-  if (self->state == cPersistent_UPTODATE_STATE && self->jar)
+    if (self->state == cPersistent_UPTODATE_STATE && self->jar)
     {
-      PyObject **dictptr = _PyObject_GetDictPtr((PyObject *)self);
-      if (dictptr && *dictptr)
+        PyObject **dictptr = _PyObject_GetDictPtr((PyObject *)self);
+        if (dictptr && *dictptr)
         {
-          Py_DECREF(*dictptr);
-          *dictptr = NULL;
+            Py_DECREF(*dictptr);
+            *dictptr = NULL;
         }
-      /* Note that we need to set to ghost state unless we are
-         called directly. Methods that override this need to
-         do the same! */
-      ghostify(self);
+        /* Note that we need to set to ghost state unless we are
+            called directly. Methods that override this need to
+            do the same! */
+        ghostify(self);
     }
 
-  Py_INCREF(Py_None);
-  return Py_None;
+    Py_INCREF(Py_None);
+    return Py_None;
 }
 
 static PyObject *
 Per__p_activate(cPersistentObject *self)
 {
-  if (unghostify(self) < 0)
-    return NULL;
+    if (unghostify(self) < 0)
+        return NULL;
 
-  Py_INCREF(Py_None);
-  return Py_None;
+    Py_INCREF(Py_None);
+    return Py_None;
 }
 
 static int Per_set_changed(cPersistentObject *self, PyObject *v);
@@ -288,84 +289,84 @@ static int Per_set_changed(cPersistentObject *self, PyObject *v);
 static PyObject *
 Per__p_invalidate(cPersistentObject *self)
 {
-  signed char old_state = self->state;
+    signed char old_state = self->state;
 
-  if (old_state != cPersistent_GHOST_STATE)
+    if (old_state != cPersistent_GHOST_STATE)
     {
-      if (Per_set_changed(self, NULL) < 0)
-        return NULL;
-      ghostify(self);
+        if (Per_set_changed(self, NULL) < 0)
+            return NULL;
+        ghostify(self);
     }
-  Py_INCREF(Py_None);
-  return Py_None;
+    Py_INCREF(Py_None);
+    return Py_None;
 }
 
 
 static PyObject *
 pickle_slotnames(PyTypeObject *cls)
 {
-  PyObject *slotnames;
+    PyObject *slotnames;
 
-  slotnames = PyDict_GetItem(cls->tp_dict, py___slotnames__);
-  if (slotnames)
+    slotnames = PyDict_GetItem(cls->tp_dict, py___slotnames__);
+    if (slotnames)
     {
-      int n = PyObject_Not(slotnames);
-      if (n < 0)
+        int n = PyObject_Not(slotnames);
+        if (n < 0)
+            return NULL;
+        if (n)
+            slotnames = Py_None;
+        
+        Py_INCREF(slotnames);
+        return slotnames;
+    }
+
+    slotnames = PyObject_CallFunctionObjArgs(copy_reg_slotnames,
+                                            (PyObject*)cls, NULL);
+    if (slotnames && !(slotnames == Py_None || PyList_Check(slotnames)))
+    {
+        PyErr_SetString(PyExc_TypeError,
+                        "copy_reg._slotnames didn't return a list or None");
+        Py_DECREF(slotnames);
         return NULL;
-      if (n)
-        slotnames = Py_None;
-      
-      Py_INCREF(slotnames);
-      return slotnames;
     }
 
-  slotnames = PyObject_CallFunctionObjArgs(copy_reg_slotnames,
-                                           (PyObject*)cls, NULL);
-  if (slotnames && !(slotnames == Py_None || PyList_Check(slotnames)))
-    {
-      PyErr_SetString(PyExc_TypeError,
-                      "copy_reg._slotnames didn't return a list or None");
-      Py_DECREF(slotnames);
-      return NULL;
-    }
-
-  return slotnames;
+    return slotnames;
 }
 
 static PyObject *
 pickle_copy_dict(PyObject *state)
 {
-  PyObject *copy, *key, *value;
-  char *ckey;
-  Py_ssize_t pos = 0;
+    PyObject *copy, *key, *value;
+    char *ckey;
+    Py_ssize_t pos = 0;
 
-  copy = PyDict_New();
-  if (!copy)
-    return NULL;
+    copy = PyDict_New();
+    if (!copy)
+        return NULL;
 
-  if (!state)
-    return copy;
+    if (!state)
+        return copy;
 
-  while (PyDict_Next(state, &pos, &key, &value))
+    while (PyDict_Next(state, &pos, &key, &value))
     {
-      if (key && PyBytes_Check(key))
+        if (key && PyBytes_Check(key))
         {
-          ckey = PyBytes_AS_STRING(key);
-          if (*ckey == '_' &&
-              (ckey[1] == 'v' || ckey[1] == 'p') &&
-              ckey[2] == '_')
-            /* skip volatile and persistent */
-            continue;
+            ckey = PyBytes_AS_STRING(key);
+            if (*ckey == '_' &&
+                (ckey[1] == 'v' || ckey[1] == 'p') &&
+                ckey[2] == '_')
+                /* skip volatile and persistent */
+                continue;
         }
 
-      if (PyObject_SetItem(copy, key, value) < 0)
-        goto err;
+        if (PyObject_SetItem(copy, key, value) < 0)
+            goto err;
     }
 
-  return copy;
- err:
-  Py_DECREF(copy);
-  return NULL;
+    return copy;
+err:
+    Py_DECREF(copy);
+    return NULL;
 }
 
 
@@ -388,90 +389,90 @@ static char pickle___getstate__doc[] =
 static PyObject *
 pickle___getstate__(PyObject *self)
 {
-  PyObject *slotnames=NULL, *slots=NULL, *state=NULL;
-  PyObject **dictp;
-  int n=0;
+    PyObject *slotnames=NULL, *slots=NULL, *state=NULL;
+    PyObject **dictp;
+    int n=0;
 
-  slotnames = pickle_slotnames(Py_TYPE(self));
-  if (!slotnames)
-    return NULL;
+    slotnames = pickle_slotnames(Py_TYPE(self));
+    if (!slotnames)
+        return NULL;
 
-  dictp = _PyObject_GetDictPtr(self);
-  if (dictp)
-    state = pickle_copy_dict(*dictp);
-  else
+    dictp = _PyObject_GetDictPtr(self);
+    if (dictp)
+        state = pickle_copy_dict(*dictp);
+    else
     {
-      state = Py_None;
-      Py_INCREF(state);
+        state = Py_None;
+        Py_INCREF(state);
     }
 
-  if (slotnames != Py_None)
+    if (slotnames != Py_None)
     {
-      int i;
+        int i;
 
-      slots = PyDict_New();
-      if (!slots)
-        goto end;
+        slots = PyDict_New();
+        if (!slots)
+            goto end;
 
-      for (i = 0; i < PyList_GET_SIZE(slotnames); i++)
+        for (i = 0; i < PyList_GET_SIZE(slotnames); i++)
         {
-          PyObject *name, *value;
-          char *cname;
+            PyObject *name, *value;
+            char *cname;
 
-          name = PyList_GET_ITEM(slotnames, i);
-          if (PyBytes_Check(name))
+            name = PyList_GET_ITEM(slotnames, i);
+            if (PyBytes_Check(name))
             {
-              cname = PyBytes_AS_STRING(name);
-              if (*cname == '_' &&
-                  (cname[1] == 'v' || cname[1] == 'p') &&
-                  cname[2] == '_')
-                /* skip volatile and persistent */
-                continue;
+                cname = PyBytes_AS_STRING(name);
+                if (*cname == '_' &&
+                    (cname[1] == 'v' || cname[1] == 'p') &&
+                    cname[2] == '_')
+                    /* skip volatile and persistent */
+                    continue;
             }
 
-          /* Unclear:  Will this go through our getattr hook? */
-          value = PyObject_GetAttr(self, name);
-          if (value == NULL)
-            PyErr_Clear();
-          else
+            /* Unclear:  Will this go through our getattr hook? */
+            value = PyObject_GetAttr(self, name);
+            if (value == NULL)
+                PyErr_Clear();
+            else
             {
-              int err = PyDict_SetItem(slots, name, value);
-              Py_DECREF(value);
-              if (err < 0)
-                goto end;
-              n++;
+                int err = PyDict_SetItem(slots, name, value);
+                Py_DECREF(value);
+                if (err < 0)
+                    goto end;
+                n++;
             }
         }
     }
 
-  if (n)
-    state = Py_BuildValue("(NO)", state, slots);
+    if (n)
+        state = Py_BuildValue("(NO)", state, slots);
 
- end:
-  Py_XDECREF(slotnames);
-  Py_XDECREF(slots);
+end:
+    Py_XDECREF(slotnames);
+    Py_XDECREF(slots);
 
-  return state;
+    return state;
 }
 
 static int
 pickle_setattrs_from_dict(PyObject *self, PyObject *dict)
 {
-  PyObject *key, *value;
-  Py_ssize_t pos = 0;
+    PyObject *key, *value;
+    Py_ssize_t pos = 0;
 
-  if (!PyDict_Check(dict))
+    if (!PyDict_Check(dict))
     {
-      PyErr_SetString(PyExc_TypeError, "Expected dictionary");
-      return -1;
-    }
-
-  while (PyDict_Next(dict, &pos, &key, &value))
-    {
-      if (PyObject_SetAttr(self, key, value) < 0)
+        PyErr_SetString(PyExc_TypeError, "Expected dictionary");
         return -1;
     }
-  return 0;
+
+    while (PyDict_Next(dict, &pos, &key, &value))
+    {
+        if (PyObject_SetAttr(self, key, value) < 0)
+            return -1;
+    }
+    return 0;
 }
 
 static char pickle___setstate__doc[] =
@@ -496,44 +497,44 @@ static char pickle___setstate__doc[] =
 static PyObject *
 pickle___setstate__(PyObject *self, PyObject *state)
 {
-  PyObject *slots=NULL;
+    PyObject *slots=NULL;
 
-  if (PyTuple_Check(state))
+    if (PyTuple_Check(state))
     {
-      if (!PyArg_ParseTuple(state, "OO:__setstate__", &state, &slots))
-        return NULL;
+        if (!PyArg_ParseTuple(state, "OO:__setstate__", &state, &slots))
+            return NULL;
     }
 
-  if (state != Py_None)
+    if (state != Py_None)
     {
-      PyObject **dict;
+        PyObject **dict;
 
-      dict = _PyObject_GetDictPtr(self);
-      
-      if (!dict)
+        dict = _PyObject_GetDictPtr(self);
+        
+        if (!dict)
         {
-          PyErr_SetString(PyExc_TypeError,
-                          "this object has no instance dictionary");
-          return NULL;
-        }
-
-      if (!*dict)
-        {
-          *dict = PyDict_New();
-          if (!*dict)
+            PyErr_SetString(PyExc_TypeError,
+                            "this object has no instance dictionary");
             return NULL;
         }
 
-      PyDict_Clear(*dict);
-      if (PyDict_Update(*dict, state) < 0)
-        return NULL;
+        if (!*dict)
+        {
+            *dict = PyDict_New();
+            if (!*dict)
+                return NULL;
+        }
+
+        PyDict_Clear(*dict);
+        if (PyDict_Update(*dict, state) < 0)
+            return NULL;
     }
 
-  if (slots && pickle_setattrs_from_dict(self, slots) < 0)
-    return NULL;
+    if (slots && pickle_setattrs_from_dict(self, slots) < 0)
+        return NULL;
 
-  Py_INCREF(Py_None);
-  return Py_None;
+    Py_INCREF(Py_None);
+    return Py_None;
 }
 
 static char pickle___reduce__doc[] =
@@ -543,49 +544,49 @@ static char pickle___reduce__doc[] =
 static PyObject *
 pickle___reduce__(PyObject *self)
 {
-  PyObject *args=NULL, *bargs=NULL, *state=NULL, *getnewargs=NULL;
-  int l, i;
+    PyObject *args=NULL, *bargs=NULL, *state=NULL, *getnewargs=NULL;
+    int l, i;
 
-  getnewargs = PyObject_GetAttr(self, py___getnewargs__);
-  if (getnewargs)
+    getnewargs = PyObject_GetAttr(self, py___getnewargs__);
+    if (getnewargs)
     {
-      bargs = PyObject_CallFunctionObjArgs(getnewargs, NULL);
-      Py_DECREF(getnewargs);
-      if (!bargs)
-        return NULL;
-      l = PyTuple_Size(bargs);
-      if (l < 0)
+        bargs = PyObject_CallFunctionObjArgs(getnewargs, NULL);
+        Py_DECREF(getnewargs);
+        if (!bargs)
+            return NULL;
+        l = PyTuple_Size(bargs);
+        if (l < 0)
+            goto end;
+    }
+    else
+    {
+        PyErr_Clear();
+        l = 0;
+    }
+
+    args = PyTuple_New(l+1);
+    if (args == NULL)
         goto end;
-    }
-  else
+
+    Py_INCREF(Py_TYPE(self));
+    PyTuple_SET_ITEM(args, 0, (PyObject*)(Py_TYPE(self)));
+    for (i = 0; i < l; i++)
     {
-      PyErr_Clear();
-      l = 0;
+        Py_INCREF(PyTuple_GET_ITEM(bargs, i));
+        PyTuple_SET_ITEM(args, i+1, PyTuple_GET_ITEM(bargs, i));
     }
 
-  args = PyTuple_New(l+1);
-  if (args == NULL)
-    goto end;
+    state = PyObject_CallMethodObjArgs(self, py___getstate__, NULL);
+    if (!state)
+        goto end;
 
-  Py_INCREF(Py_TYPE(self));
-  PyTuple_SET_ITEM(args, 0, (PyObject*)(Py_TYPE(self)));
-  for (i = 0; i < l; i++)
-    {
-      Py_INCREF(PyTuple_GET_ITEM(bargs, i));
-      PyTuple_SET_ITEM(args, i+1, PyTuple_GET_ITEM(bargs, i));
-    }
+    state = Py_BuildValue("(OON)", __newobj__, args, state);
 
-  state = PyObject_CallMethodObjArgs(self, py___getstate__, NULL);
-  if (!state)
-    goto end;
+end:
+    Py_XDECREF(bargs);
+    Py_XDECREF(args);
 
-  state = Py_BuildValue("(OON)", __newobj__, args, state);
-
- end:
-  Py_XDECREF(bargs);
-  Py_XDECREF(args);
-
-  return state;
+    return state;
 }
 
 
@@ -602,13 +603,13 @@ pickle___reduce__(PyObject *self)
 static PyObject *
 Per__getstate__(cPersistentObject *self)
 {
-  /* TODO:  Should it be an error to call __getstate__() on a ghost? */
-  if (unghostify(self) < 0)
-    return NULL;
+    /* TODO:  Should it be an error to call __getstate__() on a ghost? */
+    if (unghostify(self) < 0)
+        return NULL;
 
-  /* TODO:  should we increment stickyness?  Tim doesn't understand that
-     question. S*/
-  return pickle___getstate__((PyObject*)self);
+    /* TODO:  should we increment stickyness?  Tim doesn't understand that
+        question. S*/
+    return pickle___getstate__((PyObject*)self);
 }
 
 /* The Persistent base type provides a traverse function, but not a
@@ -626,48 +627,48 @@ Per__getstate__(cPersistentObject *self)
 static void
 Per_dealloc(cPersistentObject *self)
 {
-  if (self->state >= 0)
+    if (self->state >= 0)
     {
-      /* If the cache has been cleared, then a non-ghost object
-         isn't in the ring any longer.
-      */
-      if (self->ring.r_next != NULL)
+        /* If the cache has been cleared, then a non-ghost object
+            isn't in the ring any longer.
+        */
+        if (self->ring.r_next != NULL)
         {
-          /* if we're ghostifying an object, we better have some non-ghosts */
-          assert(self->cache->non_ghost_count > 0);
-          self->cache->non_ghost_count--;
-          self->cache->total_estimated_size -=
-            _estimated_size_in_bytes(self->estimated_size);
-          ring_del(&self->ring);
+            /* if we're ghostifying an object, we better have some non-ghosts */
+            assert(self->cache->non_ghost_count > 0);
+            self->cache->non_ghost_count--;
+            self->cache->total_estimated_size -=
+                _estimated_size_in_bytes(self->estimated_size);
+            ring_del(&self->ring);
         }
     }
 
-  if (self->cache)
-    cPersistenceCAPI->percachedel(self->cache, self->oid);
-  Py_XDECREF(self->cache);
-  Py_XDECREF(self->jar);
-  Py_XDECREF(self->oid);
-  Py_TYPE(self)->tp_free(self);
+    if (self->cache)
+        cPersistenceCAPI->percachedel(self->cache, self->oid);
+    Py_XDECREF(self->cache);
+    Py_XDECREF(self->jar);
+    Py_XDECREF(self->oid);
+    Py_TYPE(self)->tp_free(self);
 }
 
 static int
 Per_traverse(cPersistentObject *self, visitproc visit, void *arg)
 {
-  int err;
+    int err;
 
 #define VISIT(SLOT)                             \
-  if (SLOT) {                                   \
-    err = visit((PyObject *)(SLOT), arg);       \
-    if (err)                                    \
-      return err;                               \
-  }
+    if (SLOT) {                                   \
+        err = visit((PyObject *)(SLOT), arg);       \
+        if (err)                                    \
+        return err;                               \
+    }
 
-  VISIT(self->jar);
-  VISIT(self->oid);
-  VISIT(self->cache);
+    VISIT(self->jar);
+    VISIT(self->oid);
+    VISIT(self->cache);
 
 #undef VISIT
-  return 0;
+    return 0;
 }
 
 /* convert_name() returns a new reference to a string name
@@ -681,20 +682,20 @@ convert_name(PyObject *name)
   /* The Unicode to string conversion is done here because the
      existing tp_setattro slots expect a string object as name
      and we wouldn't want to break those. */
-  if (PyUnicode_Check(name))
+    if (PyUnicode_Check(name))
     {
-      name = PyUnicode_AsEncodedString(name, NULL, NULL);
+        name = PyUnicode_AsEncodedString(name, NULL, NULL);
     }
-  else
-#endif
-    if (!PyBytes_Check(name))
-      {
-        PyErr_SetString(PyExc_TypeError, "attribute name must be a string");
-        return NULL;
-      }
     else
-      Py_INCREF(name);
-  return name;
+#endif
+        if (!PyBytes_Check(name))
+        {
+            PyErr_SetString(PyExc_TypeError, "attribute name must be a string");
+            return NULL;
+        }
+        else
+            Py_INCREF(name);
+    return name;
 }
 
 /* Returns true if the object requires unghostification.
@@ -711,92 +712,94 @@ convert_name(PyObject *name)
 static int
 unghost_getattr(const char *s)
 {
-  if (*s++ != '_')
-    return 1;
-  if (*s == 'p')
-    {
-      s++;
-      if (*s == '_')
-        return 0; /* _p_ */
-      else
+    if (*s++ != '_')
         return 1;
-    }
-  else if (*s == '_')
+    if (*s == 'p')
     {
-      s++;
-      switch (*s)
+        s++;
+        if (*s == '_')
+            return 0; /* _p_ */
+        else
+            return 1;
+    }
+    else if (*s == '_')
+    {
+        s++;
+        switch (*s)
         {
-        case 'c':
-          return strcmp(s, "class__");
-        case 'd':
-          s++;
-          if (!strcmp(s, "el__"))
-            return 0; /* __del__ */
-          if (!strcmp(s, "ict__"))
-            return 0; /* __dict__ */
-          return 1;
-        case 'o':
-          return strcmp(s, "of__");
-        case 's':
-          return strcmp(s, "setstate__");
-        default:
-          return 1;
+            case 'c':
+                return strcmp(s, "class__");
+            case 'd':
+                s++;
+                if (!strcmp(s, "el__"))
+                    return 0; /* __del__ */
+                if (!strcmp(s, "ict__"))
+                    return 0; /* __dict__ */
+                return 1;
+            case 'o':
+                return strcmp(s, "of__");
+            case 's':
+                return strcmp(s, "setstate__");
+            default:
+                return 1;
         }
     }
-  return 1;
+    return 1;
 }
 
 static PyObject*
 Per_getattro(cPersistentObject *self, PyObject *name)
 {
-  PyObject *result = NULL;	/* guilty until proved innocent */
-  char *s;
+    PyObject *result = NULL;    /* guilty until proved innocent */
+    PyObject *converted;
+    char *s;
 
-  name = convert_name(name);
-  if (!name)
-    goto Done;
-  s = PyBytes_AS_STRING(name);
-
-  if (unghost_getattr(s))
-    {
-      if (unghostify(self) < 0)
+    converted = convert_name(name);
+    if (!converted)
         goto Done;
-      accessed(self);
-    }
-  result = PyObject_GenericGetAttr((PyObject *)self, name);
+    s = PyBytes_AS_STRING(converted);
 
- Done:
-  Py_XDECREF(name);
-  return result;
+    if (unghost_getattr(s))
+    {
+        if (unghostify(self) < 0)
+            goto Done;
+        accessed(self);
+    }
+    result = PyObject_GenericGetAttr((PyObject *)self, name);
+
+Done:
+    Py_XDECREF(name);
+    return result;
 }
 
 /* Exposed as _p_getattr method.  Test whether base getattr should be used */
 static PyObject *
 Per__p_getattr(cPersistentObject *self, PyObject *name)
 {
-  PyObject *result = NULL;	/* guilty until proved innocent */
-  char *s;
+    PyObject *result = NULL;    /* guilty until proved innocent */
+    PyObject *converted;
+    char *s;
 
-  name = convert_name(name);
-  if (!name)
-    goto Done;
-  s = PyBytes_AS_STRING(name);
-
-  if (*s != '_' || unghost_getattr(s))
-    {
-      if (unghostify(self) < 0)
+    converted = convert_name(name);
+    if (!converted)
         goto Done;
-      accessed(self);
-      result = Py_False;
+    s = PyBytes_AS_STRING(converted);
+
+    if (*s != '_' || unghost_getattr(s))
+    {
+        if (unghostify(self) < 0)
+            goto Done;
+        accessed(self);
+        result = Py_False;
     }
-  else
-    result = Py_True;
+    else
+        result = Py_True;
 
-  Py_INCREF(result);
+    Py_INCREF(result);
 
- Done:
-  Py_XDECREF(name);
-  return result;
+Done:
+    Py_XDECREF(name);
+    return result;
 }
 
 /*
@@ -806,61 +809,63 @@ Per__p_getattr(cPersistentObject *self, PyObject *name)
 static int
 Per_setattro(cPersistentObject *self, PyObject *name, PyObject *v)
 {
-  int result = -1;	/* guilty until proved innocent */
-  char *s;
+    int result = -1;    /* guilty until proved innocent */
+    PyObject *converted;
+    char *s;
 
-  name = convert_name(name);
-  if (!name)
-    goto Done;
-  s = PyBytes_AS_STRING(name);
-
-  if (strncmp(s, "_p_", 3) != 0)
-    {
-      if (unghostify(self) < 0)
+    converted = convert_name(name);
+    if (!converted)
         goto Done;
-      accessed(self);
-      if (strncmp(s, "_v_", 3) != 0
-          && self->state != cPersistent_CHANGED_STATE)
-        {
-          if (changed(self) < 0)
-            goto Done;
-        }
-    }
-  result = PyObject_GenericSetAttr((PyObject *)self, name, v);
+    s = PyBytes_AS_STRING(converted);
 
- Done:
-  Py_XDECREF(name);
-  return result;
+    if (strncmp(s, "_p_", 3) != 0)
+    {
+        if (unghostify(self) < 0)
+            goto Done;
+        accessed(self);
+        if (strncmp(s, "_v_", 3) != 0
+            && self->state != cPersistent_CHANGED_STATE)
+            {
+            if (changed(self) < 0)
+                goto Done;
+            }
+    }
+    result = PyObject_GenericSetAttr((PyObject *)self, name, v);
+
+Done:
+    Py_XDECREF(name);
+    return result;
 }
 
 
 static int
 Per_p_set_or_delattro(cPersistentObject *self, PyObject *name, PyObject *v)
 {
-  int result = -1;	/* guilty until proved innocent */
-  char *s;
+    int result = -1;    /* guilty until proved innocent */
+    PyObject *converted;
+    char *s;
 
-  name = convert_name(name);
-  if (!name)
-    goto Done;
-  s = PyBytes_AS_STRING(name);
-
-  if (strncmp(s, "_p_", 3))
-    {
-      if (unghostify(self) < 0)
+    converted = convert_name(name);
+    if (!converted)
         goto Done;
-      accessed(self);
+    s = PyBytes_AS_STRING(converted);
 
-      result = 0;
-    }
-  else
+    if (strncmp(s, "_p_", 3))
     {
-      if (PyObject_GenericSetAttr((PyObject *)self, name, v) < 0)
-        goto Done;
-      result = 1;
+        if (unghostify(self) < 0)
+            goto Done;
+        accessed(self);
+
+        result = 0;
+    }
+    else
+    {
+        if (PyObject_GenericSetAttr((PyObject *)self, name, v) < 0)
+            goto Done;
+        result = 1;
     }
 
- Done:
+Done:
   Py_XDECREF(name);
   return result;
 }
@@ -868,335 +873,340 @@ Per_p_set_or_delattro(cPersistentObject *self, PyObject *name, PyObject *v)
 static PyObject *
 Per__p_setattr(cPersistentObject *self, PyObject *args)
 {
-  PyObject *name, *v, *result;
-  int r;
+    PyObject *name, *v, *result;
+    int r;
 
-  if (!PyArg_ParseTuple(args, "OO:_p_setattr", &name, &v))
-    return NULL;
+    if (!PyArg_ParseTuple(args, "OO:_p_setattr", &name, &v))
+        return NULL;
 
-  r = Per_p_set_or_delattro(self, name, v);
-  if (r < 0)
-    return NULL;
+    r = Per_p_set_or_delattro(self, name, v);
+    if (r < 0)
+        return NULL;
 
-  result = r ? Py_True : Py_False;
-  Py_INCREF(result);
-  return result;
+    result = r ? Py_True : Py_False;
+    Py_INCREF(result);
+    return result;
 }
 
 static PyObject *
 Per__p_delattr(cPersistentObject *self, PyObject *name)
 {
-  int r;
-  PyObject *result;
+    int r;
+    PyObject *result;
 
-  r = Per_p_set_or_delattro(self, name, NULL);
-  if (r < 0)
-    return NULL;
+    r = Per_p_set_or_delattro(self, name, NULL);
+    if (r < 0)
+        return NULL;
 
-  result = r ? Py_True : Py_False;
-  Py_INCREF(result);
-  return result;
+    result = r ? Py_True : Py_False;
+    Py_INCREF(result);
+    return result;
 }
 
 
 static PyObject *
 Per_get_changed(cPersistentObject *self)
 {
-  if (self->state < 0)
+    if (self->state < 0)
     {
-      Py_INCREF(Py_None);
-      return Py_None;
+        Py_INCREF(Py_None);
+        return Py_None;
     }
-  return PyBool_FromLong(self->state == cPersistent_CHANGED_STATE);
+    return PyBool_FromLong(self->state == cPersistent_CHANGED_STATE);
 }
 
 static int
 Per_set_changed(cPersistentObject *self, PyObject *v)
 {
-  int deactivate = 0;
-  int true;
+    int deactivate = 0;
+    int true;
 
-  if (!v)
+    if (!v)
     {
-      /* delattr is used to invalidate an object even if it has changed. */
-      if (self->state != cPersistent_GHOST_STATE)
-        self->state = cPersistent_UPTODATE_STATE;
-      deactivate = 1;
+        /* delattr is used to invalidate an object even if it has changed. */
+        if (self->state != cPersistent_GHOST_STATE)
+            self->state = cPersistent_UPTODATE_STATE;
+        deactivate = 1;
     }
-  else if (v == Py_None)
-    deactivate = 1;
+    else if (v == Py_None)
+        deactivate = 1;
 
-  if (deactivate)
+    if (deactivate)
     {
-      PyObject *res, *meth;
-      meth = PyObject_GetAttr((PyObject *)self, py__p_deactivate);
-      if (meth == NULL)
-        return -1;
-      res = PyObject_CallObject(meth, NULL);
-      if (res)
-        Py_DECREF(res);
-      else
-        {
-          /* an error occured in _p_deactivate().
-
-             It's not clear what we should do here.  The code is
-             obviously ignoring the exception, but it shouldn't return
-             0 for a getattr and set an exception.  The simplest change
-             is to clear the exception, but that simply masks the
-             error.
-
-             This prints an error to stderr just like exceptions in
-             __del__().  It would probably be better to log it but that
-             would be painful from C.
-          */
-          PyErr_WriteUnraisable(meth);
-        }
-      Py_DECREF(meth);
-      return 0;
-    }
-  /* !deactivate.  If passed a true argument, mark self as changed (starting
-   * with ZODB 3.6, that includes activating the object if it's a ghost).
-   * If passed a false argument, and the object isn't a ghost, set the
-   * state as up-to-date.
-   */
-  true = PyObject_IsTrue(v);
-  if (true == -1)
-    return -1;
-  if (true)
-    {
-    	if (self->state < 0)
-        {
-    	    if (unghostify(self) < 0)
+        PyObject *res, *meth;
+        meth = PyObject_GetAttr((PyObject *)self, py__p_deactivate);
+        if (meth == NULL)
             return -1;
+        res = PyObject_CallObject(meth, NULL);
+        if (res)
+            Py_DECREF(res);
+        else
+        {
+            /* an error occured in _p_deactivate().
+
+                It's not clear what we should do here.  The code is
+                obviously ignoring the exception, but it shouldn't return
+                0 for a getattr and set an exception.  The simplest change
+                is to clear the exception, but that simply masks the
+                error.
+
+                This prints an error to stderr just like exceptions in
+                __del__().  It would probably be better to log it but that
+                would be painful from C.
+            */
+            PyErr_WriteUnraisable(meth);
         }
-      return changed(self);
+        Py_DECREF(meth);
+        return 0;
+    }
+    /* !deactivate.  If passed a true argument, mark self as changed (starting
+    * with ZODB 3.6, that includes activating the object if it's a ghost).
+    * If passed a false argument, and the object isn't a ghost, set the
+    * state as up-to-date.
+    */
+    true = PyObject_IsTrue(v);
+    if (true == -1)
+        return -1;
+    if (true)
+    {
+        if (self->state < 0)
+        {
+            if (unghostify(self) < 0)
+                return -1;
+        }
+        return changed(self);
     }
 
-  /* We were passed a false, non-None argument.  If we're not a ghost,
-   * mark self as up-to-date.
-   */
-  if (self->state >= 0)
-    self->state = cPersistent_UPTODATE_STATE;
-  return 0;
+    /* We were passed a false, non-None argument.  If we're not a ghost,
+    * mark self as up-to-date.
+    */
+    if (self->state >= 0)
+        self->state = cPersistent_UPTODATE_STATE;
+    return 0;
 }
 
 static PyObject *
 Per_get_oid(cPersistentObject *self)
 {
-  PyObject *oid = self->oid ? self->oid : Py_None;
-  Py_INCREF(oid);
-  return oid;
+    PyObject *oid = self->oid ? self->oid : Py_None;
+    Py_INCREF(oid);
+    return oid;
 }
 
 static int
 Per_set_oid(cPersistentObject *self, PyObject *v)
 {
-  if (self->cache)
+    if (self->cache)
     {
-      int result;
+        int result;
 
-      if (v == NULL)
+        if (v == NULL)
         {
-          PyErr_SetString(PyExc_ValueError,
-                          "can't delete _p_oid of cached object");
-          return -1;
+            PyErr_SetString(PyExc_ValueError,
+                            "can't delete _p_oid of cached object");
+            return -1;
         }
-      result = PyObject_RichCompareBool(self->oid, v, Py_NE);
-      if (result < 0)
-        return -1;
-      if (result)
+        result = PyObject_RichCompareBool(self->oid, v, Py_NE);
+        if (result < 0)
+            return -1;
+        if (result)
         {
-          PyErr_SetString(PyExc_ValueError,
-                          "can not change _p_oid of cached object");
-          return -1;
+            PyErr_SetString(PyExc_ValueError,
+                            "can not change _p_oid of cached object");
+            return -1;
         }
     }
-  Py_XDECREF(self->oid);
-  Py_XINCREF(v);
-  self->oid = v;
-  return 0;
+    Py_XDECREF(self->oid);
+    Py_XINCREF(v);
+    self->oid = v;
+    return 0;
 }
 
 static PyObject *
 Per_get_jar(cPersistentObject *self)
 {
-  PyObject *jar = self->jar ? self->jar : Py_None;
-  Py_INCREF(jar);
-  return jar;
+    PyObject *jar = self->jar ? self->jar : Py_None;
+    Py_INCREF(jar);
+    return jar;
 }
 
 static int
 Per_set_jar(cPersistentObject *self, PyObject *v)
 {
-  if (self->cache)
+    if (self->cache)
     {
-      int result;
+        int result;
 
-      if (v == NULL)
+        if (v == NULL)
         {
-          PyErr_SetString(PyExc_ValueError,
-                          "can't delete _p_jar of cached object");
-          return -1;
+            PyErr_SetString(PyExc_ValueError,
+                            "can't delete _p_jar of cached object");
+            return -1;
         }
-      result = PyObject_RichCompareBool(self->jar, v, Py_NE);
-      if (result < 0)
-        return -1;
-      if (result)
+        result = PyObject_RichCompareBool(self->jar, v, Py_NE);
+        if (result < 0)
+            return -1;
+        if (result)
         {
-          PyErr_SetString(PyExc_ValueError,
-                          "can not change _p_jar of cached object");
-          return -1;
+            PyErr_SetString(PyExc_ValueError,
+                            "can not change _p_jar of cached object");
+            return -1;
         }
     }
-  Py_XDECREF(self->jar);
-  Py_XINCREF(v);
-  self->jar = v;
-  return 0;
+    Py_XDECREF(self->jar);
+    Py_XINCREF(v);
+    self->jar = v;
+    return 0;
 }
 
 static PyObject *
 Per_get_serial(cPersistentObject *self)
 {
-  return PyBytes_FromStringAndSize(self->serial, 8);
+    return PyBytes_FromStringAndSize(self->serial, 8);
 }
 
 static int
 Per_set_serial(cPersistentObject *self, PyObject *v)
 {
-  if (v)
+    if (v)
     {
-      if (PyBytes_Check(v) && PyBytes_GET_SIZE(v) == 8)
-        memcpy(self->serial, PyBytes_AS_STRING(v), 8);
-      else
+        if (PyBytes_Check(v) && PyBytes_GET_SIZE(v) == 8)
+            memcpy(self->serial, PyBytes_AS_STRING(v), 8);
+        else
         {
-          PyErr_SetString(PyExc_ValueError,
-                          "_p_serial must be an 8-character string");
-          return -1;
+            PyErr_SetString(PyExc_ValueError,
+                            "_p_serial must be an 8-character string");
+            return -1;
         }
     }
-  else
-    memset(self->serial, 0, 8);
-  return 0;
+    else
+        memset(self->serial, 0, 8);
+    return 0;
 }
 
 static PyObject *
 Per_get_mtime(cPersistentObject *self)
 {
-  PyObject *t, *v;
+    PyObject *t, *v;
 
-  if (unghostify(self) < 0)
-    return NULL;
+    if (unghostify(self) < 0)
+        return NULL;
 
-  accessed(self);
+    accessed(self);
 
-  if (memcmp(self->serial, "\0\0\0\0\0\0\0\0", 8) == 0)
+    if (memcmp(self->serial, "\0\0\0\0\0\0\0\0", 8) == 0)
     {
-      Py_INCREF(Py_None);
-      return Py_None;
+        Py_INCREF(Py_None);
+        return Py_None;
     }
 
-  t = PyObject_CallFunction(TimeStamp, "s#", self->serial, 8);
-  if (!t)
-    return NULL;
-  v = PyObject_CallMethod(t, "timeTime", "");
-  Py_DECREF(t);
-  return v;
+    t = PyObject_CallFunction(TimeStamp, "s#", self->serial, 8);
+    if (!t)
+        return NULL;
+    v = PyObject_CallMethod(t, "timeTime", "");
+    Py_DECREF(t);
+    return v;
 }
 
 static PyObject *
 Per_get_state(cPersistentObject *self)
 {
-  return INT_FROM_LONG(self->state);
+    return INT_FROM_LONG(self->state);
 }
 
 static PyObject *
 Per_get_estimated_size(cPersistentObject *self)
 {
-  return INT_FROM_LONG(_estimated_size_in_bytes(self->estimated_size));
+    return INT_FROM_LONG(_estimated_size_in_bytes(self->estimated_size));
 }
 
 static int
 Per_set_estimated_size(cPersistentObject *self, PyObject *v)
 {
-  if (v)
+    if (v)
     {
-      if (INT_CHECK(v))
+        if (INT_CHECK(v))
         {
-          long lv = INT_AS_LONG(v);
-          if (lv < 0)
+            long lv = INT_AS_LONG(v);
+            if (lv < 0)
             {
-              PyErr_SetString(PyExc_ValueError,
-                              "_p_estimated_size must not be negative");
-              return -1;
+                PyErr_SetString(PyExc_ValueError,
+                                "_p_estimated_size must not be negative");
+                return -1;
             }
-          self->estimated_size = _estimated_size_in_24_bits(lv);
+            self->estimated_size = _estimated_size_in_24_bits(lv);
         }
-      else
+        else
         {
-          PyErr_SetString(PyExc_TypeError,
-                          "_p_estimated_size must be an integer");
-          return -1;
+            PyErr_SetString(PyExc_TypeError,
+                            "_p_estimated_size must be an integer");
+            return -1;
         }
     }
-  else
-    self->estimated_size = 0;
-  return 0;
+    else
+        self->estimated_size = 0;
+    return 0;
 }
 
 static PyObject *
 Per_get_status(cPersistentObject *self)
 {
-  PyObject *result = NULL;
+    PyObject *result = NULL;
 
-  if (!self->jar) {
-    result = py_unsaved;
-  } else {
-    switch (self->state) {
-        case cPersistent_GHOST_STATE:
-            result = py_ghost;
-            break;
-        case cPersistent_STICKY_STATE:
-            result = py_sticky;
-            break;
-        case cPersistent_UPTODATE_STATE:
-            result = py_saved;
-            break;
-        case cPersistent_CHANGED_STATE:
-            result = py_changed;
-            break;
+    if (!self->jar)
+    {
+        result = py_unsaved;
+    } else
+    {
+        switch (self->state)
+        {
+            case cPersistent_GHOST_STATE:
+                result = py_ghost;
+                break;
+            case cPersistent_STICKY_STATE:
+                result = py_sticky;
+                break;
+            case cPersistent_UPTODATE_STATE:
+                result = py_saved;
+                break;
+            case cPersistent_CHANGED_STATE:
+                result = py_changed;
+                break;
+        }
     }
-  }
 
-  if (result) {
-    Py_INCREF(result);
-  }
-  return result;
+    if (result)
+    {
+        Py_INCREF(result);
+    }
+    return result;
 }
 
 static PyObject*
 Per_get_sticky(cPersistentObject *self)
 {
-  return PyBool_FromLong(self->state == cPersistent_STICKY_STATE);
+    return PyBool_FromLong(self->state == cPersistent_STICKY_STATE);
 }
 
 static int
 Per_set_sticky(cPersistentObject *self, PyObject* value)
 {
-  if (self->state < 0) {
-     PyErr_SetString(PyExc_ValueError,
-                          "can't set sticky flag on a ghost");
-     return -1;
-  }
-  if (self->jar)
-  {
-    if (PyObject_IsTrue(value))
+    if (self->state < 0)
     {
-        self->state = cPersistent_STICKY_STATE;
-    } else {
-        self->state = cPersistent_UPTODATE_STATE;
+        PyErr_SetString(PyExc_ValueError,
+                            "can't set sticky flag on a ghost");
+        return -1;
     }
-  }
-  return 0;
+    if (self->jar)
+    {
+        if (PyObject_IsTrue(value))
+        {
+            self->state = cPersistent_STICKY_STATE;
+        } else {
+            self->state = cPersistent_UPTODATE_STATE;
+        }
+    }
+    return 0;
 }
 
 static PyGetSetDef Per_getsets[] = {
@@ -1259,7 +1269,7 @@ static struct PyMethodDef Per_methods[] = {
   {"__reduce__", (PyCFunction)pickle___reduce__, METH_NOARGS,
    pickle___reduce__doc},
 
-  {NULL,		NULL}		/* sentinel */
+  {NULL,        NULL}        /* sentinel */
 };
 
 /* This module is compiled as a shared library.  Some compilers don't
@@ -1273,37 +1283,37 @@ static struct PyMethodDef Per_methods[] = {
 
 static PyTypeObject Pertype = {
   PyVarObject_HEAD_INIT(DEFERRED_ADDRESS(&PyType_Type), 0)
-  "persistent.Persistent",		    /* tp_name */
-  sizeof(cPersistentObject),		/* tp_basicsize */
-  0,					            /* tp_itemsize */
-  (destructor)Per_dealloc,		    /* tp_dealloc */
-  0,					            /* tp_print */
-  0,					            /* tp_getattr */
-  0,					            /* tp_setattr */
-  0,					            /* tp_compare */
-  0,					            /* tp_repr */
-  0,					            /* tp_as_number */
-  0,					            /* tp_as_sequence */
-  0,					            /* tp_as_mapping */
-  0,					            /* tp_hash */
-  0,					            /* tp_call */
-  0,					            /* tp_str */
-  (getattrofunc)Per_getattro,		/* tp_getattro */
-  (setattrofunc)Per_setattro,		/* tp_setattro */
-  0,					            /* tp_as_buffer */
+  "persistent.Persistent",          /* tp_name */
+  sizeof(cPersistentObject),        /* tp_basicsize */
+  0,                                /* tp_itemsize */
+  (destructor)Per_dealloc,          /* tp_dealloc */
+  0,                                /* tp_print */
+  0,                                /* tp_getattr */
+  0,                                /* tp_setattr */
+  0,                                /* tp_compare */
+  0,                                /* tp_repr */
+  0,                                /* tp_as_number */
+  0,                                /* tp_as_sequence */
+  0,                                /* tp_as_mapping */
+  0,                                /* tp_hash */
+  0,                                /* tp_call */
+  0,                                /* tp_str */
+  (getattrofunc)Per_getattro,       /* tp_getattro */
+  (setattrofunc)Per_setattro,       /* tp_setattro */
+  0,                                /* tp_as_buffer */
   Py_TPFLAGS_DEFAULT |
   Py_TPFLAGS_BASETYPE |
   Py_TPFLAGS_HAVE_GC,               /* tp_flags */
-  0,					            /* tp_doc */
-  (traverseproc)Per_traverse,		/* tp_traverse */
-  0,					            /* tp_clear */
-  0,					            /* tp_richcompare */
-  0,					            /* tp_weaklistoffset */
-  0,					            /* tp_iter */
-  0,					            /* tp_iternext */
-  Per_methods,			            /* tp_methods */
-  0,					            /* tp_members */
-  Per_getsets,			            /* tp_getset */
+  0,                                /* tp_doc */
+  (traverseproc)Per_traverse,       /* tp_traverse */
+  0,                                /* tp_clear */
+  0,                                /* tp_richcompare */
+  0,                                /* tp_weaklistoffset */
+  0,                                /* tp_iter */
+  0,                                /* tp_iternext */
+  Per_methods,                      /* tp_methods */
+  0,                                /* tp_members */
+  Per_getsets,                      /* tp_getset */
 };
 
 /* End of code for Persistent objects */
@@ -1315,142 +1325,163 @@ typedef int (*intfunctionwithpythonarg)(PyObject*);
 static int
 Per_setstate(cPersistentObject *self)
 {
-  if (unghostify(self) < 0)
-    return -1;
-  self->state = cPersistent_STICKY_STATE;
-  return 0;
+    if (unghostify(self) < 0)
+        return -1;
+    self->state = cPersistent_STICKY_STATE;
+    return 0;
 }
 
 static PyObject *
 simple_new(PyObject *self, PyObject *type_object)
 {
-  if (!PyType_Check(type_object))
+    if (!PyType_Check(type_object))
     {
-      PyErr_SetString(PyExc_TypeError,
-                      "simple_new argument must be a type object.");
-      return NULL;
+        PyErr_SetString(PyExc_TypeError,
+                        "simple_new argument must be a type object.");
+        return NULL;
     }
-  return PyType_GenericNew((PyTypeObject *)type_object, NULL, NULL);
+    return PyType_GenericNew((PyTypeObject *)type_object, NULL, NULL);
 }
 
 static PyMethodDef cPersistence_methods[] =
-  {
+{
     {"simple_new", simple_new, METH_O,
      "Create an object by simply calling a class's __new__ method without "
      "arguments."},
     {NULL, NULL}
-  };
+};
 
 
 static cPersistenceCAPIstruct
 truecPersistenceCAPI = {
-  &Pertype,
-  (getattrofunc)Per_getattro,	/*tp_getattr with object key*/
-  (setattrofunc)Per_setattro,	/*tp_setattr with object key*/
-  changed,
-  accessed,
-  ghostify,
-  (intfunctionwithpythonarg)Per_setstate,
-  NULL, /* The percachedel slot is initialized in cPickleCache.c when
-          the module is loaded.  It uses a function in a different
-          shared library. */
-  readCurrent
+    &Pertype,
+    (getattrofunc)Per_getattro,         /*tp_getattr with object key*/
+    (setattrofunc)Per_setattro,         /*tp_setattr with object key*/
+    changed,
+    accessed,
+    ghostify,
+    (intfunctionwithpythonarg)Per_setstate,
+    NULL, /* The percachedel slot is initialized in cPickleCache.c when
+            the module is loaded.  It uses a function in a different
+            shared library. */
+    readCurrent
 };
 
 #ifdef PY3K
-static struct PyModuleDef moduledef = {
-        PyModuleDef_HEAD_INIT,
-        "cPersistence",     /* m_name */
-        cPersistence_doc_string,  /* m_doc */
-        -1,                  /* m_size */
-        cPersistence_methods,    /* m_methods */
-        NULL,                /* m_reload */
-        NULL,                /* m_traverse */
-        NULL,                /* m_clear */
-        NULL,                /* m_free */
-    };
-
-#endif
-
-void
-initcPersistence(void)
+static struct PyModuleDef moduledef =
 {
-  PyObject *m, *s;
-  PyObject *copy_reg;
+    PyModuleDef_HEAD_INIT,
+    "cPersistence",                     /* m_name */
+    cPersistence_doc_string,            /* m_doc */
+    -1,                                 /* m_size */
+    cPersistence_methods,               /* m_methods */
+    NULL,                               /* m_reload */
+    NULL,                               /* m_traverse */
+    NULL,                               /* m_clear */
+    NULL,                               /* m_free */
+};
 
-  if (init_strings() < 0)
-    return;
+#endif
+
+static PyObject*
+module_init(void)
+{
+    PyObject *module, *ts_module, *capi;
+    PyObject *copy_reg;
+
+    if (init_strings() < 0)
+        return NULL;
 
 #ifdef PY3K
-  m = PyModule_Create(&moduledef);
+    module = PyModule_Create(&moduledef);
 #else
-  m = Py_InitModule3("cPersistence", cPersistence_methods,
-                     cPersistence_doc_string);
+    module = Py_InitModule3("cPersistence", cPersistence_methods,
+                            cPersistence_doc_string);
 #endif
 
 #ifdef PY3K
-  ((PyObject*)&Pertype)->ob_type = &PyType_Type;
+    ((PyObject*)&Pertype)->ob_type = &PyType_Type;
 #else
-  Pertype.ob_type = &PyType_Type;
+    Pertype.ob_type = &PyType_Type;
 #endif
-  Pertype.tp_new = PyType_GenericNew;
-  if (PyType_Ready(&Pertype) < 0)
-    return;
-  if (PyModule_AddObject(m, "Persistent", (PyObject *)&Pertype) < 0)
-    return;
+    Pertype.tp_new = PyType_GenericNew;
+    if (PyType_Ready(&Pertype) < 0)
+        return NULL;
+    if (PyModule_AddObject(module, "Persistent", (PyObject *)&Pertype) < 0)
+        return NULL;
 
-  cPersistenceCAPI = &truecPersistenceCAPI;
+    cPersistenceCAPI = &truecPersistenceCAPI;
 #ifdef PY3K
-  s = PyCapsule_New(cPersistenceCAPI, "CAPI", NULL);
+    capi = PyCapsule_New(cPersistenceCAPI, CAPI_CAPSULE_NAME, NULL);
 #else
-  s = PyCObject_FromVoidPtr(cPersistenceCAPI, NULL);
+    capi = PyCObject_FromVoidPtr(cPersistenceCAPI, NULL);
 #endif
-  if (!s)
-    return;
-  if (PyModule_AddObject(m, "CAPI", s) < 0)
-    return;
+    if (!capi)
+        return NULL;
+    if (PyModule_AddObject(module, "CAPI", capi) < 0)
+        return NULL;
 
-  if (PyModule_AddIntConstant(m, "GHOST", cPersistent_GHOST_STATE) < 0)
-    return;
+    if (PyModule_AddIntConstant(module, "GHOST", cPersistent_GHOST_STATE) < 0)
+        return NULL;
 
-  if (PyModule_AddIntConstant(m, "UPTODATE", cPersistent_UPTODATE_STATE) < 0)
-    return;
+    if (PyModule_AddIntConstant(module, "UPTODATE",
+                                cPersistent_UPTODATE_STATE) < 0)
+        return NULL;
 
-  if (PyModule_AddIntConstant(m, "CHANGED", cPersistent_CHANGED_STATE) < 0)
-    return;
+    if (PyModule_AddIntConstant(module, "CHANGED",
+                                cPersistent_CHANGED_STATE) < 0)
+        return NULL;
 
-  if (PyModule_AddIntConstant(m, "STICKY", cPersistent_STICKY_STATE) < 0)
-    return;
+    if (PyModule_AddIntConstant(module, "STICKY",
+                                cPersistent_STICKY_STATE) < 0)
+        return NULL;
 
-  py_simple_new = PyObject_GetAttrString(m, "simple_new");
-  if (!py_simple_new)
-    return;
+    py_simple_new = PyObject_GetAttrString(module, "simple_new");
+    if (!py_simple_new)
+        return NULL;
 
-  copy_reg = PyImport_ImportModule("copy_reg");
-  if (!copy_reg)
-    return;
+#ifdef PY3K
+    copy_reg = PyImport_ImportModule("copyreg");
+#else
+    copy_reg = PyImport_ImportModule("copy_reg");
+#endif
+    if (!copy_reg)
+        return NULL;
 
-  copy_reg_slotnames = PyObject_GetAttrString(copy_reg, "_slotnames");
-  if (!copy_reg_slotnames)
+    copy_reg_slotnames = PyObject_GetAttrString(copy_reg, "_slotnames");
+    if (!copy_reg_slotnames)
     {
       Py_DECREF(copy_reg);
-      return;
+      return NULL;
     }
 
-  __newobj__ = PyObject_GetAttrString(copy_reg, "__newobj__");
-  if (!__newobj__)
+    __newobj__ = PyObject_GetAttrString(copy_reg, "__newobj__");
+    if (!__newobj__)
     {
       Py_DECREF(copy_reg);
-      return;
+      return NULL;
     }
 
-  if (!TimeStamp)
+    if (!TimeStamp)
     {
-      m = PyImport_ImportModule("persistent.timestamp");
-      if (!m)
-        return;
-      TimeStamp = PyObject_GetAttrString(m, "TimeStamp");
-      Py_DECREF(m);
+      ts_module = PyImport_ImportModule("persistent.timestamp");
+      if (!ts_module)
+        return NULL;
+      TimeStamp = PyObject_GetAttrString(ts_module, "TimeStamp");
+      Py_DECREF(ts_module);
       /* fall through to immediate return on error */
     }
+    return module;
 }
+
+#ifdef PY3K
+PyMODINIT_FUNC PyInit_cPersistence(void)
+{
+    return module_init();
+}
+#else
+PyMODINIT_FUNC initcPersistence(void)
+{
+    module_init();
+}
+#endif
