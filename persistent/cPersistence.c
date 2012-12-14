@@ -430,13 +430,13 @@ pickle___getstate__(PyObject *self)
         for (i = 0; i < PyList_GET_SIZE(slotnames); i++)
         {
             PyObject *name, *value;
+            char *cname;
+            int is_special;
 
             name = PyList_GET_ITEM(slotnames, i);
 #ifdef PY3K
             if (PyUnicode_Check(name))
             {
-                char *cname;
-                int is_special;
                 PyObject *converted = convert_name(name);
                 cname = PyBytes_AS_STRING(converted);
 #else
