@@ -1056,7 +1056,7 @@ cc_add_item(ccobject *self, PyObject *key, PyObject *v)
     {
         Py_DECREF(oid);
         PyErr_Format(PyExc_TypeError,
-                    "Cached object oid must be a string, not a %s",
+                    "Cached object oid must be bytes, not a %s",
                     oid->ob_type->tp_name);
         
         return -1;
@@ -1212,7 +1212,7 @@ cc_ass_sub(ccobject *self, PyObject *key, PyObject *v)
     if (!PyBytes_Check(key))
     {
         PyErr_Format(PyExc_TypeError,
-                    "cPickleCache key must be a string, not a %s",
+                    "cPickleCache key must be bytes, not a %s",
                     key->ob_type->tp_name);
         return -1;
     }
