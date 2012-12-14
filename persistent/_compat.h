@@ -23,8 +23,6 @@
 
 #ifdef PY3K
 #define INTERN PyUnicode_InternFromString
-#define NATIVE_AS_STRING(x) PyBytes_AS_STRING(PyUnicode_AsUTF16String((x)))
-#define NATIVE_FROM_STRING PyUnicode_FromString
 #define NATIVE_FROM_STRING_AND_SIZE PyUnicode_FromStringAndSize
 
 #define Py_TPFLAGS_HAVE_RICHCOMPARE 0
@@ -36,8 +34,6 @@
 
 #else
 #define INTERN PyString_InternFromString
-#define NATIVE_AS_STRING PyString_AsString
-#define NATIVE_FROM_STRING PyString_FromString
 #define NATIVE_FROM_STRING_AND_SIZE PyString_FromStringAndSize
 
 #define INT_FROM_LONG(x) PyInt_FromLong(x)
