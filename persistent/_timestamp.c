@@ -262,7 +262,11 @@ TimeStamp_raw(TimeStamp *self)
 static PyObject *
 TimeStamp_repr(TimeStamp *self)
 {
-    return NATIVE_FROM_STRING_AND_SIZE((const char*)self->data, 8);
+    PyObject *raw, *result;
+    raw = TimeStamp_raw(self);
+    result = PyObject_Repr(raw);
+    Py_DECREF(raw);
+    return result;
 }
 
 static PyObject *
@@ -277,7 +281,7 @@ TimeStamp_str(TimeStamp *self)
              p.y, p.m, p.d, p.mi / 60, p.mi % 60,
              TimeStamp_sec(self));
 
-    return PyBytes_FromStringAndSize(buf, len);
+    return NATIVE_FROM_STRING_AND_SIZE(buf, len);
 }
 
 
@@ -462,7 +466,8 @@ TimeStamp_TimeStamp(PyObject *obj, PyObject *args)
     {
         if (len != 8)
         {
-            PyErr_SetString(PyExc_ValueError, "8-character string expected");
+            PyErr_SetString(PyExc_ValueError,
+                            "8-byte array expected");
             return NULL;
         }
         return TimeStamp_FromString(buf);
