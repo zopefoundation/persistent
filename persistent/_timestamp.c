@@ -502,7 +502,7 @@ module_init(void)
     PyObject *module;
 
     if (TimeStamp_init_gmoff() < 0)
-        return;
+        return NULL;
 
 #ifdef PY3K
     module = PyModule_Create(&moduledef);
