@@ -1,7 +1,8 @@
 ``persistent`` Changelog
 ========================
 
-4.0.5 (unreleased)
+
+4.0.5 (2012-12-14)
 ------------------
 
 - Fixed the C-extensions under Py3k (previously they compiled but were
