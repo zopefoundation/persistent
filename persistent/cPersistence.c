@@ -83,6 +83,8 @@ fatal_1350(cPersistentObject *self, const char *caller, const char *detail)
 
 static void ghostify(cPersistentObject*);
 
+static PyObject * convert_name(PyObject *name);
+
 /* Load the state of the object, unghostifying it.  Upon success, return 1.
  * If an error occurred, re-ghostify the object and return -1.
  */
@@ -349,13 +351,24 @@ pickle_copy_dict(PyObject *state)
 
     while (PyDict_Next(state, &pos, &key, &value))
     {
+        int is_special;
+#ifdef PY3K
+        if (key && PyUnicode_Check(key))
+        {
+            PyObject *converted = convert_name(key);
+            ckey = PyBytes_AS_STRING(converted);
+#else
         if (key && PyBytes_Check(key))
         {
             ckey = PyBytes_AS_STRING(key);
-            if (*ckey == '_' &&
-                (ckey[1] == 'v' || ckey[1] == 'p') &&
-                ckey[2] == '_')
-                /* skip volatile and persistent */
+#endif
+            is_special = (*ckey == '_' &&
+                          (ckey[1] == 'v' || ckey[1] == 'p') &&
+                           ckey[2] == '_');
+#ifdef PY3K
+            Py_DECREF(converted);
+#endif
+            if (is_special) /* skip volatile and persistent */
                 continue;
         }
 
@@ -417,17 +430,30 @@ pickle___getstate__(PyObject *self)
         for (i = 0; i < PyList_GET_SIZE(slotnames); i++)
         {
             PyObject *name, *value;
-            char *cname;
 
             name = PyList_GET_ITEM(slotnames, i);
+#ifdef PY3K
+            if (PyUnicode_Check(name))
+            {
+                char *cname;
+                int is_special;
+                PyObject *converted = convert_name(name);
+                cname = PyBytes_AS_STRING(converted);
+#else
             if (PyBytes_Check(name))
             {
                 cname = PyBytes_AS_STRING(name);
-                if (*cname == '_' &&
-                    (cname[1] == 'v' || cname[1] == 'p') &&
-                    cname[2] == '_')
-                    /* skip volatile and persistent */
+#endif
+                is_special = (*cname == '_' &&
+                              (cname[1] == 'v' || cname[1] == 'p') &&
+                               cname[2] == '_');
+#ifdef PY3K
+                Py_DECREF(converted);
+#endif
+                if (is_special) /* skip volatile and persistent */
+                {
                     continue;
+                }
             }
 
             /* Unclear:  Will this go through our getattr hook? */
