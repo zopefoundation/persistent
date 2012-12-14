@@ -1075,7 +1075,7 @@ Per_set_serial(cPersistentObject *self, PyObject *v)
         else
         {
             PyErr_SetString(PyExc_ValueError,
-                            "_p_serial must be an 8-character string");
+                            "_p_serial must be an 8-character bytes array");
             return -1;
         }
     }
