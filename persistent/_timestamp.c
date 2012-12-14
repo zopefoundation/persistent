@@ -462,7 +462,11 @@ TimeStamp_TimeStamp(PyObject *obj, PyObject *args)
     int len = 0, y, mo, d, h = 0, m = 0;
     double sec = 0;
 
-    if (PyArg_ParseTuple(args, "s#:TimeStamp", &buf, &len))
+#ifdef PY3K
+    if (PyArg_ParseTuple(args, "y#", &buf, &len))
+#else
+    if (PyArg_ParseTuple(args, "s#", &buf, &len))
+#endif
     {
         if (len != 8)
         {

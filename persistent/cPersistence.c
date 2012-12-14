@@ -1100,9 +1100,15 @@ Per_get_mtime(cPersistentObject *self)
         return Py_None;
     }
 
+#ifdef PY3K
+    t = PyObject_CallFunction(TimeStamp, "y#", self->serial, 8);
+#else
     t = PyObject_CallFunction(TimeStamp, "s#", self->serial, 8);
+#endif
     if (!t)
+    {
         return NULL;
+    }
     v = PyObject_CallMethod(t, "timeTime", "");
     Py_DECREF(t);
     return v;
