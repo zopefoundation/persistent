@@ -5,7 +5,7 @@
 4.0.6 (unreleased)
 ------------------
 
-- TBD
+- Updated Trove classifiers.
 
 
 4.0.5 (2012-12-14)
