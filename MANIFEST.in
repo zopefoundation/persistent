@@ -1,7 +1,7 @@
 include *.txt
 
-recursive-include doc *
-recursive-include src *
+recursive-include docs *
+recursive-include persistent *
 
 global-exclude *.dll
 global-exclude *.pyc
