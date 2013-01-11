@@ -24,9 +24,9 @@ from setuptools import find_packages
 from setuptools import setup
 
 here = os.path.abspath(os.path.dirname(__file__))
-README = (open(os.path.join(here, 'README.txt')).read()
+README = (open(os.path.join(here, 'README.rst')).read()
           + '\n\n' +
-          open(os.path.join(here, 'CHANGES.txt')).read())
+          open(os.path.join(here, 'CHANGES.rst')).read())
 
 py_impl = getattr(platform, 'python_implementation', lambda: None)
 is_pypy = py_impl() == 'PyPy'
