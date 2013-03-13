@@ -84,7 +84,7 @@ Testing Changes
 - Removed all ``ZODB``-dependent tests:
 
   - Rewrote some to avoid the dependency
-  
+
   - Cloned the remainder into new ``ZODB.tests`` modules.
 
 - Refactored some doctests refactored as unittests.
