@@ -31,11 +31,12 @@ README = (open(os.path.join(here, 'README.rst')).read()
 py_impl = getattr(platform, 'python_implementation', lambda: None)
 is_pypy = py_impl() == 'PyPy'
 is_jython = 'java' in sys.platform
+is_pure = os.environ.get('PURE_PYTHON')
 
 # Jython cannot build the C optimizations, while on PyPy they are
 # anti-optimizations (the C extension compatibility layer is known-slow,
 # and defeats JIT opportunities).
-if is_pypy or is_jython:
+if is_pypy or is_jython or is_pure:
     ext_modules = headers = []
 else:
     ext_modules = [Extension(name = 'persistent.cPersistence',

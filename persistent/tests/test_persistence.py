@@ -11,6 +11,7 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
+import os
 import unittest
 
 class _Persistent_Base(object):
@@ -1321,49 +1322,50 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
  
 _add_to_suite = [PyPersistentTests]
 
-try:
-    from persistent import cPersistence
-except ImportError:
-    pass
-else:
-    class CPersistentTests(unittest.TestCase, _Persistent_Base):
+if not os.environ.get('PURE_PYTHON'):
+    try:
+        from persistent import cPersistence
+    except ImportError:
+        pass
+    else:
+        class CPersistentTests(unittest.TestCase, _Persistent_Base):
 
-        def _getTargetClass(self):
-            from persistent.cPersistence import Persistent
-            return Persistent
+            def _getTargetClass(self):
+                from persistent.cPersistence import Persistent
+                return Persistent
 
-        def _checkMRU(self, jar, value):
-            pass # Figure this out later
-    
-        def _clearMRU(self, jar):
-            pass # Figure this out later
+            def _checkMRU(self, jar, value):
+                pass # Figure this out later
+        
+            def _clearMRU(self, jar):
+                pass # Figure this out later
 
-        def _makeCache(self, jar):
-            from persistent.cPickleCache import PickleCache
-            return PickleCache(jar)
+            def _makeCache(self, jar):
+                from persistent.cPickleCache import PickleCache
+                return PickleCache(jar)
 
-    _add_to_suite.append(CPersistentTests)
+        _add_to_suite.append(CPersistentTests)
 
-    class Test_simple_new(unittest.TestCase):
+        class Test_simple_new(unittest.TestCase):
 
-        def _callFUT(self, x):
-            from persistent.cPersistence import simple_new
-            return simple_new(x)
+            def _callFUT(self, x):
+                from persistent.cPersistence import simple_new
+                return simple_new(x)
 
-        def test_w_non_type(self):
-            self.assertRaises(TypeError, self._callFUT, '')
+            def test_w_non_type(self):
+                self.assertRaises(TypeError, self._callFUT, '')
 
-        def test_w_type(self):
-            import sys
-            TO_CREATE = [type, list, tuple, object]
-            # Python 3.3 segfaults when destroying a dict created via
-            # PyType_GenericNew.  See http://bugs.python.org/issue16676
-            if sys.version_info < (3, 3):
-                TO_CREATE.append(dict)
-            for typ in TO_CREATE:
-                self.assertTrue(isinstance(self._callFUT(typ), typ))
+            def test_w_type(self):
+                import sys
+                TO_CREATE = [type, list, tuple, object]
+                # Python 3.3 segfaults when destroying a dict created via
+                # PyType_GenericNew.  See http://bugs.python.org/issue16676
+                if sys.version_info < (3, 3):
+                    TO_CREATE.append(dict)
+                for typ in TO_CREATE:
+                    self.assertTrue(isinstance(self._callFUT(typ), typ))
 
-    _add_to_suite.append(Test_simple_new)
+        _add_to_suite.append(Test_simple_new)
 
 def test_suite():
     return unittest.TestSuite([unittest.makeSuite(x) for x in _add_to_suite])

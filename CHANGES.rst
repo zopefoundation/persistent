@@ -5,6 +5,9 @@
 4.0.7 (unreleased)
 ------------------
 
+- Add ``PURE_PYTHON`` environment variable support:  if set, the C
+  extensions will not be built or imported.
+
 
 4.0.6 (2013-01-03)
 ------------------
