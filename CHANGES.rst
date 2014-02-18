@@ -5,6 +5,9 @@
 4.0.7 (unreleased)
 ------------------
 
+- Fix a hang in ``picklecache`` invalidation if OIDs are manually passed
+  out-of-order. (PR #4)
+
 - Add ``PURE_PYTHON`` environment variable support:  if set, the C
   extensions will not be built, imported, or tested.
 
