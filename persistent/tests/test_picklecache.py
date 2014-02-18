@@ -661,6 +661,25 @@ class PickleCacheTests(unittest.TestCase):
         self.assertEqual(c1._p_state, GHOST)
         self.assertEqual(c2._p_state, GHOST)
 
+    def test_invalidate_hit_multiple_non_ghost(self):
+        from persistent.interfaces import UPTODATE
+        from persistent.interfaces import GHOST
+        from persistent._compat import _b
+        KEY = _b('123')
+        KEY2 = _b('456')
+        cache = self._makeOne()
+        c1 = self._makePersist(oid=KEY, jar=cache.jar, state=UPTODATE)
+        cache[KEY] = c1
+        c2 = self._makePersist(oid=KEY2, jar=cache.jar, state=UPTODATE)
+        cache[KEY2] = c2
+        self.assertEqual(cache.ringlen(), 2)
+        # These should be in the opposite order of how they were
+        # added to the ring to ensure ring traversal works
+        cache.invalidate([KEY2, KEY])
+        self.assertEqual(cache.ringlen(), 0)
+        self.assertEqual(c1._p_state, GHOST)
+        self.assertEqual(c2._p_state, GHOST)
+
     def test_invalidate_hit_pclass(self):
         from persistent._compat import _b
         KEY = _b('123')

@@ -122,7 +122,7 @@ class PickleCache(object):
             # splice into new
             self.ring.prev.next, node.prev = node, self.ring.prev
             self.ring.prev, node.next = node, self.ring
-        
+
     def ringlen(self):
         """ See IPickleCache.
         """
@@ -257,5 +257,6 @@ class PickleCache(object):
                 if node.object is value:
                     node.prev.next, node.next.prev = node.next, node.prev
                     break
+                node = node.next
         elif oid in self.persistent_classes:
             del self.persistent_classes[oid]
