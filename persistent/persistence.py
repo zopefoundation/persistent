@@ -288,9 +288,9 @@ class Persistent(object):
     def __setstate__(self, state):
         """ See IPersistent.
         """
-        try:
+        if isinstance(state,tuple):
             inst_dict, slots = state
-        except:
+        else:
             inst_dict, slots = state, ()
         idict = getattr(self, '__dict__', None)
         if inst_dict is not None:
