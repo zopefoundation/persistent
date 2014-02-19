@@ -5,8 +5,12 @@
 4.0.7 (unreleased)
 ------------------
 
+- Avoid a KeyError from ``_p_accessed()`` on newly-created objects under
+  pure-Python:  these objects may be assigned to a jar, but not yet added
+  to its cache.  (PR #6)
+
 - Avoid a failure in ``Persistent.__setstate__`` when the state dict
-  contains exactly two keys.  (PR #5).
+  contains exactly two keys.  (PR #5)
 
 - Fix a hang in ``picklecache`` invalidation if OIDs are manually passed
   out-of-order. (PR #4)
