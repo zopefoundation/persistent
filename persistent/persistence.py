@@ -390,7 +390,9 @@ class Persistent(object):
         # detail, the '_cache' attribute of the jar.  We made it a
         # private API to avoid the cycle of keeping a reference to
         # the cache on the persistent object.
-        if self.__jar is not None and self.__oid is not None and self._p_state >= 0:
+        if (self.__jar is not None and
+            self.__oid is not None and
+            self._p_state >= 0):
             # This scenario arises in ZODB: ZODB.serialize.ObjectWriter
             # can assign a jar and an oid to newly seen persistent objects,
             # but because they are newly created, they aren't in the
