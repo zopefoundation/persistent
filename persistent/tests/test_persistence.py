@@ -1328,6 +1328,28 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
     def _clearMRU(self, jar):
         jar._cache._mru[:] = []
 
+    def test_accessed_with_jar_and_oid_but_not_in_cache(self):
+        # This scenario arises in ZODB: ZODB.serialize.ObjectWriter
+        # can assign a jar and an oid to newly seen persistent objects,
+        # but because they are newly created, they aren't in the
+        # pickle cache yet.
+        # Nothing should blow up when this happens
+        from persistent._compat import _b
+        KEY = _b('123')
+        jar = self._makeJar()
+        c1 = self._makeOne()
+        c1._p_oid = KEY
+        c1._p_jar = jar
+        orig_mru = jar._cache.mru
+        def mru(oid):
+            # Mimic what the real cache does
+            if oid not in jar._cache._mru:
+                raise KeyError(oid)
+            orig_mru(oid)
+        jar._cache.mru = mru
+        c1._p_accessed()
+        self._checkMRU(jar, [])
+
 _add_to_suite = [PyPersistentTests]
 
 if not os.environ.get('PURE_PYTHON'):

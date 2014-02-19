@@ -390,8 +390,16 @@ class Persistent(object):
         # detail, the '_cache' attribute of the jar.  We made it a
         # private API to avoid the cycle of keeping a reference to
         # the cache on the persistent object.
-        if self.__jar is not None and self.__oid is not None:
-            self.__jar._cache.mru(self.__oid)
+        if self.__jar is not None and self.__oid is not None and self._p_state >= 0:
+            # This scenario arises in ZODB: ZODB.serialize.ObjectWriter
+            # can assign a jar and an oid to newly seen persistent objects,
+            # but because they are newly created, they aren't in the
+            # pickle cache yet. There doesn't seem to be a way to distinguish
+            # that at this level, all we can do is catch it
+            try:
+                self.__jar._cache.mru(self.__oid)
+            except KeyError:
+                pass
 
 
 def _estimated_size_in_24_bits(value):
