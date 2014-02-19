@@ -111,7 +111,7 @@ class _Persistent_Base(object):
         from persistent.timestamp import _makeOctets
         OID = _makeOctets('\x01' * 8)
         inst = self._makeOne()
-        inst._p_oid = OID 
+        inst._p_oid = OID
         self.assertEqual(inst._p_oid, OID)
         inst._p_oid = OID  # reassign only same OID
 
@@ -174,7 +174,7 @@ class _Persistent_Base(object):
         from persistent.timestamp import _makeOctets
         SERIAL = _makeOctets('\x01' * 8)
         inst = self._makeOne()
-        inst._p_serial = SERIAL 
+        inst._p_serial = SERIAL
         self.assertEqual(inst._p_serial, SERIAL)
 
     def test_delete_p_serial(self):
@@ -182,7 +182,7 @@ class _Persistent_Base(object):
         from persistent.persistence import _INITIAL_SERIAL
         SERIAL = _makeOctets('\x01' * 8)
         inst = self._makeOne()
-        inst._p_serial = SERIAL 
+        inst._p_serial = SERIAL
         self.assertEqual(inst._p_serial, SERIAL)
         del(inst._p_serial)
         self.assertEqual(inst._p_serial, _INITIAL_SERIAL)
@@ -789,6 +789,14 @@ class _Persistent_Base(object):
         inst.__setstate__({'baz': 'bam'})
         self.assertEqual(inst.__dict__, {'baz': 'bam'})
 
+    def test___setstate___nonempty_derived_w_dict_w_two_keys(self):
+        class Derived(self._getTargetClass()):
+            pass
+        inst = Derived()
+        inst.foo = 'bar'
+        inst.__setstate__({'baz': 'bam', 'biz': 'boz'})
+        self.assertEqual(inst.__dict__, {'baz': 'bam', 'biz': 'boz'})
+
     def test___setstate___derived_w_slots(self):
         class Derived(self._getTargetClass()):
             __slots__ = ('foo', '_p_baz', '_v_qux')
@@ -937,7 +945,7 @@ class _Persistent_Base(object):
     def test__p_activate_from_ghost(self):
         inst, jar, OID = self._makeOneWithJar()
         inst._p_deactivate()
-        inst._p_activate() 
+        inst._p_activate()
         self.assertEqual(inst._p_status, 'saved')
 
     def test__p_activate_from_saved(self):
@@ -1253,7 +1261,7 @@ class _Persistent_Base(object):
     def test__ancient_dict_layout_bug(self):
         # We once had a bug in the `Persistent` class that calculated an
         # incorrect offset for the ``__dict__`` attribute.  It assigned
-        # ``__dict__`` and ``_p_jar`` to the same location in memory. 
+        # ``__dict__`` and ``_p_jar`` to the same location in memory.
         # This is a simple test to make sure they have different locations.
         class P(self._getTargetClass()):
             def __init__(self):
@@ -1319,7 +1327,7 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
 
     def _clearMRU(self, jar):
         jar._cache._mru[:] = []
- 
+
 _add_to_suite = [PyPersistentTests]
 
 if not os.environ.get('PURE_PYTHON'):
@@ -1336,7 +1344,7 @@ if not os.environ.get('PURE_PYTHON'):
 
             def _checkMRU(self, jar, value):
                 pass # Figure this out later
-        
+
             def _clearMRU(self, jar):
                 pass # Figure this out later
 
