@@ -2,7 +2,7 @@
 ========================
 
 
-4.0.7 (unreleased)
+4.0.7 (2014-02-20)
 ------------------
 
 - Avoid a KeyError from ``_p_accessed()`` on newly-created objects under
