@@ -98,8 +98,11 @@ class Persistent(object):
         self.__oid = value
 
     def _del_oid(self):
-        if self.__jar is not None:
-            raise ValueError('Cannot delete OID once assigned to a jar')
+        jar = self.__jar
+        oid = self.__oid
+        if jar is not None:
+            if oid and jar._cache.get(oid):
+                raise ValueError('Cannot delete _p_oid of cached object')
         self.__oid = None
 
     _p_oid = property(_get_oid, _set_oid, _del_oid)

@@ -86,23 +86,20 @@ class _Persistent_Base(object):
         self.assertEqual(inst._p_sticky, False)
         self.assertEqual(inst._p_status, 'unsaved')
 
-    def test_cannot_del_jar_while_in_cache(self):
+    def test_del_jar_while_in_cache(self):
         inst, _, OID = self._makeOneWithJar()
         def _test():
             del inst._p_jar
         self.assertRaises(ValueError, _test)
 
-    def test_del_jar_oid_like_ZODB_abort(self):
-        # When a ZODB connection aborts,
-		# it removes registered objects from the cache,
-		# deletes their jar, deletes their OID
-		# and finally sets p_changed to false
+    def test_del_jar_like_ZODB_abort(self):
+        # When a ZODB connection aborts, it removes registered objects from
+        # the cache, deletes their jar, deletes their OID, and finally sets
+        # p_changed to false
         inst, jar, OID = self._makeOneWithJar()
         del jar._cache[OID]
         del inst._p_jar
         self.assertEqual(inst._p_jar, None)
-        del inst._p_oid
-        self.assertEqual(inst._p_oid, None)
 
     def test_assign_p_jar_w_new_jar(self):
         inst, jar, OID = self._makeOneWithJar()
@@ -163,6 +160,15 @@ class _Persistent_Base(object):
         def _test():
             del inst._p_oid
         self.assertRaises(ValueError, _test)
+
+    def test_del_oid_like_ZODB_abort(self):
+        # When a ZODB connection aborts, it removes registered objects from
+        # the cache, deletes their jar, deletes their OID, and finally sets
+        # p_changed to false
+        inst, jar, OID = self._makeOneWithJar()
+        del jar._cache[OID]
+        del inst._p_oid
+        self.assertEqual(inst._p_oid, None)
 
     def test_assign_p_serial_w_invalid_type(self):
         inst = self._makeOne()

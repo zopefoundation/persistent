@@ -4,9 +4,9 @@
 4.0.8 (Unreleased)
 ------------------
 
-- Make it possible to delete the ``_p_jar`` of a pure-Python
-  ``Persistent`` object (fixes aborting a ZODB Connection that
-  has added objects).
+- Make it possible to delete ``_p_jar`` / ``_p_oid`` of a pure-Python
+  ``Persistent`` object which has been removed from the jar's cache
+  (fixes aborting a ZODB Connection that has added objects). (PR #7)
 
 4.0.7 (2014-02-20)
 ------------------
