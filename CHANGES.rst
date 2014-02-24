@@ -4,6 +4,9 @@
 4.0.8 (Unreleased)
 ------------------
 
+- The pure-Python ``Persistent`` class no longer calls subclass's
+  ``__setattr__`` at instance creation time. (PR #8)
+
 - Make it possible to delete ``_p_jar`` / ``_p_oid`` of a pure-Python
   ``Persistent`` object which has been removed from the jar's cache
   (fixes aborting a ZODB Connection that has added objects). (PR #7)

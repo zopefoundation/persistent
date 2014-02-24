@@ -53,11 +53,15 @@ class Persistent(object):
 
     def __new__(cls, *args, **kw):
         inst = super(Persistent, cls).__new__(cls)
-        inst.__jar = None
-        inst.__oid = None
-        inst.__serial = None
-        inst.__flags = None
-        inst.__size = 0
+        # We bypass the __setattr__ implementation of this object
+        # at __new__ time, just like the C implementation does. This
+        # makes us compatible with subclasses that want to access
+        # properties like _p_changed in their setattr implementation
+        _OSA(inst, '_Persistent__jar', None)
+        _OSA(inst, '_Persistent__oid', None)
+        _OSA(inst, '_Persistent__serial', None)
+        _OSA(inst, '_Persistent__flags', None)
+        _OSA(inst, '_Persistent__size', 0)
         return inst
 
     # _p_jar:  see IPersistent.
