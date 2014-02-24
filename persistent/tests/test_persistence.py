@@ -1325,6 +1325,14 @@ class _Persistent_Base(object):
         class mixed2(self._getTargetClass(), alternate):
             pass
 
+    def test_setattr_in_subclass_is_not_called_creating_an_instance(self):
+        class subclass(self._getTargetClass()):
+            _v_setattr_called = False
+            def __setattr__(self, name, value):
+                object.__setattr__(self, '_v_setattr_called', True)
+                super(subclass,self).__setattr__(name, value)
+        inst = subclass()
+        self.assertEqual(object.__getattribute__(inst,'_v_setattr_called'), False)
 
 class PyPersistentTests(unittest.TestCase, _Persistent_Base):
 
