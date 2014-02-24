@@ -72,7 +72,16 @@ class Persistent(object):
             self.__jar = value
             self.__flags = 0
 
-    _p_jar = property(_get_jar, _set_jar)
+    def _del_jar(self):
+        jar = self.__jar
+        oid = self.__oid
+        if jar is not None:
+            if oid and jar._cache.get(oid):
+                raise ValueError("can't delete _p_jar of cached object")
+            self.__setattr__('_Persistent__jar', None)
+            self.__flags = None
+
+    _p_jar = property(_get_jar, _set_jar, _del_jar)
 
     # _p_oid:  see IPersistent.
     def _get_oid(self):

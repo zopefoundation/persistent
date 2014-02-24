@@ -1,6 +1,12 @@
 ``persistent`` Changelog
 ========================
 
+4.0.8 (Unreleased)
+------------------
+
+- Make it possible to delete the ``_p_jar`` of a pure-Python
+  ``Persistent`` object (fixes aborting a ZODB Connection that
+  has added objects).
 
 4.0.7 (2014-02-20)
 ------------------

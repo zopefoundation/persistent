@@ -86,6 +86,24 @@ class _Persistent_Base(object):
         self.assertEqual(inst._p_sticky, False)
         self.assertEqual(inst._p_status, 'unsaved')
 
+    def test_cannot_del_jar_while_in_cache(self):
+        inst, _, OID = self._makeOneWithJar()
+        def _test():
+            del inst._p_jar
+        self.assertRaises(ValueError, _test)
+
+    def test_del_jar_oid_like_ZODB_abort(self):
+        # When a ZODB connection aborts,
+		# it removes registered objects from the cache,
+		# deletes their jar, deletes their OID
+		# and finally sets p_changed to false
+        inst, jar, OID = self._makeOneWithJar()
+        del jar._cache[OID]
+        del inst._p_jar
+        self.assertEqual(inst._p_jar, None)
+        del inst._p_oid
+        self.assertEqual(inst._p_oid, None)
+
     def test_assign_p_jar_w_new_jar(self):
         inst, jar, OID = self._makeOneWithJar()
         new_jar = self._makeJar()
@@ -1314,11 +1332,17 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
             def __init__(self, jar):
                 self._jar = jar
                 self._mru = []
+                self._data = {}
             def mru(self, oid):
                 self._mru.append(oid)
             def new_ghost(self, oid, obj):
                 obj._p_jar = self._jar
                 obj._p_oid = oid
+                self._data[oid] = obj
+            def get(self, oid):
+                return self._data.get(oid)
+            def __delitem__(self, oid):
+                del self._data[oid]
 
         return _Cache(jar)
 
