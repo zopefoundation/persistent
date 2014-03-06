@@ -330,14 +330,14 @@ class Persistent(object):
         """ See IPersistent.
         """
         before = self.__flags
-        if self.__flags is None:
+        if self.__flags is None or self._p_state < 0: # Only do this if we're a ghost
             self.__flags = 0
-        if self.__jar is not None and self.__oid is not None:
-            try:
-                self.__jar.setstate(self)
-            except:
-                self.__flags = before
-                raise
+            if self.__jar is not None and self.__oid is not None:
+                try:
+                    self.__jar.setstate(self)
+                except:
+                    self.__flags = before
+                    raise
 
     def _p_deactivate(self):
         """ See IPersistent.
