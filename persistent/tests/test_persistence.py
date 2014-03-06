@@ -978,6 +978,19 @@ class _Persistent_Base(object):
         inst._p_activate() # noop from 'saved' state
         self.assertEqual(inst._p_status, 'saved')
 
+    def test__p_activate_only_sets_state_once(self):
+        inst, jar, OID = self._makeOneWithJar()
+        # No matter how many times we call _p_activate, it
+        # only sets state once, the first time
+        inst._p_invalidate() # make it a ghost
+        self.assertEqual(list(jar._loaded), [])
+
+        inst._p_activate()
+        self.assertEqual(list(jar._loaded), [OID])
+
+        inst._p_activate()
+        self.assertEqual(list(jar._loaded), [OID])
+
     def test__p_deactivate_from_unsaved(self):
         inst = self._makeOne()
         inst._p_deactivate()

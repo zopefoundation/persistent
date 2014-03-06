@@ -4,6 +4,11 @@
 4.0.8 (Unreleased)
 ------------------
 
+- In pure-Python ``Persistent``, calling ``_p_activate`` no longer
+  corrupts the state of a non-ghost object, and it doesn't throw
+  ``POSKeyError`` if called on an object that has never been committed.
+  (PR #9)
+
 - In pure-Python ``Persistent``, avoid calling a subclass's ``__setattr__``
   at instance creation time. (PR #8)
 
