@@ -703,6 +703,7 @@ class PickleCacheTests(unittest.TestCase):
         pclass._p_state = UPTODATE
         cache[KEY] = pclass
 
+        gc.collect() # pypy vs. refcounting
         info = cache.debug_info()
 
         self.assertEqual(len(info), 1)
@@ -721,6 +722,7 @@ class PickleCacheTests(unittest.TestCase):
         uptodate = self._makePersist(state=UPTODATE)
         cache[KEY] = uptodate
 
+        gc.collect() # pypy vs. refcounting
         info = cache.debug_info()
 
         self.assertEqual(len(info), 1)
@@ -740,6 +742,7 @@ class PickleCacheTests(unittest.TestCase):
         ghost = self._makePersist(state=GHOST)
         cache[KEY] = ghost
 
+        gc.collect() # pypy vs. refcounting
         info = cache.debug_info()
 
         self.assertEqual(len(info), 1)
