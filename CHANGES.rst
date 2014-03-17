@@ -4,6 +4,8 @@
 4.0.8 (Unreleased)
 ------------------
 
+- Added support for Python 3.4.
+
 - In pure-Python ``Persistent``, avoid loading state in ``_p_activate``
   for non-ghost objects (which could corrupt their state).  (PR #9)
     
