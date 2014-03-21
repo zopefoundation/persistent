@@ -1245,9 +1245,9 @@ static PyGetSetDef cc_getsets[] =
 static PyMemberDef cc_members[] =
 {
     {"cache_size", T_INT, offsetof(ccobject, cache_size)},
-    {"cache_size_bytes", T_LONG, offsetof(ccobject, cache_size_bytes)},
-    {"total_estimated_size", T_LONG, offsetof(ccobject, total_estimated_size),
-      READONLY},
+    {"cache_size_bytes", T_LONGLONG, offsetof(ccobject, cache_size_bytes)},
+    {"total_estimated_size", T_LONGLONG,
+     offsetof(ccobject, total_estimated_size), READONLY},
     {"cache_drain_resistance", T_INT,
       offsetof(ccobject, cache_drain_resistance)},
     {"cache_non_ghost_count", T_INT, offsetof(ccobject, non_ghost_count),
