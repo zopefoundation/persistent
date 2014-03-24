@@ -123,7 +123,7 @@ typedef struct
     PyObject *data;                      /* oid -> object dict */
     PyObject *jar;                       /* Connection object */
     int cache_size;                      /* target number of items in cache */
-    PY_LONG_LONG cache_size_bytes;       /* target total estimated size of
+    Py_ssize_t cache_size_bytes;       /* target total estimated size of
                                             items in cache */
 
     /* Most of the time the ring contains only:
@@ -176,7 +176,7 @@ unlink_from_ring(CPersistentRing *self)
 }
 
 static int
-scan_gc_items(ccobject *self, int target, PY_LONG_LONG target_bytes)
+scan_gc_items(ccobject *self, int target, Py_ssize_t target_bytes)
 {
     /* This function must only be called with the ring lock held,
         because it places non-object placeholders in the ring.
@@ -262,7 +262,7 @@ Done:
 }
 
 static PyObject *
-lockgc(ccobject *self, int target_size, PY_LONG_LONG target_size_bytes)
+lockgc(ccobject *self, int target_size, Py_ssize_t target_size_bytes)
 {
     /* This is thread-safe because of the GIL, and there's nothing
     * in between checking the ring_lock and acquiring it that calls back
@@ -292,7 +292,7 @@ cc_incrgc(ccobject *self, PyObject *args)
     int obsolete_arg = -999;
     int starting_size = self->non_ghost_count;
     int target_size = self->cache_size;
-    PY_LONG_LONG target_size_bytes = self->cache_size_bytes;
+    Py_ssize_t target_size_bytes = self->cache_size_bytes;
 
     if (self->cache_drain_resistance >= 1)
     {
@@ -850,10 +850,10 @@ static int
 cc_init(ccobject *self, PyObject *args, PyObject *kwds)
 {
     int cache_size = 100;
-    PY_LONG_LONG cache_size_bytes = 0;
+    Py_ssize_t cache_size_bytes = 0;
     PyObject *jar;
 
-    if (!PyArg_ParseTuple(args, "O|iL", &jar, &cache_size, &cache_size_bytes))
+    if (!PyArg_ParseTuple(args, "O|in", &jar, &cache_size, &cache_size_bytes))
         return -1;
 
     self->jar = NULL;
@@ -1245,9 +1245,9 @@ static PyGetSetDef cc_getsets[] =
 static PyMemberDef cc_members[] =
 {
     {"cache_size", T_INT, offsetof(ccobject, cache_size)},
-    {"cache_size_bytes", T_LONG, offsetof(ccobject, cache_size_bytes)},
-    {"total_estimated_size", T_LONG, offsetof(ccobject, total_estimated_size),
-      READONLY},
+    {"cache_size_bytes", T_PYSSIZET, offsetof(ccobject, cache_size_bytes)},
+    {"total_estimated_size", T_PYSSIZET,
+     offsetof(ccobject, total_estimated_size), READONLY},
     {"cache_drain_resistance", T_INT,
       offsetof(ccobject, cache_drain_resistance)},
     {"cache_non_ghost_count", T_INT, offsetof(ccobject, non_ghost_count),

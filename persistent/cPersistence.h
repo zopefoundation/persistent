@@ -24,7 +24,7 @@
     PyObject_HEAD \
     CPersistentRing ring_home; \
     int non_ghost_count; \
-    PY_LONG_LONG total_estimated_size;
+    Py_ssize_t total_estimated_size;
 
 struct ccobject_head_struct;
 
