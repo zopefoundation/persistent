@@ -18,8 +18,6 @@ import math
 import struct
 import sys
 
-from persistent._compat import _native
-
 _RAWTYPE = bytes
 
 def _makeOctets(s):
