@@ -478,7 +478,7 @@ TimeStamp_TimeStamp(PyObject *obj, PyObject *args)
     }
     PyErr_Clear();
 
-    if (!PyArg_ParseTuple(args, "iii|iid", &y, &mo, &d, &h, &m, &sec))
+    if (!PyArg_ParseTuple(args, "iiiiid", &y, &mo, &d, &h, &m, &sec))
         return NULL;
     return TimeStamp_FromDate(y, mo, d, h, m, sec);
 }

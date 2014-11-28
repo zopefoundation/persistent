@@ -59,6 +59,8 @@ class pyTimeStampTests(unittest.TestCase):
                     (1, 2, 3, 4, 5),
                     ('1', '2', '3', '4', '5', '6'),
                     (1, 2, 3, 4, 5, 6, 7),
+                    # https://github.com/zopefoundation/persistent/issues/13
+                    (2014, 2, 3)
                    ]
         for args in BAD_ARGS:
             self.assertRaises((TypeError, ValueError), self._makeOne, *args)
