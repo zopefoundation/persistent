@@ -23,7 +23,7 @@ from persistent._compat import PYTHON2
 class PersistentList(UserList, persistent.Persistent):
     __super_setitem = UserList.__setitem__
     __super_delitem = UserList.__delitem__
-    if PYTHON2:
+    if PYTHON2:  # pragma: no cover
         __super_setslice = UserList.__setslice__
         __super_delslice = UserList.__delslice__
     __super_iadd = UserList.__iadd__
