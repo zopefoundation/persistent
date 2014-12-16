@@ -86,6 +86,11 @@ class _Persistent_Base(object):
         self.assertEqual(inst._p_sticky, False)
         self.assertEqual(inst._p_status, 'unsaved')
 
+    def test_del_jar_no_jar(self):
+        inst = self._makeOne()
+        del inst._p_jar  # does not raise
+        self.assertEqual(inst._p_jar, None)
+
     def test_del_jar_while_in_cache(self):
         inst, _, OID = self._makeOneWithJar()
         def _test():
@@ -138,6 +143,14 @@ class _Persistent_Base(object):
         inst._p_oid = OID1
         inst._p_oid = OID2
         self.assertEqual(inst._p_oid, OID2)
+
+    def test_assign_p_oid_w_None_wo_jar(self):
+        from persistent.timestamp import _makeOctets
+        OID1 = _makeOctets('\x01' * 8)
+        inst = self._makeOne()
+        inst._p_oid = OID1
+        inst._p_oid = None
+        self.assertEqual(inst._p_oid, None)
 
     def test_assign_p_oid_w_new_oid_w_jar(self):
         from persistent.timestamp import _makeOctets
@@ -759,7 +772,7 @@ class _Persistent_Base(object):
 
     def test___getstate___derived_w_slots(self):
         class Derived(self._getTargetClass()):
-            __slots__ = ('foo', '_p_baz', '_v_qux')
+            __slots__ = ('foo', 'baz', '_p_baz', '_v_qux')
         inst = Derived()
         inst.foo = 'bar'
         inst._p_baz = 'bam'
