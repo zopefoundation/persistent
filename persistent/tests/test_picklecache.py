@@ -89,6 +89,14 @@ class PickleCacheTests(unittest.TestCase):
         else:
             self.fail("Didn't raise ValueError with non-string OID.")
 
+    def test___setitem___duplicate_oid_same_obj(self):
+        from persistent._compat import _b
+        KEY = _b('original')
+        cache = self._makeOne()
+        original = self._makePersist()
+        cache[KEY] = original
+        cache[KEY] = original
+
     def test___setitem___duplicate_oid_raises_KeyError(self):
         from persistent._compat import _b
         KEY = _b('original')
@@ -446,6 +454,54 @@ class PickleCacheTests(unittest.TestCase):
         self.assertTrue(cache.ring.next is cache.ring)
 
         for oid in oids:
+            self.assertTrue(cache.get(oid) is None)
+
+    def test_full_sweep_w_sticky(self):
+        import gc
+        from persistent.interfaces import UPTODATE
+        from persistent.interfaces import STICKY
+        from persistent._compat import _b
+        cache = self._makeOne()
+        oids = []
+        for i in range(100):
+            oid = _b('oid_%04d' % i)
+            oids.append(oid)
+            state = UPTODATE if i > 0 else STICKY
+            cache[oid] = self._makePersist(oid=oid, state=state)
+        self.assertEqual(cache.cache_non_ghost_count, 100)
+
+        cache.full_sweep()
+        gc.collect() # banish the ghosts who are no longer in the ring
+
+        self.assertEqual(cache.cache_non_ghost_count, 1)
+        self.assertTrue(cache.ring.next is not cache.ring)
+
+        self.assertTrue(cache.get(oids[0]) is not None)
+        for oid in oids[1:]:
+            self.assertTrue(cache.get(oid) is None)
+
+    def test_full_sweep_w_changed(self):
+        import gc
+        from persistent.interfaces import UPTODATE
+        from persistent.interfaces import CHANGED
+        from persistent._compat import _b
+        cache = self._makeOne()
+        oids = []
+        for i in range(100):
+            oid = _b('oid_%04d' % i)
+            oids.append(oid)
+            state = UPTODATE if i > 0 else CHANGED
+            cache[oid] = self._makePersist(oid=oid, state=state)
+        self.assertEqual(cache.cache_non_ghost_count, 100)
+
+        cache.full_sweep()
+        gc.collect() # banish the ghosts who are no longer in the ring
+
+        self.assertEqual(cache.cache_non_ghost_count, 1)
+        self.assertTrue(cache.ring.next is not cache.ring)
+
+        self.assertTrue(cache.get(oids[0]) is not None)
+        for oid in oids[1:]:
             self.assertTrue(cache.get(oid) is None)
 
     def test_minimize(self):

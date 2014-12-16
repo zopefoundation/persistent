@@ -253,7 +253,9 @@ class PickleCache(object):
         if value is not None and value._p_state != GHOST:
             value._p_invalidate()
             node = self.ring.next
-            while node is not self.ring:
+            while True:
+                if node is self.ring:
+                    break  # pragma: no cover belt-and-suspenders
                 if node.object is value:
                     node.prev.next, node.next.prev = node.next, node.prev
                     break
