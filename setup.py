@@ -24,9 +24,15 @@ from setuptools import find_packages
 from setuptools import setup
 
 here = os.path.abspath(os.path.dirname(__file__))
-README = (open(os.path.join(here, 'README.rst')).read()
-          + '\n\n' +
-          open(os.path.join(here, 'CHANGES.rst')).read())
+
+def _read_file(filename):
+    try:
+        with open(os.path.join(here, filename)) as f:
+            return f.read()
+    except IOError:  # Travis???
+        return ''
+
+README = (_read_file('README.rst') + '\n\n' + _read_file('CHANGES.rst'))
 
 py_impl = getattr(platform, 'python_implementation', lambda: None)
 is_pypy = py_impl() == 'PyPy'
