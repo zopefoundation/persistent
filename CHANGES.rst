@@ -4,12 +4,14 @@
 4.0.9 (unreleased)
 ------------------
 
+- Add support for PyPy3.
+
 - 100% branch coverage.
 
 4.0.8 (2014-03-20)
 ------------------
 
-- Added support for Python 3.4.
+- Add support for Python 3.4.
 
 - In pure-Python ``Persistent``, avoid loading state in ``_p_activate``
   for non-ghost objects (which could corrupt their state).  (PR #9)
