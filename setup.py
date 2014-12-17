@@ -25,12 +25,11 @@ from setuptools import setup
 
 here = os.path.abspath(os.path.dirname(__file__))
 
+
 def _read_file(filename):
-    try:
-        with open(os.path.join(here, filename)) as f:
-            return f.read()
-    except IOError:  # Travis???
-        return ''
+    with open(os.path.join(here, filename)) as f:
+        return f.read()
+
 
 README = (_read_file('README.rst') + '\n\n' + _read_file('CHANGES.rst'))
 

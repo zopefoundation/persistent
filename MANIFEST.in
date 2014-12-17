@@ -1,4 +1,5 @@
 include *.txt
+include *.rst
 
 recursive-include docs *
 recursive-include persistent *
@@ -7,3 +8,9 @@ global-exclude *.dll
 global-exclude *.pyc
 global-exclude *.pyo
 global-exclude *.so
+
+include .coveragerc
+include .travis.yml
+include buildout.cfg
+include tox.ini
+include *.py
