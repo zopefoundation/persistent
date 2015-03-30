@@ -559,14 +559,13 @@ pickle___setstate__(PyObject *self, PyObject *state)
         while (PyDict_Next(state, &i, &d_key, &d_value)) {
             /* normally the keys for instance attributes are
                interned.  we should try to do that here. */
-            Py_INCREF(d_key);
-            if (NATIVE_CHECK_EXACT(d_key))
+            if (NATIVE_CHECK_EXACT(d_key)) {
+                Py_INCREF(d_key);
                 INTERN_INPLACE(&d_key);
-            if (PyObject_SetItem(*dict, d_key, d_value) < 0) {
                 Py_DECREF(d_key);
-                return NULL;
             }
-            Py_DECREF(d_key);
+            if (PyObject_SetItem(*dict, d_key, d_value) < 0)
+                return NULL;
         }
     }
 
