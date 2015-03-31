@@ -863,6 +863,20 @@ class _Persistent_Base(object):
         self.assertEqual(inst.baz, 'bam')
         self.assertEqual(inst.qux, 'spam')
 
+    def test___setstate___interns_dict_keys(self):
+        class Derived(self._getTargetClass()):
+            pass
+        inst1 = Derived()
+        inst2 = Derived()
+        key1 = 'key'
+        key2 = 'ke'; key2 += 'y'  # construct in a way that won't intern the literal
+        self.assertFalse(key1 is key2)
+        inst1.__setstate__({key1: 1})
+        inst2.__setstate__({key2: 2})
+        key1 = list(inst1.__dict__.keys())[0]
+        key2 = list(inst2.__dict__.keys())[0]
+        self.assertTrue(key1 is key2)
+
     def test___reduce__(self):
         from persistent._compat import copy_reg
         inst = self._makeOne()

@@ -4,6 +4,9 @@
 4.0.9 (unreleased)
 ------------------
 
+- Intern keys of object state in `__setstate__` to reduce memory usage
+  when unpickling multiple objects with the same attributes.
+
 - Add support for PyPy3.
 
 - 100% branch coverage.

@@ -25,6 +25,7 @@ from persistent.interfaces import SERIAL_TYPE
 from persistent.timestamp import TimeStamp
 from persistent.timestamp import _ZERO
 from persistent._compat import copy_reg
+from persistent._compat import intern
 
 _INITIAL_SERIAL = _ZERO
 
@@ -313,7 +314,8 @@ class Persistent(object):
             if idict is None:
                 raise TypeError('No instance dict')
             idict.clear()
-            idict.update(inst_dict)
+            for k, v in inst_dict.items():
+                idict[intern(k)] = v
         slotnames = self._slotnames()
         if slotnames:
             for k, v in slots.items():

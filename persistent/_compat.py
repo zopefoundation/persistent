@@ -18,6 +18,7 @@ if sys.version_info[0] > 2: #pragma NO COVER
     import copyreg as copy_reg
     from collections import UserDict as IterableUserDict
     from collections import UserList
+    from sys import intern
 
     def _u(s):
         return s
@@ -52,3 +53,5 @@ else: #pragma NO COVER
 
     PYTHON3 = False
     PYTHON2 = True
+
+    intern = intern
