@@ -192,6 +192,11 @@ class PyAndCComparisonTests(unittest.TestCase):
             c, py = self._make_C_and_Py(*args)
             self.assertEqual(repr(c), repr(py))
 
+    def test_strs_equal(self):
+        for args in self._make_many_instants():
+            c, py = self._make_C_and_Py(*args)
+            self.assertEqual(str(c), str(py))
+
     def test_raw_equal(self):
         c, py = self._make_C_and_Py(*self.now_ts_args)
         self.assertEqual(c.raw(), py.raw())

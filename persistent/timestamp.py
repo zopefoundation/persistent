@@ -91,6 +91,12 @@ class pyTimeStamp(object):
     def __repr__(self):
         return repr(self._raw)
 
+    def __str__(self):
+        return "%4.4d-%2.2d-%2.2d %2.2d:%2.2d:%09.6f" % (
+            self.year(), self.month(), self.day(),
+            self.hour(), self.minute(),
+            self.second())
+
     def year(self):
         return self._elements[0]
 
