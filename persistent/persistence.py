@@ -74,8 +74,8 @@ class Persistent(object):
             if self.__jar != value:
                 raise ValueError('Already assigned a data manager')
         else:
-            self.__jar = value
-            self.__flags = 0
+            _OSA(self, '_Persistent__jar', value)
+            _OSA(self, '_Persistent__flags', 0)
 
     def _del_jar(self):
         jar = self.__jar
@@ -84,7 +84,7 @@ class Persistent(object):
             if oid and jar._cache.get(oid):
                 raise ValueError("can't delete _p_jar of cached object")
             self.__setattr__('_Persistent__jar', None)
-            self.__flags = None
+            _OSA(self, '_Persistent__flags', None)
 
     _p_jar = property(_get_jar, _set_jar, _del_jar)
 
@@ -100,7 +100,7 @@ class Persistent(object):
                 raise ValueError('Invalid OID type: %s' % value)
         if self.__jar is not None and self.__oid is not None:
             raise ValueError('Already assigned an OID by our jar')
-        self.__oid = value
+        _OSA(self, '_Persistent__oid', value)
 
     def _del_oid(self):
         jar = self.__jar
@@ -108,7 +108,7 @@ class Persistent(object):
         if jar is not None:
             if oid and jar._cache.get(oid):
                 raise ValueError('Cannot delete _p_oid of cached object')
-        self.__oid = None
+        _OSA(self, '_Persistent__oid', None)
 
     _p_oid = property(_get_oid, _set_oid, _del_oid)
 
@@ -123,7 +123,7 @@ class Persistent(object):
             raise ValueError('Invalid SERIAL type: %s' % value)
         if len(value) != 8:
             raise ValueError('SERIAL must be 8 octets')
-        self.__serial = value
+        _OSA(self, '_Persistent__serial', value)
 
     def _del_serial(self):
         self.__serial = None
@@ -186,7 +186,7 @@ class Persistent(object):
         if isinstance(value, int):
             if value < 0:
                 raise ValueError('_p_estimated_size must not be negative')
-            self.__size = _estimated_size_in_24_bits(value)
+            _OSA(self, '_Persistent__size', _estimated_size_in_24_bits(value))
         else:
             raise TypeError("_p_estimated_size must be an integer")
 
@@ -333,12 +333,12 @@ class Persistent(object):
         """
         before = self.__flags
         if self.__flags is None or self._p_state < 0: # Only do this if we're a ghost
-            self.__flags = 0
+            _OSA(self, '_Persistent__flags', 0)
             if self.__jar is not None and self.__oid is not None:
                 try:
                     self.__jar.setstate(self)
                 except:
-                    self.__flags = before
+                    _OSA(self, '_Persistent__flags', before)
                     raise
 
     def _p_deactivate(self):
@@ -352,7 +352,7 @@ class Persistent(object):
         """
         if self.__jar is not None:
             if self.__flags is not None:
-                self.__flags = None
+                _OSA(self, '_Persistent__flags', None)
             idict = getattr(self, '__dict__', None)
             if idict is not None:
                 idict.clear()
