@@ -11,6 +11,7 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
+from __future__ import print_function
 import gc
 import weakref
 
@@ -21,6 +22,10 @@ from persistent.interfaces import GHOST
 from persistent.interfaces import IPickleCache
 from persistent.interfaces import STICKY
 from persistent.interfaces import OID_TYPE
+from persistent import Persistent
+
+# Tests may modify this to add additional types
+_CACHEABLE_TYPES = (type, Persistent)
 
 class RingNode(object):
     # 32 byte fixed size wrapper.
@@ -33,9 +38,17 @@ class RingNode(object):
 @implementer(IPickleCache)
 class PickleCache(object):
 
+    total_estimated_size = 0
+    cache_size_bytes = 0
+
     def __init__(self, jar, target_size=0, cache_size_bytes=0):
         # TODO:  forward-port Dieter's bytes stuff
         self.jar = jar
+        # We expect the jars to be able to have a pointer to
+        # us; this is a reference cycle, but certain
+        # aspects of invalidation and accessing depend on it.
+        # TODO: track this on the persistent objects themself?
+        jar._cache = self
         self.target_size = target_size
         self.drain_resistance = 0
         self.non_ghost_count = 0
@@ -43,6 +56,7 @@ class PickleCache(object):
         self.data = weakref.WeakValueDictionary()
         self.ring = RingNode(None)
         self.ring.next = self.ring.prev = self.ring
+        self.cache_size_bytes = cache_size_bytes
 
     # IPickleCache API
     def __len__(self):
@@ -62,12 +76,37 @@ class PickleCache(object):
     def __setitem__(self, oid, value):
         """ See IPickleCache.
         """
-        if not isinstance(oid, OID_TYPE): # XXX bytes
-            raise ValueError('OID must be %s: %s' % (OID_TYPE, oid))
+        # The order of checks matters for C compatibility;
+        # the ZODB tests depend on this
+
+        # The C impl requires either a type or a Persistent subclass
+        if not isinstance(value, _CACHEABLE_TYPES):
+            raise TypeError("Cache values must be persistent objects.")
+
+        value_oid = value._p_oid
+        if not isinstance(oid, OID_TYPE) or not isinstance(value_oid, OID_TYPE): # XXX bytes
+            raise TypeError('OID must be %s: key=%s _p_oid=%s' % (OID_TYPE, oid, value_oid))
+
+        if value_oid != oid:
+            raise ValueError("Cache key does not match oid")
+
         # XXX
         if oid in self.persistent_classes or oid in self.data:
             if self.data[oid] is not value:
-                raise KeyError('Duplicate OID: %s' % oid)
+                # Raise the same type of exception as the C impl with the same
+                # message.
+                raise ValueError('A different object already has the same oid')
+        # Match the C impl: it requires a jar
+        jar = getattr(value, '_p_jar', None)
+        if jar is None and type(value) is not type:
+            raise ValueError("Cached object jar missing")
+        # It also requires that it cannot be cached more than one place
+        existing_cache = getattr(jar, '_cache', None)
+        if (existing_cache is not None
+            and existing_cache is not self
+            and existing_cache.data.get(oid) is not None):
+            raise ValueError("Object already in another cache")
+
         if type(value) is type:
             self.persistent_classes[oid] = value
         else:
@@ -82,7 +121,7 @@ class PickleCache(object):
         """ See IPickleCache.
         """
         if not isinstance(oid, OID_TYPE):
-            raise ValueError('OID must be %s: %s' % (OID_TYPE, oid))
+            raise TypeError('OID must be %s: %s' % (OID_TYPE, oid))
         if oid in self.persistent_classes:
             del self.persistent_classes[oid]
         else:
@@ -229,7 +268,17 @@ class PickleCache(object):
     def update_object_size_estimation(self, oid, new_size):
         """ See IPickleCache.
         """
-        pass #pragma NO COVER
+        value = self.data.get(oid)
+        if value is not None:
+            # Recall that while the argument is given in bytes,
+            # we have to work with 64-block chunks (plus one)
+            # to match the C implementation. Hence the convoluted
+            # arithmetic
+            new_size_in_24 = _estimated_size_in_24_bits(new_size)
+            p_est_size_in_24 =  value._Persistent__size
+            new_est_size_in_bytes = (new_size_in_24 - p_est_size_in_24) * 64
+
+            self.total_estimated_size += new_est_size_in_bytes
 
     cache_size = property(lambda self: self.target_size)
     cache_drain_resistance = property(lambda self: self.drain_resistance)
@@ -262,3 +311,8 @@ class PickleCache(object):
                 node = node.next
         elif oid in self.persistent_classes:
             del self.persistent_classes[oid]
+
+def _estimated_size_in_24_bits(value):
+    if value > 1073741696:
+        return 16777215
+    return (value//64) + 1
