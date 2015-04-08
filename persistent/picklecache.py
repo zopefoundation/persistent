@@ -201,7 +201,7 @@ class PickleCache(object):
             target2 = size - 1 - (size / self.drain_resistance)
             if target2 < target:
                 target = target2
-        self._sweep(target)
+        self._sweep(target, self.cache_size_bytes)
 
     def full_sweep(self, target=None):
         """ See IPickleCache.
@@ -287,18 +287,34 @@ class PickleCache(object):
     cache_klass_count = property(lambda self: len(self.persistent_classes))
 
     # Helpers
-    def _sweep(self, target):
+    def _sweep(self, target, target_size_bytes=0):
         # lock
         node = self.ring.next
-        while node is not self.ring and self.non_ghost_count > target:
+        ejected = 0
+        while (node is not self.ring
+               and (self.non_ghost_count > target
+                    or (target_size_bytes and self.total_estimated_size > target_size_bytes))):
             if node.object._p_state not in (STICKY, CHANGED):
+                ejected += 1
                 node.prev.next, node.next.prev = node.next, node.prev
                 # sweeping an object out of the cache should also
-                # ghost it---that's what C does
+                # ghost it---that's what C does. This winds up
+                # calling `update_object_size_estimation`.
+                # Also in C, if this was the last reference to the object,
+                # it removes itself from the `data` dictionary.
+                # If we're under PyPy or Jython, we need to run a GC collection
+                # to make this happen...this is only noticeable though, when
+                # we eject objects
                 node.object._p_deactivate()
                 node.object = None
                 self.non_ghost_count -= 1
             node = node.next
+        if ejected:
+            # TODO: Only do this on PyPy/Jython?
+            # Even on CPython, though, it could trigger a lot of Persistent
+            # object deallocations and dictionary mutations
+            gc.collect()
+        return ejected
 
     def _invalidate(self, oid):
         value = self.data.get(oid)
