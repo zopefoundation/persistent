@@ -293,6 +293,9 @@ class PickleCache(object):
         while node is not self.ring and self.non_ghost_count > target:
             if node.object._p_state not in (STICKY, CHANGED):
                 node.prev.next, node.next.prev = node.next, node.prev
+                # sweeping an object out of the cache should also
+                # ghost it---that's what C does
+                node.object._p_deactivate()
                 node.object = None
                 self.non_ghost_count -= 1
             node = node.next
