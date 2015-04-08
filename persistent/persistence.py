@@ -81,7 +81,7 @@ class Persistent(object):
         jar = self.__jar
         oid = self.__oid
         if jar is not None:
-            if oid and jar._cache.get(oid):
+            if self._p_is_in_cache():
                 raise ValueError("can't delete _p_jar of cached object")
             self.__setattr__('_Persistent__jar', None)
             _OSA(self, '_Persistent__flags', None)
@@ -95,9 +95,11 @@ class Persistent(object):
     def _set_oid(self, value):
         if value == self.__oid:
             return
-        if value is not None:
-            if not isinstance(value, OID_TYPE):
-                raise ValueError('Invalid OID type: %s' % value)
+        # The C implementation allows *any* value to be
+        # used as the _p_oid.
+        #if value is not None:
+        #    if not isinstance(value, OID_TYPE):
+        #        raise ValueError('Invalid OID type: %s' % value)
         if self.__jar is not None and self.__oid is not None:
             raise ValueError('Already assigned an OID by our jar')
         _OSA(self, '_Persistent__oid', value)
@@ -356,6 +358,15 @@ class Persistent(object):
             idict = getattr(self, '__dict__', None)
             if idict is not None:
                 idict.clear()
+            # Implementation detail: deactivating/invalidating
+            # updates the size of the cache (if we have one)
+            # by telling it this object no longer takes any bytes
+            # (-1 is a magic number to compensate for the implementation,
+            # which always adds one to the size given)
+            cache = getattr(self.__jar, '_cache', None)
+            if cache is not None:
+                cache.update_object_size_estimation(self.__oid,
+                                                    -1)
 
     def _p_getattr(self, name):
         """ See IPersistent.
@@ -411,16 +422,31 @@ class Persistent(object):
         if (self.__jar is not None and
             self.__oid is not None and
             self._p_state >= 0):
-            # This scenario arises in ZODB: ZODB.serialize.ObjectWriter
+            # The KeyError arises in ZODB: ZODB.serialize.ObjectWriter
             # can assign a jar and an oid to newly seen persistent objects,
             # but because they are newly created, they aren't in the
             # pickle cache yet. There doesn't seem to be a way to distinguish
-            # that at this level, all we can do is catch it
+            # that at this level, all we can do is catch it.
+            # The AttributeError arises in ZODB test cases
             try:
-                self.__jar._cache.mru(self.__oid)
-            except KeyError:
+                cache = self.__jar._cache
+            except AttributeError:
                 pass
+            else:
+                try:
+                    cache.mru(self.__oid)
+                except KeyError:
+                    pass
 
+    def _p_is_in_cache(self):
+        oid = self.__oid
+        if not oid:
+            return False
+
+        jar = self.__jar
+        cache = getattr(jar, '_cache', None)
+        if cache is not None:
+            return cache.get(oid) is self
 
 def _estimated_size_in_24_bits(value):
     if value > 1073741696:

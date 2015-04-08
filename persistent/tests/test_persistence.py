@@ -1404,6 +1404,8 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
                 return self._data.get(oid)
             def __delitem__(self, oid):
                 del self._data[oid]
+            def update_object_size_estimation(self, oid, new_size):
+                pass
 
         return _Cache(jar)
 
