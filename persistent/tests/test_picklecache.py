@@ -866,6 +866,7 @@ class DummyPersistent(object):
         self._p_state = GHOST
 
     _p_deactivate = _p_invalidate
+    _p_invalidate_deactivate_helper = _p_invalidate
 
     def _p_activate(self):
         from persistent.interfaces import UPTODATE

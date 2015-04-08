@@ -119,7 +119,7 @@ class PickleCache(object):
             and existing_cache.data.get(oid) is not None):
             raise ValueError("Object already in another cache")
 
-        if type(value) is type:
+        if isinstance(value, type): # ZODB.persistentclass.PersistentMetaClass
             self.persistent_classes[oid] = value
         else:
             self.data[oid] = value
@@ -236,9 +236,14 @@ class PickleCache(object):
             raise KeyError('Duplicate OID: %s' % oid)
         obj._p_oid = oid
         obj._p_jar = self.jar
-        if type(obj) is not type:
+        if not isinstance(obj, type):
             if obj._p_state != GHOST:
-                obj._p_invalidate()
+                # The C implementation sets this stuff directly,
+                # but we delegate to the class. However, we must be
+                # careful to avoid broken _p_invalidate and _p_deactivate
+                # that don't call the super class. See ZODB's
+                # testConnection.doctest_proper_ghost_initialization_with_empty__p_deactivate
+                obj._p_invalidate_deactivate_helper()
         self[oid] = obj
 
     def reify(self, to_reify):
