@@ -4,17 +4,17 @@
 4.0.9 (unreleased)
 ------------------
 
-- Intern keys of object state in `__setstate__` to reduce memory usage
+- Make the C and Python ``TimeStamp`` objects behave more alike. The
+  Python version now produces the same ``repr`` and ``.raw()`` output as
+  the C version, and has the same hashcode. In addition, the Python
+  version is now supports ordering and equality like the C version.
+
+- Intern keys of object state in ``__setstate__`` to reduce memory usage
   when unpickling multiple objects with the same attributes.
 
 - Add support for PyPy3.
 
 - 100% branch coverage.
-
-- Make the C and Python `TimeStamp` objects behave more alike. The
-  Python version now produces the same `repr` and `.raw()` output as
-  the C version, and has the same hashcode. In addition, the Python
-  version is now supports ordering and equality like the C version.
 
 4.0.8 (2014-03-20)
 ------------------
