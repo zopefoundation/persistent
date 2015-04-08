@@ -70,9 +70,12 @@ class Persistent(object):
         return self.__jar
 
     def _set_jar(self, value):
-        if self.__jar is not None:
-            if self.__jar != value:
-                raise ValueError('Already assigned a data manager')
+        if self._p_is_in_cache() and value is not None and self.__jar != value:
+            # The C implementation only forbids changing the jar
+            # if we're already in a cache. Match its error message
+            raise ValueError('can not change _p_jar of cached object')
+        if self.__jar == value:
+            return
         else:
             _OSA(self, '_Persistent__jar', value)
             _OSA(self, '_Persistent__flags', 0)
@@ -100,8 +103,12 @@ class Persistent(object):
         #if value is not None:
         #    if not isinstance(value, OID_TYPE):
         #        raise ValueError('Invalid OID type: %s' % value)
-        if self.__jar is not None and self.__oid is not None:
-            raise ValueError('Already assigned an OID by our jar')
+        # The C implementation only forbids changing the OID
+        # if we're in a cache, regardless of what the current
+        # value or jar is
+        if self._p_is_in_cache():
+            # match the C error message
+            raise ValueError('can not change _p_oid of cached object')
         _OSA(self, '_Persistent__oid', value)
 
     def _del_oid(self):
