@@ -332,6 +332,6 @@ def test_suite():
     else:
         if pyTimeStamp != TimeStamp:
             # We have both implementations available
-            suite.append(PyAndCComparisonTests)
+            suite.append(unittest.makeSuite(PyAndCComparisonTests))
 
     return unittest.TestSuite(suite)
