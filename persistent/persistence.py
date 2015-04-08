@@ -350,15 +350,26 @@ class Persistent(object):
                     _OSA(self, '_Persistent__flags', before)
                     raise
 
+    # In the C implementation, _p_invalidate winds up calling
+    # _p_deactivate. There are ZODB tests that depend on this;
+    # it's not documented but there may be code in the wild
+    # that does as well
+
     def _p_deactivate(self):
         """ See IPersistent.
         """
         if self.__flags is not None and not self.__flags:
-            self._p_invalidate()
+            self._p_invalidate_deactivate_helper()
 
     def _p_invalidate(self):
         """ See IPersistent.
         """
+        # If we think we have changes, we must pretend
+        # like we don't so that deactivate does its job
+        _OSA(self, '_Persistent__flags', 0)
+        self._p_deactivate()
+
+    def _p_invalidate_deactivate_helper(self):
         if self.__jar is not None:
             if self.__flags is not None:
                 _OSA(self, '_Persistent__flags', None)
@@ -374,6 +385,8 @@ class Persistent(object):
             if cache is not None:
                 cache.update_object_size_estimation(self.__oid,
                                                     -1)
+                # See notes in PickleCache.sweep for why we have to do this
+                cache._persistent_deactivate_ran = True
 
     def _p_getattr(self, name):
         """ See IPersistent.

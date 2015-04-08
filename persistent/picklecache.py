@@ -22,6 +22,7 @@ from persistent.interfaces import GHOST
 from persistent.interfaces import IPickleCache
 from persistent.interfaces import STICKY
 from persistent.interfaces import OID_TYPE
+from persistent.interfaces import UPTODATE
 from persistent import Persistent
 
 # Tests may modify this to add additional types
@@ -35,11 +36,22 @@ class RingNode(object):
         self.next = next
         self.prev = prev
 
+def _sweeping_ring(f):
+    def locked(self, *args, **kwargs):
+        self._is_sweeping_ring = True
+        try:
+            f(self, *args, **kwargs)
+        finally:
+            self._is_sweeping_ring = False
+    return locked
+
 @implementer(IPickleCache)
 class PickleCache(object):
 
     total_estimated_size = 0
     cache_size_bytes = 0
+
+    _is_sweeping_ring = False
 
     def __init__(self, jar, target_size=0, cache_size_bytes=0):
         # TODO:  forward-port Dieter's bytes stuff
@@ -111,11 +123,7 @@ class PickleCache(object):
             self.persistent_classes[oid] = value
         else:
             self.data[oid] = value
-            if value._p_state != GHOST:
-                self.non_ghost_count += 1
-                mru = self.ring.prev
-                self.ring.prev = node = RingNode(value, self.ring, mru)
-                mru.next = node
+            self.mru(oid)
 
     def __delitem__(self, oid):
         """ See IPickleCache.
@@ -137,6 +145,7 @@ class PickleCache(object):
     def get(self, oid, default=None):
         """ See IPickleCache.
         """
+
         value = self.data.get(oid, self)
         if value is not self:
             return value
@@ -145,6 +154,11 @@ class PickleCache(object):
     def mru(self, oid):
         """ See IPickleCache.
         """
+        if self._is_sweeping_ring:
+            # accessess during sweeping, such as with an
+            # overridden _p_deactivate, don't mutate the ring
+            # because that could leave it inconsistent
+            return
         node = self.ring.next
         while node is not self.ring and node.object._p_oid != oid:
             node = node.next
@@ -156,6 +170,7 @@ class PickleCache(object):
                 self.ring.prev = node = RingNode(value, self.ring, mru)
                 mru.next = node
         else:
+            assert node.object._p_oid == oid
             # remove from old location
             node.prev.next, node.next.prev = node.next, node.prev
             # splice into new
@@ -195,10 +210,10 @@ class PickleCache(object):
     def incrgc(self, ignored=None):
         """ See IPickleCache.
         """
-        target = self.target_size
+        target = self.cache_size
         if self.drain_resistance >= 1:
             size = self.non_ghost_count
-            target2 = size - 1 - (size / self.drain_resistance)
+            target2 = size - 1 - (size // self.drain_resistance)
             if target2 < target:
                 target = target2
         self._sweep(target, self.cache_size_bytes)
@@ -287,16 +302,34 @@ class PickleCache(object):
     cache_klass_count = property(lambda self: len(self.persistent_classes))
 
     # Helpers
+
+    # Set to true when a deactivation happens in our code. For
+    # compatibility with the C implementation, we can only remove the
+    # node and decrement our non-ghost count if our implementation
+    # actually runs (broken subclasses can forget to call super; ZODB
+    # has tests for this). This gets set to false everytime we examine
+    # a node and checked afterwards. The C implementation has a very
+    # incestuous relatiounship between cPickleCache and cPersistence:
+    # the pickle cache calls _p_deactivate, which is responsible for
+    # both decrementing the non-ghost count and removing its node from
+    # the cache ring. We're trying to keep that to a minimum, but
+    # there's no way around it if we want full compatibility
+    _persistent_deactivate_ran = False
+
+    @_sweeping_ring
     def _sweep(self, target, target_size_bytes=0):
         # lock
         node = self.ring.next
         ejected = 0
+
         while (node is not self.ring
-               and (self.non_ghost_count > target
+               and ( self.non_ghost_count > target
                     or (target_size_bytes and self.total_estimated_size > target_size_bytes))):
-            if node.object._p_state not in (STICKY, CHANGED):
-                ejected += 1
-                node.prev.next, node.next.prev = node.next, node.prev
+            if node.object._p_state == UPTODATE:
+                # The C implementation will only evict things that are specifically
+                # in the up-to-date state
+                self._persistent_deactivate_ran = False
+
                 # sweeping an object out of the cache should also
                 # ghost it---that's what C does. This winds up
                 # calling `update_object_size_estimation`.
@@ -304,10 +337,18 @@ class PickleCache(object):
                 # it removes itself from the `data` dictionary.
                 # If we're under PyPy or Jython, we need to run a GC collection
                 # to make this happen...this is only noticeable though, when
-                # we eject objects
+                # we eject objects. Also, note that we can only take any of these
+                # actions if our _p_deactivate ran, in case of buggy subclasses.
+                # see _persistent_deactivate_ran
+
                 node.object._p_deactivate()
-                node.object = None
-                self.non_ghost_count -= 1
+                if (self._persistent_deactivate_ran
+                    # Test-cases sneak in non-Persistent objects, sigh, so naturally
+                    # they don't cooperate (without this check a bunch of test_picklecache
+                    #breaks)
+                    or not isinstance(node.object, Persistent)):
+                    ejected += 1
+                    self.__remove_from_ring(node)
             node = node.next
         if ejected:
             # TODO: Only do this on PyPy/Jython?
@@ -316,20 +357,25 @@ class PickleCache(object):
             gc.collect()
         return ejected
 
+    @_sweeping_ring
     def _invalidate(self, oid):
         value = self.data.get(oid)
         if value is not None and value._p_state != GHOST:
             value._p_invalidate()
             node = self.ring.next
-            while True:
-                if node is self.ring:
-                    break  # pragma: no cover belt-and-suspenders
+            while node is not self.ring:
                 if node.object is value:
-                    node.prev.next, node.next.prev = node.next, node.prev
+                    self.__remove_from_ring(node)
                     break
                 node = node.next
         elif oid in self.persistent_classes:
             del self.persistent_classes[oid]
+
+    def __remove_from_ring(self, node):
+        "Take the node, which previously contained a non-ghost, out of the ring"
+        node.object = None
+        node.prev.next, node.next.prev = node.next, node.prev
+        self.non_ghost_count -= 1
 
 def _estimated_size_in_24_bits(value):
     if value > 1073741696:
