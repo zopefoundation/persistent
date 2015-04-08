@@ -139,13 +139,13 @@ class pyTimeStamp(object):
     def __eq__(self, other):
         try:
             return self.raw() == other.raw()
-        except AttributeError: #pragma: no cover
+        except AttributeError:
             return NotImplemented
 
     def __ne__(self, other):
         try:
             return self.raw() != other.raw()
-        except AttributeError: #pragma: no cover
+        except AttributeError:
             return NotImplemented
 
     def __hash__(self):
@@ -172,25 +172,25 @@ class pyTimeStamp(object):
     def __lt__(self, other):
         try:
             return self.raw() < other.raw()
-        except AttributeError: #pragma: no cover
+        except AttributeError:
             return NotImplemented
 
     def __gt__(self, other):
         try:
             return self.raw() > other.raw()
-        except AttributeError: #pragma: no cover
+        except AttributeError:
             return NotImplemented
 
     def __le__(self, other):
         try:
             return self.raw() <= other.raw()
-        except AttributeError: #pragma: no cover
+        except AttributeError:
             return NotImplemented
 
     def __ge__(self, other):
         try:
             return self.raw() >= other.raw()
-        except AttributeError: #pragma: no cover
+        except AttributeError:
             return NotImplemented
 
 

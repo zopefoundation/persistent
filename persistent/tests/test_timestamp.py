@@ -11,6 +11,7 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
+import operator
 import unittest
 
 class Test__UTC(unittest.TestCase):
@@ -152,11 +153,53 @@ class pyTimeStampTests(unittest.TestCase):
         ts = self._makeOne(SERIAL)
         self.assertEqual(repr(ts), repr(SERIAL))
 
+    def test_comparisons_to_non_timestamps(self):
+        from persistent._compat import PYTHON2
+        # Check the corner cases when comparing non-comparable types
+        ts = self._makeOne(2011, 2, 16, 14, 37, 22.0)
+
+        if PYTHON2:
+            def check(op, passes):
+                if passes == 'neither':
+                    self.assertFalse(op(ts, None))
+                    self.assertFalse(op(None, ts))
+                elif passes == 'both':
+                    self.assertTrue(op(ts, None))
+                    self.assertTrue(op(None, ts))
+                elif passes == 'first':
+                    self.assertTrue(op(ts, None))
+                    self.assertFalse(op(None, ts))
+                else:
+                    self.assertFalse(op(ts, None))
+                    self.assertTrue(op(None, ts))
+        else:
+            def check(op, passes):
+                if passes == 'neither':
+                    self.assertFalse(op(ts, None))
+                    self.assertFalse(op(None, ts))
+                elif passes == 'both':
+                    self.assertTrue(op(ts, None))
+                    self.assertTrue(op(None, ts))
+                else:
+                    self.assertRaises(TypeError, op, ts, None)
+                    self.assertRaises(TypeError, op, None, ts)
+
+        for op_name, passes in (('lt', 'second'),
+                                ('gt', 'first'),
+                                ('le', 'second'),
+                                ('ge', 'first'),
+                                ('eq', 'neither'),
+                                ('ne', 'both')):
+            op = getattr(operator, op_name)
+            check(op, passes)
+
+
 class TimeStampTests(pyTimeStampTests):
 
     def _getTargetClass(self):
         from persistent.timestamp import TimeStamp
         return TimeStamp
+
 
 class PyAndCComparisonTests(unittest.TestCase):
     """
