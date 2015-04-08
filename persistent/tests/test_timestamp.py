@@ -11,6 +11,7 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
+import operator
 import unittest
 
 class Test__UTC(unittest.TestCase):
@@ -152,6 +153,47 @@ class pyTimeStampTests(unittest.TestCase):
         ts = self._makeOne(SERIAL)
         self.assertEqual(repr(ts), repr(SERIAL))
 
+    def test_comparisons_to_non_timestamps(self):
+        from persistent._compat import PYTHON2
+        # Check the corner cases when comparing non-comparable types
+        ts = self._makeOne(2011, 2, 16, 14, 37, 22.0)
+
+        if PYTHON2:
+            def check(op, passes):
+                if passes == 'neither':
+                    self.assertFalse(op(ts, None))
+                    self.assertFalse(op(None, ts))
+                elif passes == 'both':
+                    self.assertTrue(op(ts, None))
+                    self.assertTrue(op(None, ts))
+                elif passes == 'first':
+                    self.assertTrue(op(ts, None))
+                    self.assertFalse(op(None, ts))
+                else:
+                    self.assertFalse(op(ts, None))
+                    self.assertTrue(op(None, ts))
+        else:
+            def check(op, passes):
+                if passes == 'neither':
+                    self.assertFalse(op(ts, None))
+                    self.assertFalse(op(None, ts))
+                elif passes == 'both':
+                    self.assertTrue(op(ts, None))
+                    self.assertTrue(op(None, ts))
+                else:
+                    self.assertRaises(TypeError, op, ts, None)
+                    self.assertRaises(TypeError, op, None, ts)
+
+        for op_name, passes in (('lt', 'second'),
+                                ('gt', 'first'),
+                                ('le', 'second'),
+                                ('ge', 'first'),
+                                ('eq', 'neither'),
+                                ('ne', 'both')):
+            op = getattr(operator, op_name)
+            check(op, passes)
+
+
 class TimeStampTests(pyTimeStampTests):
 
     def _getTargetClass(self):
@@ -159,9 +201,137 @@ class TimeStampTests(pyTimeStampTests):
         return TimeStamp
 
 
+class PyAndCComparisonTests(unittest.TestCase):
+    """
+    Compares C and Python implementations.
+    """
+
+    # A particular instant in time
+    now = 1229959248.3
+    # That instant in time split as the result of this expression:
+    #    (time.gmtime(now)[:5] + (now % 60,))
+    now_ts_args = (2008, 12, 22, 15, 20, 48.299999952316284)
+
+    def _make_many_instants(self):
+        # Given the above data, return many slight variations on
+        # it to test matching
+        yield self.now_ts_args
+        for i in range(2000):
+            yield self.now_ts_args[:-1] + (self.now_ts_args[-1] + (i % 60.0)/100.0 , )
+
+    def _makeC(self, *args, **kwargs):
+        from persistent.timestamp import TimeStamp
+        return TimeStamp(*args, **kwargs)
+
+    def _makePy(self, *args, **kwargs):
+        from persistent.timestamp import pyTimeStamp
+        return pyTimeStamp(*args, **kwargs)
+
+    def _make_C_and_Py(self, *args, **kwargs):
+        return self._makeC(*args, **kwargs), self._makePy(*args, **kwargs)
+
+    def test_reprs_equal(self):
+        for args in self._make_many_instants():
+            c, py = self._make_C_and_Py(*args)
+            self.assertEqual(repr(c), repr(py))
+
+    def test_strs_equal(self):
+        for args in self._make_many_instants():
+            c, py = self._make_C_and_Py(*args)
+            self.assertEqual(str(c), str(py))
+
+    def test_raw_equal(self):
+        c, py = self._make_C_and_Py(*self.now_ts_args)
+        self.assertEqual(c.raw(), py.raw())
+
+    def test_equal(self):
+        c, py = self._make_C_and_Py(*self.now_ts_args)
+
+        self.assertEqual(c, py)
+
+    def test_hash_equal(self):
+        c, py = self._make_C_and_Py(*self.now_ts_args)
+        self.assertEqual(hash(c), hash(py))
+
+    def test_hash_equal_constants(self):
+        # The simple constants make it easier to diagnose
+        # a difference in algorithms
+        c, py = self._make_C_and_Py(b'\x00\x00\x00\x00\x00\x00\x00\x00')
+        self.assertEqual(hash(c), 8)
+        self.assertEqual(hash(c), hash(py))
+
+        c, py = self._make_C_and_Py(b'\x00\x00\x00\x00\x00\x00\x00\x01')
+        self.assertEqual(hash(c), 9)
+        self.assertEqual(hash(c), hash(py))
+
+        c, py = self._make_C_and_Py(b'\x00\x00\x00\x00\x00\x00\x01\x00')
+        self.assertEqual(hash(c), 1000011)
+        self.assertEqual(hash(c), hash(py))
+
+        c, py = self._make_C_and_Py(b'\x00\x00\x00\x00\x00\x01\x00\x00')
+        self.assertEqual(hash(c), 1000006000001)
+        self.assertEqual(hash(c), hash(py))
+
+        c, py = self._make_C_and_Py(b'\x00\x00\x00\x00\x01\x00\x00\x00')
+        self.assertEqual(hash(c), 1000009000027000019)
+        self.assertEqual(hash(c), hash(py))
+
+        # Overflow kicks in at this point
+        c, py = self._make_C_and_Py(b'\x00\x00\x00\x01\x00\x00\x00\x00')
+        self.assertEqual(hash(c), -4442925868394654887)
+        self.assertEqual(hash(c), hash(py))
+
+        c, py = self._make_C_and_Py(b'\x00\x00\x01\x00\x00\x00\x00\x00')
+        self.assertEqual(hash(c), -3993531167153147845)
+        self.assertEqual(hash(c), hash(py))
+
+        c, py = self._make_C_and_Py(b'\x01\x00\x00\x00\x00\x00\x00\x00')
+        self.assertEqual(hash(c), -3099646879006235965)
+        self.assertEqual(hash(c), hash(py))
+
+    def test_ordering(self):
+        small_c  = self._makeC(b'\x00\x00\x00\x00\x00\x00\x00\x01')
+        big_c    = self._makeC(b'\x01\x00\x00\x00\x00\x00\x00\x00')
+
+        small_py = self._makePy(b'\x00\x00\x00\x00\x00\x00\x00\x01')
+        big_py = self._makePy(b'\x01\x00\x00\x00\x00\x00\x00\x00')
+
+        self.assertTrue(small_py < big_py)
+        self.assertTrue(small_py <= big_py)
+
+        self.assertTrue(small_py < big_c)
+        self.assertTrue(small_py <= big_c)
+        self.assertTrue(small_py <= small_c)
+
+        self.assertTrue(small_c < big_c)
+        self.assertTrue(small_c <= big_c)
+
+        self.assertTrue(small_c <= big_py)
+        self.assertTrue(big_c > small_py)
+        self.assertTrue(big_c >= big_py)
+
+        self.assertFalse(big_c == small_py)
+        self.assertFalse(small_py == big_c)
+
+        self.assertTrue(big_c != small_py)
+        self.assertTrue(small_py != big_c)
+
+
 def test_suite():
-    return unittest.TestSuite((
+    suite = [
         unittest.makeSuite(Test__UTC),
         unittest.makeSuite(pyTimeStampTests),
         unittest.makeSuite(TimeStampTests),
-    ))
+    ]
+
+    try:
+        from persistent.timestamp import pyTimeStamp
+        from persistent.timestamp import TimeStamp
+    except ImportError:
+        pass
+    else:
+        if pyTimeStamp != TimeStamp:
+            # We have both implementations available
+            suite.append(PyAndCComparisonTests)
+
+    return unittest.TestSuite(suite)

@@ -13,6 +13,7 @@
 ##############################################################################
 __all__ = ('TimeStamp',)
 
+from ctypes import c_int64
 import datetime
 import math
 import struct
@@ -51,7 +52,7 @@ _SCONV = 60.0 / (1<<16) / (1<<16)
 def _makeRaw(year, month, day, hour, minute, second):
     a = (((year - 1900) * 12 + month - 1) * 31 + day - 1)
     a = (a * 24 + hour) * 60 + minute
-    b = int(round(second / _SCONV))
+    b = int(second / _SCONV) # Don't round() this; the C version does simple truncation
     return struct.pack('>II', a, b)
 
 def _parseRaw(octets):
@@ -89,6 +90,12 @@ class pyTimeStamp(object):
 
     def __repr__(self):
         return repr(self._raw)
+
+    def __str__(self):
+        return "%4.4d-%2.2d-%2.2d %2.2d:%2.2d:%09.6f" % (
+            self.year(), self.month(), self.day(),
+            self.hour(), self.minute(),
+            self.second())
 
     def year(self):
         return self._elements[0]
@@ -128,6 +135,64 @@ class pyTimeStamp(object):
         a, b = struct.unpack('>II', other._raw)
         later = struct.pack('>II', a, b + 1)
         return self.__class__(later)
+
+    def __eq__(self, other):
+        try:
+            return self.raw() == other.raw()
+        except AttributeError:
+            return NotImplemented
+
+    def __ne__(self, other):
+        try:
+            return self.raw() != other.raw()
+        except AttributeError:
+            return NotImplemented
+
+    def __hash__(self):
+        # Match the C implementation
+        a = bytearray(self._raw)
+        x = a[0] << 7
+        for i in a:
+            x = (1000003 * x) ^ i
+        x ^= 8
+
+        # Make sure to overflow and wraparound just
+        # like the C code does.
+        x = c_int64(x).value
+        if x == -1: #pragma: no cover
+            # The C version has this condition, but it's not clear
+            # why; it's also not immediately obvious what bytestring
+            # would generate this---hence the no-cover
+            x = -2
+        return x
+
+    # Now the rest of the comparison operators
+    # Sigh. Python 2.6 doesn't have functools.total_ordering
+    # so we have to do it by hand
+    def __lt__(self, other):
+        try:
+            return self.raw() < other.raw()
+        except AttributeError:
+            return NotImplemented
+
+    def __gt__(self, other):
+        try:
+            return self.raw() > other.raw()
+        except AttributeError:
+            return NotImplemented
+
+    def __le__(self, other):
+        try:
+            return self.raw() <= other.raw()
+        except AttributeError:
+            return NotImplemented
+
+    def __ge__(self, other):
+        try:
+            return self.raw() >= other.raw()
+        except AttributeError:
+            return NotImplemented
+
 
 try:
     from persistent._timestamp import TimeStamp
