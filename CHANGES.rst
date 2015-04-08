@@ -21,11 +21,6 @@
 
 - 100% branch coverage.
 
-- Make the C and Python `TimeStamp` objects behave more alike. The
-  Python version now produces the same `repr` and `.raw()` output as
-  the C version, and has the same hashcode. In addition, the Python
-  version is now supports ordering and equality like the C version.
-
 4.0.8 (2014-03-20)
 ------------------
 
