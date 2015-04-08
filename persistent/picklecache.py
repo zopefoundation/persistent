@@ -17,10 +17,8 @@ import weakref
 
 from zope.interface import implementer
 
-from persistent.interfaces import CHANGED
 from persistent.interfaces import GHOST
 from persistent.interfaces import IPickleCache
-from persistent.interfaces import STICKY
 from persistent.interfaces import OID_TYPE
 from persistent.interfaces import UPTODATE
 from persistent import Persistent
@@ -59,8 +57,14 @@ class PickleCache(object):
         # We expect the jars to be able to have a pointer to
         # us; this is a reference cycle, but certain
         # aspects of invalidation and accessing depend on it.
+        # The actual Connection objects we're used with do set this
+        # automatically, but many test objects don't.
         # TODO: track this on the persistent objects themself?
-        jar._cache = self
+        try:
+            jar._cache = self
+        except AttributeError:
+            # Some ZODB tests pass in an object that cannot have an _cache
+            pass
         self.target_size = target_size
         self.drain_resistance = 0
         self.non_ghost_count = 0
@@ -375,7 +379,15 @@ class PickleCache(object):
                     break
                 node = node.next
         elif oid in self.persistent_classes:
+            persistent_class = self.persistent_classes[oid]
             del self.persistent_classes[oid]
+            try:
+                # ZODB.persistentclass.PersistentMetaClass objects
+                # have this method and it must be called for transaction abort
+                # and other forms of invalidation to work
+                persistent_class._p_invalidate()
+            except AttributeError:
+                pass
 
     def __remove_from_ring(self, node):
         "Take the node, which previously contained a non-ghost, out of the ring"
