@@ -300,7 +300,8 @@ class PickleCache(object):
 
             self.total_estimated_size += new_est_size_in_bytes
 
-    cache_size = property(lambda self: self.target_size)
+    cache_size = property(lambda self: self.target_size,
+                          lambda self, nv: setattr(self, 'target_size', nv))
     cache_drain_resistance = property(lambda self: self.drain_resistance)
     cache_non_ghost_count = property(lambda self: self.non_ghost_count)
     cache_data = property(lambda self: dict(self.data.items()))
