@@ -1,7 +1,7 @@
 ``persistent`` Changelog
 ========================
 
-4.0.9 (unreleased)
+4.0.9 (2015-04-08)
 ------------------
 
 - Make the C and Python ``TimeStamp`` objects behave more alike. The
