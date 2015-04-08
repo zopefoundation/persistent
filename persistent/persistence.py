@@ -409,9 +409,12 @@ class Persistent(object):
             after = self.__flags | _CHANGED
             if before != after:
                 self._p_register()
-            self.__flags = after
+            _OSA(self, '_Persistent__flags', after)
         else:
-            self.__flags &= ~_CHANGED
+            flags = self.__flags
+            flags &= ~_CHANGED
+            _OSA(self, '_Persistent__flags', flags)
+
 
     def _p_accessed(self):
         # Notify the jar's pickle cache that we have been accessed.

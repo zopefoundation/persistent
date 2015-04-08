@@ -1381,6 +1381,28 @@ class _Persistent_Base(object):
         inst = subclass()
         self.assertEqual(object.__getattribute__(inst,'_v_setattr_called'), False)
 
+    def test_can_set__p_attrs_if_subclass_denies_setattr(self):
+        from persistent._compat import _b
+        # ZODB defines a PersistentBroken subclass that only lets us
+        # set things that start with _p, so make sure we can do that
+        class Broken(self._getTargetClass()):
+            def __setattr__(self, name, value):
+                if name.startswith('_p_'):
+                    super(Broken,self).__setattr__(name, value)
+                else:
+                    raise TypeError("Can't change broken objects")
+
+        KEY = _b('123')
+        jar = self._makeJar()
+
+        broken = Broken()
+        broken._p_oid = KEY
+        broken._p_jar = jar
+
+        broken._p_changed = True
+        broken._p_changed = 0
+
+
 class PyPersistentTests(unittest.TestCase, _Persistent_Base):
 
     def _getTargetClass(self):
