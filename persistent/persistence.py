@@ -42,9 +42,8 @@ SPECIAL_NAMES = ('__class__',
                  '__del__',
                  '__dict__',
                  '__of__',
-                 '__setstate__'
+                 '__setstate__',
                 )
-
 
 @implementer(IPersistent)
 class Persistent(object):
@@ -238,13 +237,14 @@ class Persistent(object):
     def __getattribute__(self, name):
         """ See IPersistent.
         """
+        oga = _OGA
         if (not name.startswith('_Persistent__') and
             not name.startswith('_p_') and
             name not in SPECIAL_NAMES):
-            if _OGA(self, '_Persistent__flags') is None:
-                _OGA(self, '_p_activate')()
-            _OGA(self, '_p_accessed')()
-        return _OGA(self, name)
+            if oga(self, '_Persistent__flags') is None:
+                oga(self, '_p_activate')()
+            oga(self, '_p_accessed')()
+        return oga(self, name)
 
     def __setattr__(self, name, value):
         special_name = (name.startswith('_Persistent__') or
@@ -339,15 +339,22 @@ class Persistent(object):
     def _p_activate(self):
         """ See IPersistent.
         """
-        before = self.__flags
-        if self.__flags is None or self._p_state < 0: # Only do this if we're a ghost
-            _OSA(self, '_Persistent__flags', 0)
-            if self.__jar is not None and self.__oid is not None:
-                try:
-                    self.__jar.setstate(self)
-                except:
-                    _OSA(self, '_Persistent__flags', before)
-                    raise
+        oga = _OGA
+        before = oga(self, '_Persistent__flags')
+        if before is None: # Only do this if we're a ghost
+            _OSA(self, '_Persistent__flags', 0) # up-to-date
+            jar = oga(self, '_Persistent__jar')
+            if jar is None:
+                return
+            oid = oga(self, '_Persistent__oid')
+            if oid is None:
+                return
+
+            try:
+                jar.setstate(self)
+            except:
+                _OSA(self, '_Persistent__flags', before)
+                raise
 
     # In the C implementation, _p_invalidate winds up calling
     # _p_deactivate. There are ZODB tests that depend on this;
@@ -443,24 +450,41 @@ class Persistent(object):
         # detail, the '_cache' attribute of the jar.  We made it a
         # private API to avoid the cycle of keeping a reference to
         # the cache on the persistent object.
-        if (self.__jar is not None and
-            self.__oid is not None and
-            self._p_state >= 0):
-            # The KeyError arises in ZODB: ZODB.serialize.ObjectWriter
-            # can assign a jar and an oid to newly seen persistent objects,
-            # but because they are newly created, they aren't in the
-            # pickle cache yet. There doesn't seem to be a way to distinguish
-            # that at this level, all we can do is catch it.
-            # The AttributeError arises in ZODB test cases
+
+        # The below is the equivalent of this, but avoids
+        # several trips through __getattribute__, especially for _p_state,
+        # and benchmarks much faster
+        #
+        # if(self.__jar is  None or
+        #    self.__oid is None or
+        #    self._p_state < 0 ): return
+
+        oga = _OGA
+        jar = oga(self, '_Persistent__jar')
+        if jar is None:
+            return
+        oid = oga(self, '_Persistent__oid')
+        if oid is None:
+            return
+        flags = oga(self, '_Persistent__flags')
+        if flags is None: # ghost
+            return
+
+        # The KeyError arises in ZODB: ZODB.serialize.ObjectWriter
+        # can assign a jar and an oid to newly seen persistent objects,
+        # but because they are newly created, they aren't in the
+        # pickle cache yet. There doesn't seem to be a way to distinguish
+        # that at this level, all we can do is catch it.
+        # The AttributeError arises in ZODB test cases
+        try:
+            cache = jar._cache
+        except AttributeError:
+            pass
+        else:
             try:
-                cache = self.__jar._cache
-            except AttributeError:
+                cache.mru(self.__oid)
+            except KeyError:
                 pass
-            else:
-                try:
-                    cache.mru(self.__oid)
-                except KeyError:
-                    pass
 
     def _p_is_in_cache(self):
         oid = self.__oid

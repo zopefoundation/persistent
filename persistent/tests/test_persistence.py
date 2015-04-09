@@ -1522,6 +1522,27 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
         c1._p_invalidate_deactivate_helper()
         self.assertTrue(c1._p_jar.accessed)
 
+    def test_p_activate_with_jar_without_oid(self):
+        # Works, but nothing happens
+        inst = self._makeOne()
+        inst._p_jar = object()
+        inst._p_oid = None
+        object.__setattr__(inst, '_Persistent__flags', None)
+        inst._p_activate()
+
+    def test_p_accessed_with_jar_without_oid(self):
+        # Works, but nothing happens
+        inst = self._makeOne()
+        inst._p_jar = object()
+        inst._p_accessed()
+
+    def test_p_accessed_with_jar_with_oid_as_ghost(self):
+        # Works, but nothing happens
+        inst = self._makeOne()
+        inst._p_jar = object()
+        inst._p_oid = 42
+        inst._Persistent__flags = None
+        inst._p_accessed()
 
 _add_to_suite = [PyPersistentTests]
 
