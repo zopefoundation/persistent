@@ -115,8 +115,6 @@ class _Persistent_Base(object):
     def test_assign_p_jar_w_new_jar(self):
         inst, jar, OID = self._makeOneWithJar()
         new_jar = self._makeJar()
-        def _test():
-            inst._p_jar = new_jar
         try:
             inst._p_jar = new_jar
         except ValueError as e:
@@ -143,9 +141,14 @@ class _Persistent_Base(object):
 
     def test_assign_p_oid_w_invalid_oid(self):
         inst, jar, OID = self._makeOneWithJar()
-        def _test():
+
+        try:
             inst._p_oid = object()
-        self.assertRaises(ValueError, _test)
+        except ValueError as e:
+            self.assertEqual(str(e), 'can not change _p_oid of cached object')
+        else:
+            self.fail("Should raise value error")
+
 
     def test_assign_p_oid_w_valid_oid(self):
         from persistent.timestamp import _makeOctets

@@ -385,8 +385,7 @@ class Persistent(object):
             except AttributeError:
                 pass
             else:
-                cache.update_object_size_estimation(self.__oid,
-                                                    -1)
+                cache.update_object_size_estimation(self.__oid, -1)
                 # See notes in PickleCache.sweep for why we have to do this
                 cache._persistent_deactivate_ran = True
 
