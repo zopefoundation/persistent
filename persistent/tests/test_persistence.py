@@ -1402,6 +1402,14 @@ class _Persistent_Base(object):
         broken._p_changed = True
         broken._p_changed = 0
 
+    def test_p_invalidate_calls_p_deactivate(self):
+        class P(self._getTargetClass()):
+            deactivated = False
+            def _p_deactivate(self):
+                self.deactivated = True
+        p = P()
+        p._p_invalidate()
+        self.assertTrue(p.deactivated)
 
 class PyPersistentTests(unittest.TestCase, _Persistent_Base):
 
