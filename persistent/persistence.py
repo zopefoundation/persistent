@@ -74,9 +74,8 @@ class Persistent(object):
             # The C implementation only forbids changing the jar
             # if we're already in a cache. Match its error message
             raise ValueError('can not change _p_jar of cached object')
-        if self.__jar == value:
-            return
-        else:
+
+        if self.__jar != value:
             _OSA(self, '_Persistent__jar', value)
             _OSA(self, '_Persistent__flags', 0)
 

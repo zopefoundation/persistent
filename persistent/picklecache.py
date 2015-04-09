@@ -11,7 +11,6 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
-from __future__ import print_function
 import gc
 import weakref
 
@@ -37,6 +36,10 @@ class RingNode(object):
         self.prev = prev
 
 def _sweeping_ring(f):
+    # A decorator for functions in the PickleCache
+    # that are sweeping the entire ring (mutating it);
+    # serves as a pseudo-lock to not mutate the ring further
+    # in other functions
     def locked(self, *args, **kwargs):
         self._is_sweeping_ring = True
         try:
@@ -51,6 +54,8 @@ class PickleCache(object):
     total_estimated_size = 0
     cache_size_bytes = 0
 
+    # Set by functions that sweep the entire ring (via _sweeping_ring)
+    # Serves as a pseudo-lock
     _is_sweeping_ring = False
 
     def __init__(self, jar, target_size=0, cache_size_bytes=0):
@@ -339,6 +344,7 @@ class PickleCache(object):
         while (node is not self.ring
                and ( self.non_ghost_count > target
                     or (target_size_bytes and self.total_estimated_size > target_size_bytes))):
+
             if node.object._p_state == UPTODATE:
                 # The C implementation will only evict things that are specifically
                 # in the up-to-date state
