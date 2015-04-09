@@ -253,6 +253,36 @@ class PyAndCComparisonTests(unittest.TestCase):
         c, py = self._make_C_and_Py(*self.now_ts_args)
         self.assertEqual(hash(c), hash(py))
 
+    def test_py_hash_32_64_bit(self):
+        # We happen to know that on a 32-bit platform, the hashcode
+        # of the c version should be exactly
+        # -1419374591
+        # and the 64-bit should be exactly:
+        # -3850693964765720575
+        # Fake out the python version to think it's on a 32-bit
+        # platform and test the same; also verify 64 bit
+        bit_32_hash = -1419374591
+        bit_64_hash = -3850693964765720575
+        import persistent.timestamp
+        import ctypes
+        orig_c_long = persistent.timestamp.c_long
+        try:
+            persistent.timestamp.c_long = ctypes.c_int32
+            py = self._makePy(*self.now_ts_args)
+            self.assertEqual(hash(py), bit_32_hash)
+
+            persistent.timestamp.c_long = ctypes.c_int64
+            self.assertEqual(hash(py), bit_64_hash)
+        finally:
+            persistent.timestamp.c_long = orig_c_long
+
+        if orig_c_long is ctypes.c_int32:
+            self.assertEqual(py.__hash__(), bit_32_hash)
+        elif orig_c_long is ctypes.c_int64:
+            self.assertEqual(py.__hash__(), bit_64_hash)
+        else:
+            self.fail("Unknown bitness")
+
     def test_hash_equal_constants(self):
         # The simple constants make it easier to diagnose
         # a difference in algorithms
