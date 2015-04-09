@@ -117,7 +117,12 @@ class _Persistent_Base(object):
         new_jar = self._makeJar()
         def _test():
             inst._p_jar = new_jar
-        self.assertRaises(ValueError, _test)
+        try:
+            inst._p_jar = new_jar
+        except ValueError as e:
+            self.assertEqual(str(e), "can not change _p_jar of cached object")
+        else:
+            self.fail("Should raise ValueError")
 
     def test_assign_p_jar_w_valid_jar(self):
         jar = self._makeJar()
