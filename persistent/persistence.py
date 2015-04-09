@@ -477,14 +477,9 @@ class Persistent(object):
         # that at this level, all we can do is catch it.
         # The AttributeError arises in ZODB test cases
         try:
-            cache = jar._cache
-        except AttributeError:
+            jar._cache.mru(oid)
+        except (AttributeError,KeyError):
             pass
-        else:
-            try:
-                cache.mru(self.__oid)
-            except KeyError:
-                pass
 
     def _p_is_in_cache(self):
         oid = self.__oid
