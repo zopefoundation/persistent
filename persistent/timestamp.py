@@ -13,11 +13,20 @@
 ##############################################################################
 __all__ = ('TimeStamp',)
 
-from ctypes import c_int64
 import datetime
 import math
 import struct
 import sys
+
+# We need to use a native ctype to get the overflow behaviour in the
+# __hash__ function to match the C implementation. However, which one
+# to use depends on whether we were built 64-bit or 32-bit.
+if sys.maxsize > 2**32:
+    # the `platform`  docs say this is the most reliable way to
+    # detect 64-bit
+    from ctypes import c_int64 as c_long
+else:
+    from ctypes import c_long
 
 _RAWTYPE = bytes
 
@@ -158,7 +167,7 @@ class pyTimeStamp(object):
 
         # Make sure to overflow and wraparound just
         # like the C code does.
-        x = c_int64(x).value
+        x = c_long(x).value
         if x == -1: #pragma: no cover
             # The C version has this condition, but it's not clear
             # why; it's also not immediately obvious what bytestring
