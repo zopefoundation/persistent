@@ -858,6 +858,131 @@ class PickleCacheTests(unittest.TestCase):
         self.assertEqual(typ, 'DummyPersistent')
         self.assertEqual(state, GHOST)
 
+    def test_init_with_cacheless_jar(self):
+        # Sometimes ZODB tests pass objects that don't
+        # have a _cache
+        class Jar(object):
+            was_set = False
+            def __setattr__(self, name, value):
+                if name == '_cache':
+                    object.__setattr__(self, 'was_set', True)
+                raise AttributeError(name)
+
+        jar = Jar()
+        self._makeOne(jar)
+        self.assertTrue(jar.was_set)
+
+    def test_setting_non_persistent_item(self):
+        cache = self._makeOne()
+        try:
+            cache[None] = object()
+        except TypeError as e:
+            self.assertEqual(str(e), "Cache values must be persistent objects.")
+        else:
+            self.fail("Should raise TypeError")
+
+    def test_setting_without_jar(self):
+        cache = self._makeOne()
+        p = self._makePersist(jar=None)
+        try:
+            cache[p._p_oid] = p
+        except ValueError as e:
+            self.assertEqual(str(e), "Cached object jar missing")
+        else:
+            self.fail("Should raise ValueError")
+
+    def test_setting_already_cached(self):
+        cache1 = self._makeOne()
+        p = self._makePersist(jar=cache1.jar)
+
+        cache1[p._p_oid] = p
+
+        cache2 = self._makeOne()
+        try:
+            cache2[p._p_oid] = p
+        except ValueError as e:
+            self.assertEqual(str(e), "Object already in another cache")
+        else:
+            self.fail("Should raise value error")
+
+    def test_cannot_update_mru_while_already_locked(self):
+        cache = self._makeOne()
+        cache._is_sweeping_ring = True
+
+        updated = cache.mru(None)
+        self.assertFalse(updated)
+
+    def test_update_object_size_estimation_simple(self):
+        cache = self._makeOne()
+        p = self._makePersist(jar=cache.jar)
+
+        cache[p._p_oid] = p
+        # It accesses the private version directory to bypass
+        # the bit conversion
+        # Note that the _p_estimated_size is set *after*
+        # the update call is made in ZODB's serialize
+        p._Persistent__size = 0
+
+        cache.update_object_size_estimation(p._p_oid, 2)
+
+        self.assertEqual(cache.total_estimated_size, 64)
+
+        # A missing object does nothing
+        cache.update_object_size_estimation(None, 2)
+        self.assertEqual(cache.total_estimated_size, 64)
+
+    def test_cache_size(self):
+        size = 42
+        cache = self._makeOne(target_size=size)
+        self.assertEqual(cache.cache_size, size)
+
+        cache.cache_size = 64
+        self.assertEqual(cache.cache_size, 64)
+
+    def test_sweep_empty(self):
+        cache = self._makeOne()
+        self.assertEqual(cache.incrgc(), 0)
+
+    def test_sweep_of_non_deactivating_object(self):
+        cache = self._makeOne()
+        p = self._makePersist(jar=cache.jar)
+
+        p._p_state = 0 # non-ghost, get in the ring
+        cache[p._p_oid] = p
+
+
+        def bad_deactivate():
+            "Doesn't call super, for it's own reasons, so can't be ejected"
+            return
+
+        p._p_deactivate = bad_deactivate
+
+        import persistent.picklecache
+        sweep_types = persistent.picklecache._SWEEPABLE_TYPES
+        try:
+            persistent.picklecache._SWEEPABLE_TYPES = DummyPersistent
+            self.assertEqual(cache.full_sweep(), 0)
+
+            persistent.picklecache._SWEEPABLE_TYPES = sweep_types
+            del p._p_deactivate
+            self.assertEqual(cache.full_sweep(), 1)
+        finally:
+            persistent.picklecache._SWEEPABLE_TYPES = sweep_types
+
+    def test_invalidate_not_in_cache(self):
+        # A contrived test of corruption
+        cache = self._makeOne()
+        p = self._makePersist(jar=cache.jar)
+
+        p._p_state = 0 # non-ghost, get in the ring
+        cache[p._p_oid] = p
+
+        self.assertEqual(cache.ring.next.object, p)
+        cache.ring.next.object = None
+
+        # Nothing to test, just that it doesn't break
+        cache._invalidate(p._p_oid)
+
 
 class DummyPersistent(object):
 

@@ -22,9 +22,11 @@ from persistent.interfaces import IPickleCache
 from persistent.interfaces import OID_TYPE
 from persistent.interfaces import UPTODATE
 from persistent import Persistent
+from persistent.persistence import _estimated_size_in_24_bits
 
 # Tests may modify this to add additional types
 _CACHEABLE_TYPES = (type, Persistent)
+_SWEEPABLE_TYPES = (Persistent,)
 
 class RingNode(object):
     # 32 byte fixed size wrapper.
@@ -38,7 +40,7 @@ def _sweeping_ring(f):
     def locked(self, *args, **kwargs):
         self._is_sweeping_ring = True
         try:
-            f(self, *args, **kwargs)
+            return f(self, *args, **kwargs)
         finally:
             self._is_sweeping_ring = False
     return locked
@@ -114,7 +116,7 @@ class PickleCache(object):
                 raise ValueError('A different object already has the same oid')
         # Match the C impl: it requires a jar
         jar = getattr(value, '_p_jar', None)
-        if jar is None and type(value) is not type:
+        if jar is None and not isinstance(value, type):
             raise ValueError("Cached object jar missing")
         # It also requires that it cannot be cached more than one place
         existing_cache = getattr(jar, '_cache', None)
@@ -162,7 +164,7 @@ class PickleCache(object):
             # accessess during sweeping, such as with an
             # overridden _p_deactivate, don't mutate the ring
             # because that could leave it inconsistent
-            return
+            return False # marker return for tests
         node = self.ring.next
         while node is not self.ring and node.object._p_oid != oid:
             node = node.next
@@ -220,12 +222,14 @@ class PickleCache(object):
             target2 = size - 1 - (size // self.drain_resistance)
             if target2 < target:
                 target = target2
-        self._sweep(target, self.cache_size_bytes)
+        # return value for testing
+        return self._sweep(target, self.cache_size_bytes)
 
     def full_sweep(self, target=None):
         """ See IPickleCache.
         """
-        self._sweep(0)
+        # return value for testing
+        return self._sweep(0)
 
     minimize = full_sweep
 
@@ -355,8 +359,8 @@ class PickleCache(object):
                 if (self._persistent_deactivate_ran
                     # Test-cases sneak in non-Persistent objects, sigh, so naturally
                     # they don't cooperate (without this check a bunch of test_picklecache
-                    #breaks)
-                    or not isinstance(node.object, Persistent)):
+                    # breaks)
+                    or not isinstance(node.object, _SWEEPABLE_TYPES)):
                     ejected += 1
                     self.__remove_from_ring(node)
             node = node.next
@@ -394,8 +398,3 @@ class PickleCache(object):
         node.object = None
         node.prev.next, node.next.prev = node.next, node.prev
         self.non_ghost_count -= 1
-
-def _estimated_size_in_24_bits(value):
-    if value > 1073741696:
-        return 16777215
-    return (value//64) + 1
