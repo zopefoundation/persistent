@@ -983,7 +983,7 @@ class PickleCacheTests(unittest.TestCase):
         # Nothing to test, just that it doesn't break
         cache._invalidate(p._p_oid)
 
-    def test_cache_garbage_collection_bytes(self):
+    def test_cache_garbage_collection_bytes_also_deactivates_object(self):
         from persistent.interfaces import UPTODATE
         from persistent._compat import _b
         cache = self._makeOne()
@@ -998,7 +998,9 @@ class PickleCacheTests(unittest.TestCase):
             o._Persistent__size = 2
 
             # mimic what the real persistent object does to update the cache
-            # size
+            # size; if we don't get deactivated by sweeping, the cache size
+            # won't shrink so this also validates that _p_deactivate gets
+            # called when ejecting an object.
             o._p_deactivate = lambda: cache.update_object_size_estimation(oid,
                                                                           -1)
 
