@@ -191,7 +191,6 @@ class _Persistent_Base(object):
         inst._p_oid = 42
         self.assertEqual(inst._p_oid, 42)
 
-
     def test_delete_p_oid_wo_jar(self):
         from persistent.timestamp import _makeOctets
         OID = _makeOctets('\x01' * 8)
@@ -1470,7 +1469,6 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
 
     def _clearMRU(self, jar):
         jar._cache._mru[:] = []
-
 
     def test_accessed_with_jar_and_oid_but_not_in_cache(self):
         # This scenario arises in ZODB: ZODB.serialize.ObjectWriter

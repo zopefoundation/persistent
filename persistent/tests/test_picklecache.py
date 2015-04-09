@@ -22,7 +22,6 @@ class PickleCacheTests(unittest.TestCase):
         self.orig_types = persistent.picklecache._CACHEABLE_TYPES
         persistent.picklecache._CACHEABLE_TYPES += (DummyPersistent,)
 
-
     def tearDown(self):
         import persistent.picklecache
         persistent.picklecache._CACHEABLE_TYPES = self.orig_types

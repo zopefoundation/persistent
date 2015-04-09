@@ -401,7 +401,7 @@ class PickleCache(object):
                 pass
 
     def __remove_from_ring(self, node):
-        "Take the node, which previously contained a non-ghost, out of the ring"
+        """Take the node, which previously contained a non-ghost, out of the ring."""
         node.object = None
         node.prev.next, node.next.prev = node.next, node.prev
         self.non_ghost_count -= 1
