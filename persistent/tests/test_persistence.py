@@ -127,6 +127,15 @@ class _Persistent_Base(object):
         self.assertTrue(inst._p_jar is jar)
         inst._p_jar = jar # reassign only to same DM
 
+    def test_assign_p_jar_not_in_cache_allowed(self):
+        jar = self._makeJar()
+        inst = self._makeOne()
+        inst._p_jar = jar
+        # Both of these are allowed
+        inst._p_jar = self._makeJar()
+        inst._p_jar = None
+        self.assertEqual(inst._p_jar, None)
+
     def test_assign_p_oid_w_invalid_oid(self):
         inst, jar, OID = self._makeOneWithJar()
         def _test():
@@ -165,6 +174,15 @@ class _Persistent_Base(object):
         def _test():
             inst._p_oid = new_OID
         self.assertRaises(ValueError, _test)
+
+    def test_assign_p_oid_not_in_cache_allowed(self):
+        jar = self._makeJar()
+        inst = self._makeOne()
+        inst._p_jar = jar
+        inst._p_oid = 1 # anything goes
+        inst._p_oid = 42
+        self.assertEqual(inst._p_oid, 42)
+
 
     def test_delete_p_oid_wo_jar(self):
         from persistent.timestamp import _makeOctets

@@ -1025,6 +1025,25 @@ class PickleCacheTests(unittest.TestCase):
         # sanity check
         self.assertTrue(cache.total_estimated_size >= 0)
 
+    def test_invalidate_persistent_class_calls_p_invalidate(self):
+        from persistent._compat import _b
+        KEY = _b('pclass')
+        class pclass(object):
+            _p_oid = KEY
+            invalidated = False
+            @classmethod
+            def _p_invalidate(cls):
+                cls.invalidated = True
+
+
+        cache = self._makeOne()
+
+        cache[KEY] = pclass
+
+        cache.invalidate(KEY)
+
+        self.assertTrue(pclass.invalidated)
+
 class DummyPersistent(object):
 
     def _p_invalidate(self):
