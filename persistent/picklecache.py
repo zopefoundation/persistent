@@ -107,7 +107,7 @@ class PickleCache(object):
             raise TypeError("Cache values must be persistent objects.")
 
         value_oid = value._p_oid
-        if not isinstance(oid, OID_TYPE) or not isinstance(value_oid, OID_TYPE): # XXX bytes
+        if not isinstance(oid, OID_TYPE) or not isinstance(value_oid, OID_TYPE):
             raise TypeError('OID must be %s: key=%s _p_oid=%s' % (OID_TYPE, oid, value_oid))
 
         if value_oid != oid:
@@ -308,7 +308,7 @@ class PickleCache(object):
             # to match the C implementation. Hence the convoluted
             # arithmetic
             new_size_in_24 = _estimated_size_in_24_bits(new_size)
-            p_est_size_in_24 =  value._Persistent__size
+            p_est_size_in_24 = value._Persistent__size
             new_est_size_in_bytes = (new_size_in_24 - p_est_size_in_24) * 64
 
             self.total_estimated_size += new_est_size_in_bytes
@@ -328,11 +328,12 @@ class PickleCache(object):
     # actually runs (broken subclasses can forget to call super; ZODB
     # has tests for this). This gets set to false everytime we examine
     # a node and checked afterwards. The C implementation has a very
-    # incestuous relatiounship between cPickleCache and cPersistence:
+    # incestuous relationship between cPickleCache and cPersistence:
     # the pickle cache calls _p_deactivate, which is responsible for
     # both decrementing the non-ghost count and removing its node from
-    # the cache ring. We're trying to keep that to a minimum, but
-    # there's no way around it if we want full compatibility
+    # the cache ring (and, if it gets deallocated, from the pickle
+    # cache's dictionary). We're trying to keep that to a minimum, but
+    # there's no way around it if we want full compatibility.
     _persistent_deactivate_ran = False
 
     @_sweeping_ring
@@ -342,7 +343,7 @@ class PickleCache(object):
         ejected = 0
 
         while (node is not self.ring
-               and ( self.non_ghost_count > target
+               and (self.non_ghost_count > target
                     or (target_size_bytes and self.total_estimated_size > target_size_bytes))):
 
             if node.object._p_state == UPTODATE:
