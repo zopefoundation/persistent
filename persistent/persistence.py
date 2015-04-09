@@ -37,13 +37,18 @@ _STICKY = 0x0002
 _OGA = object.__getattribute__
 _OSA = object.__setattr__
 
-# These names can be used from a ghost without causing it to be activated.
+# These names can be used from a ghost without causing it to be
+# activated. These are standardized with the C implementation
 SPECIAL_NAMES = ('__class__',
                  '__del__',
                  '__dict__',
                  '__of__',
-                 '__setstate__',
-                )
+                 '__setstate__',)
+
+# And this is an implementation detail of this class; it holds
+# the standard names plus the slot names, allowing for just one
+# check in __getattribute__
+_SPECIAL_NAMES = set(SPECIAL_NAMES)
 
 @implementer(IPersistent)
 class Persistent(object):
@@ -238,9 +243,8 @@ class Persistent(object):
         """ See IPersistent.
         """
         oga = _OGA
-        if (not name.startswith('_Persistent__') and
-            not name.startswith('_p_') and
-            name not in SPECIAL_NAMES):
+        if (not name.startswith('_p_') and
+            name not in _SPECIAL_NAMES):
             if oga(self, '_Persistent__flags') is None:
                 oga(self, '_p_activate')()
             oga(self, '_p_accessed')()
@@ -399,7 +403,7 @@ class Persistent(object):
     def _p_getattr(self, name):
         """ See IPersistent.
         """
-        if name.startswith('_p_') or name in SPECIAL_NAMES:
+        if name.startswith('_p_') or name in _SPECIAL_NAMES:
             return True
         self._p_activate()
         self._p_accessed()
@@ -495,3 +499,7 @@ def _estimated_size_in_24_bits(value):
     if value > 1073741696:
         return 16777215
     return (value//64) + 1
+
+for _name in Persistent.__slots__:
+    _SPECIAL_NAMES.add(intern('_Persistent' + _name))
+del _name
