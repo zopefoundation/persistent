@@ -381,8 +381,11 @@ class Persistent(object):
             # by telling it this object no longer takes any bytes
             # (-1 is a magic number to compensate for the implementation,
             # which always adds one to the size given)
-            cache = getattr(self.__jar, '_cache', None)
-            if cache is not None:
+            try:
+                cache = self.__jar._cache
+            except AttributeError:
+                pass
+            else:
                 cache.update_object_size_estimation(self.__oid,
                                                     -1)
                 # See notes in PickleCache.sweep for why we have to do this

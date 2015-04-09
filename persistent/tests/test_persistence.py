@@ -1437,6 +1437,7 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
     def _clearMRU(self, jar):
         jar._cache._mru[:] = []
 
+
     def test_accessed_with_jar_and_oid_but_not_in_cache(self):
         # This scenario arises in ZODB: ZODB.serialize.ObjectWriter
         # can assign a jar and an oid to newly seen persistent objects,
@@ -1458,6 +1459,37 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
         jar._cache.mru = mru
         c1._p_accessed()
         self._checkMRU(jar, [])
+
+    def test_accessed_invalidated_with_jar_and_oid_but_no_cache(self):
+        # This scenario arises in ZODB tests where the jar is faked
+        from persistent._compat import _b
+        KEY = _b('123')
+        class Jar(object):
+            accessed = False
+            def __getattr__(self, name):
+                if name == '_cache':
+                    self.accessed = True
+                raise AttributeError(name)
+            def register(self, *args):
+                pass
+        c1 = self._makeOne()
+
+        c1._p_oid = KEY
+        c1._p_jar = Jar()
+        c1._p_changed = True
+        self.assertEqual(c1._p_state, 1)
+        c1._p_accessed()
+        self.assertTrue(c1._p_jar.accessed)
+
+        c1._p_jar.accessed = False
+        c1._p_invalidate_deactivate_helper()
+        self.assertTrue(c1._p_jar.accessed)
+
+        c1._p_jar.accessed = False
+        c1._Persistent__flags = None # coverage
+        c1._p_invalidate_deactivate_helper()
+        self.assertTrue(c1._p_jar.accessed)
+
 
 _add_to_suite = [PyPersistentTests]
 
