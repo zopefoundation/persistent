@@ -4,7 +4,9 @@
 4.0.10 (unreleased)
 -------------------
 
-- TBD
+- The Python implementation of ``Persistent`` and ``PickleCache`` now
+  behave more similarly to the C implementation. In particular, the
+  Python version can now run the complete ZODB unit test suite.
 
 4.0.9 (2015-04-08)
 ------------------
