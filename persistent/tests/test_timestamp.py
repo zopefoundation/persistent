@@ -258,9 +258,9 @@ class PyAndCComparisonTests(unittest.TestCase):
         # of the c version should be exactly
         # -1419374591
         # and the 64-bit should be exactly:
-        #
+        # -3850693964765720575
         # Fake out the python version to think it's on a 32-bit
-        # platform and test the same
+        # platform and test the same; also verify 64 bit
         bit_32_hash = -1419374591
         bit_64_hash = -3850693964765720575
         import persistent.timestamp
