@@ -22,9 +22,13 @@ class PickleCacheTests(unittest.TestCase):
         self.orig_types = persistent.picklecache._CACHEABLE_TYPES
         persistent.picklecache._CACHEABLE_TYPES += (DummyPersistent,)
 
+        self.orig_sweep_gc = persistent.picklecache._SWEEP_NEEDS_GC
+        persistent.picklecache._SWEEP_NEEDS_GC = True # coverage
+
     def tearDown(self):
         import persistent.picklecache
         persistent.picklecache._CACHEABLE_TYPES = self.orig_types
+        persistent.picklecache._SWEEP_NEEDS_GC = self.orig_sweep_gc
 
     def _getTargetClass(self):
         from persistent.picklecache import PickleCache
@@ -1000,15 +1004,13 @@ class PickleCacheTests(unittest.TestCase):
             # size; if we don't get deactivated by sweeping, the cache size
             # won't shrink so this also validates that _p_deactivate gets
             # called when ejecting an object.
-            o._p_deactivate = lambda: cache.update_object_size_estimation(oid,
-                                                                          -1)
-
-
+            o._p_deactivate = lambda: cache.update_object_size_estimation(oid, -1)
         self.assertEqual(cache.cache_non_ghost_count, 100)
 
         # A GC at this point does nothing
         cache.incrgc()
         self.assertEqual(cache.cache_non_ghost_count, 100)
+        self.assertEqual(len(cache), 100)
 
         # Now if we set a byte target:
 
@@ -1023,6 +1025,10 @@ class PickleCacheTests(unittest.TestCase):
         self.assertTrue(cache.total_estimated_size <= 1)
         # sanity check
         self.assertTrue(cache.total_estimated_size >= 0)
+
+        # It also shrank the measured size of the cache;
+        # this would fail under PyPy if _SWEEP_NEEDS_GC was False
+        self.assertEqual(len(cache), 1)
 
     def test_invalidate_persistent_class_calls_p_invalidate(self):
         from persistent._compat import _b
