@@ -983,6 +983,45 @@ class PickleCacheTests(unittest.TestCase):
         # Nothing to test, just that it doesn't break
         cache._invalidate(p._p_oid)
 
+    def test_cache_garbage_collection_bytes(self):
+        from persistent.interfaces import UPTODATE
+        from persistent._compat import _b
+        cache = self._makeOne()
+        cache.target_size = 1000
+        oids = []
+        for i in range(100):
+            oid = _b('oid_%04d' % i)
+            oids.append(oid)
+            o = cache[oid] = self._makePersist(oid=oid, state=UPTODATE)
+            o._Persistent__size = 0 # must start 0, ZODB sets it AFTER updating the size
+            cache.update_object_size_estimation(oid, 64)
+            o._Persistent__size = 2
+
+            # mimic what the real persistent object does to update the cache
+            # size
+            o._p_deactivate = lambda: cache.update_object_size_estimation(oid,
+                                                                          -1)
+
+
+        self.assertEqual(cache.cache_non_ghost_count, 100)
+
+        # A GC at this point does nothing
+        cache.incrgc()
+        self.assertEqual(cache.cache_non_ghost_count, 100)
+
+        # Now if we set a byte target:
+
+        cache.cache_size_bytes = 1
+        # verify the change worked as expected
+        self.assertEqual(cache.cache_size_bytes, 1)
+        # verify our entrance assumption is fulfilled
+        self.assertTrue(cache.cache_size > 100)
+        self.assertTrue(cache.total_estimated_size > 1)
+        # A gc shrinks the bytes
+        cache.incrgc()
+        self.assertTrue(cache.total_estimated_size <= 1)
+        # sanity check
+        self.assertTrue(cache.total_estimated_size >= 0)
 
 class DummyPersistent(object):
 
