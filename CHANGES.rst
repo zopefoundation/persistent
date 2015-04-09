@@ -4,7 +4,7 @@
 4.0.10 (unreleased)
 -------------------
 
-- TBD
+- Fix the hashcode of the Python ``TimeStamp`` on 32-bit platforms.
 
 4.0.9 (2015-04-08)
 ------------------
