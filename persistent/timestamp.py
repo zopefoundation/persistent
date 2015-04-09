@@ -13,7 +13,7 @@
 ##############################################################################
 __all__ = ('TimeStamp',)
 
-from ctypes import c_int64
+from ctypes import c_long
 import datetime
 import math
 import struct
@@ -158,7 +158,7 @@ class pyTimeStamp(object):
 
         # Make sure to overflow and wraparound just
         # like the C code does.
-        x = c_int64(x).value
+        x = c_long(x).value
         if x == -1: #pragma: no cover
             # The C version has this condition, but it's not clear
             # why; it's also not immediately obvious what bytestring
