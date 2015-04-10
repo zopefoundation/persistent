@@ -112,6 +112,29 @@ class _Persistent_Base(object):
         del inst._p_jar
         self.assertEqual(inst._p_jar, None)
 
+    def test_del_jar_of_inactive_object_that_has_no_state(self):
+        # If an object is ghosted, and we try to delete its
+        # jar, we shouldn't activate the object.
+
+        # Simulate a POSKeyError on _p_activate; this can happen aborting
+        # a transaction using ZEO
+        broken_jar = self._makeBrokenJar()
+        inst = self._makeOne()
+        inst._p_oid = 42
+        inst._p_jar = broken_jar
+
+        # make it inactive
+        if hasattr(inst, '_Persistent__flags'):
+            # Python version
+            inst._Persistent__flags = None
+        else:
+            inst._p_deactivate()
+        self.assertEqual(inst._p_status, "ghost")
+
+        # delete the jar; if we activated the object, the broken
+        # jar would raise NotImplementedError
+        del inst._p_jar
+
     def test_assign_p_jar_w_new_jar(self):
         inst, jar, OID = self._makeOneWithJar()
         new_jar = self._makeJar()
