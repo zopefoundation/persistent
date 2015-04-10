@@ -272,7 +272,9 @@ class PyAndCComparisonTests(unittest.TestCase):
             self.assertEqual(hash(py), bit_32_hash)
 
             persistent.timestamp.c_long = ctypes.c_int64
-            self.assertEqual(hash(py), bit_64_hash)
+            # call __hash__ directly to avoid interpreter truncation
+            # in hash() on 32-bit platforms
+            self.assertEqual(py.__hash__(), bit_64_hash)
         finally:
             persistent.timestamp.c_long = orig_c_long
 
@@ -286,6 +288,10 @@ class PyAndCComparisonTests(unittest.TestCase):
     def test_hash_equal_constants(self):
         # The simple constants make it easier to diagnose
         # a difference in algorithms
+        import persistent.timestamp
+        import ctypes
+        is_32_bit = persistent.timestamp.c_long == ctypes.c_int32
+
         c, py = self._make_C_and_Py(b'\x00\x00\x00\x00\x00\x00\x00\x00')
         self.assertEqual(hash(c), 8)
         self.assertEqual(hash(c), hash(py))
@@ -298,25 +304,41 @@ class PyAndCComparisonTests(unittest.TestCase):
         self.assertEqual(hash(c), 1000011)
         self.assertEqual(hash(c), hash(py))
 
+        # overflow kicks in here on 32-bit platforms
         c, py = self._make_C_and_Py(b'\x00\x00\x00\x00\x00\x01\x00\x00')
-        self.assertEqual(hash(c), 1000006000001)
+        if is_32_bit:
+            self.assertEqual(hash(c), -721379967)
+        else:
+            self.assertEqual(hash(c), 1000006000001)
         self.assertEqual(hash(c), hash(py))
 
         c, py = self._make_C_and_Py(b'\x00\x00\x00\x00\x01\x00\x00\x00')
-        self.assertEqual(hash(c), 1000009000027000019)
+        if is_32_bit:
+            self.assertEqual(hash(c), 583896275)
+        else:
+            self.assertEqual(hash(c), 1000009000027000019)
         self.assertEqual(hash(c), hash(py))
 
-        # Overflow kicks in at this point
+        # Overflow kicks in at this point on 64-bit platforms
         c, py = self._make_C_and_Py(b'\x00\x00\x00\x01\x00\x00\x00\x00')
-        self.assertEqual(hash(c), -4442925868394654887)
+        if is_32_bit:
+            self.assertEqual(hash(c), 1525764953)
+        else:
+            self.assertEqual(hash(c), -4442925868394654887)
         self.assertEqual(hash(c), hash(py))
 
         c, py = self._make_C_and_Py(b'\x00\x00\x01\x00\x00\x00\x00\x00')
-        self.assertEqual(hash(c), -3993531167153147845)
+        if is_32_bit:
+            self.assertEqual(hash(c), -429739973)
+        else:
+            self.assertEqual(hash(c), -3993531167153147845)
         self.assertEqual(hash(c), hash(py))
 
         c, py = self._make_C_and_Py(b'\x01\x00\x00\x00\x00\x00\x00\x00')
-        self.assertEqual(hash(c), -3099646879006235965)
+        if is_32_bit:
+            self.assertEqual(hash(c), 263152323)
+        else:
+            self.assertEqual(hash(c), -3099646879006235965)
         self.assertEqual(hash(c), hash(py))
 
     def test_ordering(self):
