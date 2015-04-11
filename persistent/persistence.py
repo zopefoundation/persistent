@@ -345,7 +345,8 @@ class Persistent(object):
         oga = _OGA
         before = oga(self, '_Persistent__flags')
         if before is None: # Only do this if we're a ghost
-            _OSA(self, '_Persistent__flags', 0) # up-to-date
+            # Begin by marking up-to-date in case we bail early
+            _OSA(self, '_Persistent__flags', 0)
             jar = oga(self, '_Persistent__jar')
             if jar is None:
                 return
@@ -353,11 +354,24 @@ class Persistent(object):
             if oid is None:
                 return
 
+            # If we're actually going to execute a set-state,
+            # mark as changed to prevent any recursive call
+            # (actually, our earlier check that we're a ghost should
+            # prevent this, but the C implementation sets it to changed
+            # while calling jar.setstate, and this is observable to clients).
+            # The main point of this is to prevent changes made during
+            # setstate from registering the object with the jar.
+            _OSA(self, '_Persistent__flags', CHANGED)
             try:
                 jar.setstate(self)
             except:
                 _OSA(self, '_Persistent__flags', before)
                 raise
+            else:
+                # If we succeed, no matter what the implementation
+                # of setstate did, mark ourself as up-to-date. The
+                # C implementation unconditionally does this.
+                _OSA(self, '_Persistent__flags', 0) # up-to-date
 
     # In the C implementation, _p_invalidate winds up calling
     # _p_deactivate. There are ZODB tests that depend on this;

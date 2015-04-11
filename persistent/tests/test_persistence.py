@@ -19,8 +19,17 @@ import sys
 py_impl = getattr(platform, 'python_implementation', lambda: None)
 _is_pypy3 = py_impl() == 'PyPy' and sys.version_info[0] > 2
 
+#pylint: disable=R0904,W0212,E1101
 
 class _Persistent_Base(object):
+
+    def _getTargetClass(self):
+        """Return the type of the persistent object to test"""
+        raise NotImplementedError()
+
+    def _makeCache(self, jar):
+        """Return a new pickle cache"""
+        raise NotImplementedError()
 
     def _makeOne(self, *args, **kw):
         return self._getTargetClass()(*args, **kw)
@@ -31,11 +40,17 @@ class _Persistent_Base(object):
 
         @implementer(IPersistentDataManager)
         class _Jar(object):
+            _cache = None
+            # Set this to a value to have our `setstate`
+            # pass it through to the object's __setstate__
+            setstate_calls_object = None
             def __init__(self):
                 self._loaded = []
                 self._registered = []
             def setstate(self, obj):
                 self._loaded.append(obj._p_oid)
+                if self.setstate_calls_object is not None:
+                    obj.__setstate__(self.setstate_calls_object)
             def register(self, obj):
                 self._registered.append(obj._p_oid)
 
@@ -1072,6 +1087,32 @@ class _Persistent_Base(object):
 
         inst._p_activate()
         self.assertEqual(list(jar._loaded), [OID])
+
+    def test__p_activate_leaves_object_in_saved_even_if_object_mutated_self(self):
+        # If the object's __setstate__ set's attributes
+        # when called by p_activate, the state is still
+        # 'saved' when done. Furthemore, the object is not
+        # registered with the jar
+
+        class WithSetstate(self._getTargetClass()):
+            state = None
+            def __setstate__(self, state):
+                self.state = state
+
+        inst, jar, OID = self._makeOneWithJar(klass=WithSetstate)
+        inst._p_invalidate() # make it a ghost
+        self.assertEqual(inst._p_status, 'ghost')
+
+        jar.setstate_calls_object = 42
+        inst._p_activate()
+        # It get loaded
+        self.assertEqual(list(jar._loaded), [OID])
+        # and __setstate__ got called to mutate the object
+        self.assertEqual(inst.state, 42)
+        # but it's still in the saved state
+        self.assertEqual(inst._p_status, 'saved')
+        # and it is not registered as changed by the jar
+        self.assertEqual(list(jar._registered), [])
 
     def test__p_deactivate_from_unsaved(self):
         inst = self._makeOne()
