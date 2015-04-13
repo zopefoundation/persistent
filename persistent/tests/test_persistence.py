@@ -18,6 +18,7 @@ import platform
 import sys
 py_impl = getattr(platform, 'python_implementation', lambda: None)
 _is_pypy3 = py_impl() == 'PyPy' and sys.version_info[0] > 2
+_is_jython = py_impl() == 'Jython'
 
 #pylint: disable=R0904,W0212,E1101
 
@@ -932,7 +933,7 @@ class _Persistent_Base(object):
         self.assertEqual(inst.baz, 'bam')
         self.assertEqual(inst.qux, 'spam')
 
-    if not _is_pypy3:
+    if not _is_pypy3 and not _is_jython:
         def test___setstate___interns_dict_keys(self):
             class Derived(self._getTargetClass()):
                 pass

@@ -12,7 +12,8 @@
 #
 ##############################################################################
 import unittest
-
+import gc
+_is_jython = hasattr(gc, 'getJythonGCFlags')
 _marker = object()
 
 class PickleCacheTests(unittest.TestCase):
@@ -986,7 +987,22 @@ class PickleCacheTests(unittest.TestCase):
         # Nothing to test, just that it doesn't break
         cache._invalidate(p._p_oid)
 
-    def test_cache_garbage_collection_bytes_also_deactivates_object(self):
+    if _is_jython:
+        def with_deterministic_gc(f):
+            def test(self):
+                old_flags = gc.getMonitorGlobal()
+                gc.setMonitorGlobal(True)
+                try:
+                    f(self, force_collect=True)
+                finally:
+                    gc.setMonitorGlobal(old_flags)
+            return test
+    else:
+        def with_deterministic_gc(f):
+            return f
+
+    @with_deterministic_gc
+    def test_cache_garbage_collection_bytes_also_deactivates_object(self, force_collect=False):
         from persistent.interfaces import UPTODATE
         from persistent._compat import _b
         cache = self._makeOne()
@@ -1028,6 +1044,8 @@ class PickleCacheTests(unittest.TestCase):
 
         # It also shrank the measured size of the cache;
         # this would fail under PyPy if _SWEEP_NEEDS_GC was False
+        if force_collect:
+            gc.collect()
         self.assertEqual(len(cache), 1)
 
     def test_invalidate_persistent_class_calls_p_invalidate(self):

@@ -46,6 +46,14 @@ _SWEEPABLE_TYPES = (Persistent,)
 # Tests may modify this
 _SWEEP_NEEDS_GC = not hasattr(sys, 'getrefcount')
 
+# On Jython, we need to explicitly ask it to monitor
+# objects if we want a more deterministic GC
+if hasattr(gc, 'monitorObject'): #pragma: no cover
+    _gc_monitor = gc.monitorObject
+else:
+    def _gc_monitor(o):
+        pass
+
 class RingNode(object):
     # 32 byte fixed size wrapper.
     __slots__ = ('object', 'next', 'prev')
@@ -134,7 +142,10 @@ class PickleCache(object):
 
         # XXX
         if oid in self.persistent_classes or oid in self.data:
-            if self.data[oid] is not value:
+            # Have to be careful here, a GC might have just run
+            # and cleaned up the object
+            existing_data = self.get(oid)
+            if existing_data is not None and existing_data is not value:
                 # Raise the same type of exception as the C impl with the same
                 # message.
                 raise ValueError('A different object already has the same oid')
@@ -153,6 +164,7 @@ class PickleCache(object):
             self.persistent_classes[oid] = value
         else:
             self.data[oid] = value
+            _gc_monitor(value)
             self.mru(oid)
 
     def __delitem__(self, oid):

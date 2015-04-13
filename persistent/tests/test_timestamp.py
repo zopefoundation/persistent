@@ -14,6 +14,11 @@
 import operator
 import unittest
 
+import platform
+py_impl = getattr(platform, 'python_implementation', lambda: None)
+_is_jython = py_impl() == 'Jython'
+
+
 class Test__UTC(unittest.TestCase):
 
     def _getTargetClass(self):
@@ -271,26 +276,37 @@ class PyAndCComparisonTests(unittest.TestCase):
             py = self._makePy(*self.now_ts_args)
             self.assertEqual(hash(py), bit_32_hash)
 
+
             persistent.timestamp.c_long = ctypes.c_int64
             # call __hash__ directly to avoid interpreter truncation
             # in hash() on 32-bit platforms
-            self.assertEqual(py.__hash__(), bit_64_hash)
+            if not _is_jython:
+                self.assertEqual(py.__hash__(), bit_64_hash)
+            else:
+                # Jython 2.7's ctypes module doesn't properly
+                # implement the 'value' attribute by truncating.
+                # (It does for native calls, but not visibly to Python).
+                # Therefore we get back the full python long. The actual
+                # hash() calls are correct, though, because the JVM uses
+                # 32-bit ints for its hashCode methods.
+                self.assertEqual(py.__hash__(), 384009219096809580920179179233996861765753210540033L)
         finally:
             persistent.timestamp.c_long = orig_c_long
 
+        # These are *usually* aliases, but aren't required
+        # to be
         if orig_c_long is ctypes.c_int32:
             self.assertEqual(py.__hash__(), bit_32_hash)
         elif orig_c_long is ctypes.c_int64:
             self.assertEqual(py.__hash__(), bit_64_hash)
-        else:
-            self.fail("Unknown bitness")
 
     def test_hash_equal_constants(self):
         # The simple constants make it easier to diagnose
         # a difference in algorithms
         import persistent.timestamp
         import ctypes
-        is_32_bit = persistent.timestamp.c_long == ctypes.c_int32
+        # We get 32-bit hash values of 32-bit platforms, or on the JVM
+        is_32_bit = persistent.timestamp.c_long == ctypes.c_int32 or _is_jython
 
         c, py = self._make_C_and_Py(b'\x00\x00\x00\x00\x00\x00\x00\x00')
         self.assertEqual(hash(c), 8)
