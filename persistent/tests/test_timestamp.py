@@ -289,7 +289,7 @@ class PyAndCComparisonTests(unittest.TestCase):
                 # Therefore we get back the full python long. The actual
                 # hash() calls are correct, though, because the JVM uses
                 # 32-bit ints for its hashCode methods.
-                self.assertEqual(py.__hash__(), 384009219096809580920179179233996861765753210540033L)
+                self.assertEqual(py.__hash__(), 384009219096809580920179179233996861765753210540033)
         finally:
             persistent.timestamp.c_long = orig_c_long
 
