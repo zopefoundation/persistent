@@ -54,6 +54,8 @@ else:
     def _gc_monitor(o):
         pass
 
+_OGA = object.__getattribute__
+
 class RingNode(object):
     # 32 byte fixed size wrapper.
     __slots__ = ('object', 'next', 'prev')
@@ -201,18 +203,29 @@ class PickleCache(object):
             # overridden _p_deactivate, don't mutate the ring
             # because that could leave it inconsistent
             return False # marker return for tests
+
+        # Under certain benchmarks, like zodbshootout, this method is
+        # the primary bottleneck (compare 33,473 "steamin" objects per
+        # second in the original version of this function with 542,144
+        # objects per second if this function simply returns), so we
+        # take a few steps to reduce the pressure:
+        # * object.__getattribute__ here to avoid recursive calls
+        # back to Persistent.__getattribute__. This alone makes a 50%
+        # difference in zodbshootout performance (55,000 OPS)
+
         node = self.ring.next
-        while node is not self.ring and node.object._p_oid != oid:
+        while node is not self.ring and _OGA(node.object, '_p_oid') != oid:
             node = node.next
         if node is self.ring:
             value = self.data[oid]
-            if value._p_state != GHOST:
+            if _OGA(value, '_p_state') != GHOST:
                 self.non_ghost_count += 1
                 mru = self.ring.prev
                 self.ring.prev = node = RingNode(value, self.ring, mru)
                 mru.next = node
         else:
-            assert node.object._p_oid == oid
+            # This assertion holds, but it's a redundant getattribute access
+            #assert node.object._p_oid == oid
             # remove from old location
             node.prev.next, node.next.prev = node.next, node.prev
             # splice into new

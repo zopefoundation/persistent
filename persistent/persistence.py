@@ -71,7 +71,7 @@ class Persistent(object):
 
     # _p_jar:  see IPersistent.
     def _get_jar(self):
-        return self.__jar
+        return _OGA(self, '_Persistent__jar')
 
     def _set_jar(self, value):
         if self._p_is_in_cache() and value is not None and self.__jar != value:
@@ -95,7 +95,7 @@ class Persistent(object):
 
     # _p_oid:  see IPersistent.
     def _get_oid(self):
-        return self.__oid
+        return _OGA(self, '_Persistent__oid')
 
     def _set_oid(self, value):
         if value == self.__oid:
@@ -175,15 +175,18 @@ class Persistent(object):
 
     # _p_state
     def _get_state(self):
-        if self.__jar is None:
+        # Note the use of OGA and caching to avoid recursive calls to __getattribute__:
+        # __getattribute__ calls _p_accessed calls cache.mru() calls _p_state
+        if _OGA(self, '_Persistent__jar') is None:
             return UPTODATE
-        if self.__flags is None:
+        flags = _OGA(self, '_Persistent__flags')
+        if flags is None:
             return GHOST
-        if self.__flags & _CHANGED:
+        if flags & _CHANGED:
             result = CHANGED
         else:
             result = UPTODATE
-        if self.__flags & _STICKY:
+        if flags & _STICKY:
             return STICKY
         return result
 
@@ -250,7 +253,7 @@ class Persistent(object):
         return oga(self, name)
 
     def __setattr__(self, name, value):
-        special_name = (name.startswith('_Persistent__') or
+        special_name = (name in _SPECIAL_NAMES or
                         name.startswith('_p_'))
         volatile = name.startswith('_v_')
         if not special_name:
@@ -270,7 +273,7 @@ class Persistent(object):
                 _OGA(self, '_p_register')()
 
     def __delattr__(self, name):
-        special_name = (name.startswith('_Persistent__') or
+        special_name = (name in _SPECIAL_NAMES or
                         name.startswith('_p_'))
         if not special_name:
             if _OGA(self, '_Persistent__flags') is None:
@@ -469,7 +472,7 @@ class Persistent(object):
         # the cache on the persistent object.
 
         # The below is the equivalent of this, but avoids
-        # several trips through __getattribute__, especially for _p_state,
+        # several recursive through __getattribute__, especially for _p_state,
         # and benchmarks much faster
         #
         # if(self.__jar is  None or
