@@ -56,13 +56,23 @@ else:
 
 _OGA = object.__getattribute__
 
-class RingNode(object):
-    # 32 byte fixed size wrapper.
-    __slots__ = ('object', 'next', 'prev')
-    def __init__(self, object, next=None, prev=None):
-        self.object = object
-        self.next = next
-        self.prev = prev
+class _RingWrapper(object):
+    """
+    A wrapper for objects in the cache's MRU deque that has value-based
+    identity semantics (to avoid activating ghosted objects or otherwise
+    finding the wrong object).
+    """
+    __slots__ = ('object',)
+
+    def __init__(self, o):
+        self.object = o
+
+    def __eq__(self, other):
+        try:
+            return self.object is other.object
+        except AttributeError:
+            return NotImplemented
+
 
 def _sweeping_ring(f):
     # A decorator for functions in the PickleCache
@@ -76,6 +86,8 @@ def _sweeping_ring(f):
         finally:
             self._is_sweeping_ring = False
     return locked
+
+from collections import deque
 
 @implementer(IPickleCache)
 class PickleCache(object):
@@ -106,8 +118,9 @@ class PickleCache(object):
         self.non_ghost_count = 0
         self.persistent_classes = {}
         self.data = weakref.WeakValueDictionary()
-        self.ring = RingNode(None)
-        self.ring.next = self.ring.prev = self.ring
+        # oldest is on the left, newest on the right so that default iteration order
+        # is maintained from oldest to newest
+        self.ring = deque()
         self.cache_size_bytes = cache_size_bytes
 
     # IPickleCache API
@@ -178,13 +191,13 @@ class PickleCache(object):
             del self.persistent_classes[oid]
         else:
             value = self.data.pop(oid)
-            node = self.ring.next
-            while node is not self.ring:
-                if node.object is value:
-                    node.prev.next, node.next.prev = node.next, node.prev
-                    self.non_ghost_count -= 1
-                    break
-                node = node.next
+            wrapper = _RingWrapper(value)
+            try:
+                self.ring.remove(wrapper)
+            except ValueError:
+                pass
+            else:
+                self.non_ghost_count -= 1
 
     def get(self, oid, default=None):
         """ See IPickleCache.
@@ -204,43 +217,22 @@ class PickleCache(object):
             # because that could leave it inconsistent
             return False # marker return for tests
 
-        # Under certain benchmarks, like zodbshootout, this method is
-        # the primary bottleneck (compare 33,473 "steamin" objects per
-        # second in the original version of this function with 542,144
-        # objects per second if this function simply returns), so we
-        # take a few steps to reduce the pressure:
-        # * object.__getattribute__ here to avoid recursive calls
-        # back to Persistent.__getattribute__. This alone makes a 50%
-        # difference in zodbshootout performance (55,000 OPS)
-
-        node = self.ring.next
-        while node is not self.ring and _OGA(node.object, '_p_oid') != oid:
-            node = node.next
-        if node is self.ring:
-            value = self.data[oid]
+        value = self.data[oid]
+        for i, wrapper in enumerate(self.ring):
+            if wrapper.object is value:
+                del self.ring[i]
+                self.ring.append(wrapper)
+                break
+        else:
+            # It wasn't present in the ring
             if _OGA(value, '_p_state') != GHOST:
                 self.non_ghost_count += 1
-                mru = self.ring.prev
-                self.ring.prev = node = RingNode(value, self.ring, mru)
-                mru.next = node
-        else:
-            # This assertion holds, but it's a redundant getattribute access
-            #assert node.object._p_oid == oid
-            # remove from old location
-            node.prev.next, node.next.prev = node.next, node.prev
-            # splice into new
-            self.ring.prev.next, node.prev = node, self.ring.prev
-            self.ring.prev, node.next = node, self.ring
+                self.ring.append(_RingWrapper(value))
 
     def ringlen(self):
         """ See IPickleCache.
         """
-        result = 0
-        node = self.ring.next
-        while node is not self.ring:
-            result += 1
-            node = node.next
-        return result
+        return len(self.ring)
 
     def items(self):
         """ See IPickleCache.
@@ -250,12 +242,7 @@ class PickleCache(object):
     def lru_items(self):
         """ See IPickleCache.
         """
-        result = []
-        node = self.ring.next
-        while node is not self.ring:
-            result.append((node.object._p_oid, node.object))
-            node = node.next
-        return result
+        return [(x.object._p_oid, x.object) for x in self.ring]
 
     def klass_items(self):
         """ See IPickleCache.
@@ -313,9 +300,7 @@ class PickleCache(object):
             if value._p_state == GHOST:
                 value._p_activate()
                 self.non_ghost_count += 1
-                mru = self.ring.prev
-                self.ring.prev = node = RingNode(value, self.ring, mru)
-                mru.next = node
+                self.mru(oid)
 
     def invalidate(self, to_invalidate):
         """ See IPickleCache.
@@ -383,12 +368,12 @@ class PickleCache(object):
     @_sweeping_ring
     def _sweep(self, target, target_size_bytes=0):
         # lock
-        node = self.ring.next
-        ejected = 0
-
-        while (node is not self.ring
-               and (self.non_ghost_count > target
-                    or (target_size_bytes and self.total_estimated_size > target_size_bytes))):
+        # We can't mutate while we're iterating, so store ejections by index here
+        # (deleting by index is potentially more efficient then by value)
+        to_eject = []
+        for i, node in enumerate(self.ring):
+            if self.non_ghost_count <= target and (self.total_estimated_size <= target_size_bytes or not target_size_bytes):
+                break
 
             if node.object._p_state == UPTODATE:
                 # The C implementation will only evict things that are specifically
@@ -412,9 +397,14 @@ class PickleCache(object):
                     # they don't cooperate (without this check a bunch of test_picklecache
                     # breaks)
                     or not isinstance(node.object, _SWEEPABLE_TYPES)):
-                    ejected += 1
-                    self.__remove_from_ring(node)
-            node = node.next
+                    to_eject.append(i)
+                    self.non_ghost_count -= 1
+
+        for i in reversed(to_eject):
+            del self.ring[i]
+
+        ejected = len(to_eject)
+        del to_eject
         if ejected and _SWEEP_NEEDS_GC:
             # See comments on _SWEEP_NEEDS_GC
             gc.collect()
@@ -425,12 +415,15 @@ class PickleCache(object):
         value = self.data.get(oid)
         if value is not None and value._p_state != GHOST:
             value._p_invalidate()
-            node = self.ring.next
-            while node is not self.ring:
-                if node.object is value:
-                    self.__remove_from_ring(node)
-                    break
-                node = node.next
+            try:
+                self.ring.remove(_RingWrapper(value))
+            except ValueError:
+                # The ring has been corrupted!
+                # This should be impossible in real life; a contrived
+                # test case does this
+                pass
+            else:
+                self.non_ghost_count -= 1
         elif oid in self.persistent_classes:
             persistent_class = self.persistent_classes[oid]
             del self.persistent_classes[oid]
@@ -441,9 +434,3 @@ class PickleCache(object):
                 persistent_class._p_invalidate()
             except AttributeError:
                 pass
-
-    def __remove_from_ring(self, node):
-        """Take the node, which previously contained a non-ghost, out of the ring."""
-        node.object = None
-        node.prev.next, node.next.prev = node.next, node.prev
-        self.non_ghost_count -= 1

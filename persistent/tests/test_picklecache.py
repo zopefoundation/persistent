@@ -480,7 +480,6 @@ class PickleCacheTests(unittest.TestCase):
         gc.collect() # banish the ghosts who are no longer in the ring
 
         self.assertEqual(cache.cache_non_ghost_count, 0)
-        self.assertTrue(cache.ring.next is cache.ring)
 
         for oid in oids:
             self.assertTrue(cache.get(oid) is None)
@@ -503,7 +502,6 @@ class PickleCacheTests(unittest.TestCase):
         gc.collect() # banish the ghosts who are no longer in the ring
 
         self.assertEqual(cache.cache_non_ghost_count, 1)
-        self.assertTrue(cache.ring.next is not cache.ring)
 
         self.assertTrue(cache.get(oids[0]) is not None)
         for oid in oids[1:]:
@@ -527,7 +525,6 @@ class PickleCacheTests(unittest.TestCase):
         gc.collect() # banish the ghosts who are no longer in the ring
 
         self.assertEqual(cache.cache_non_ghost_count, 1)
-        self.assertTrue(cache.ring.next is not cache.ring)
 
         self.assertTrue(cache.get(oids[0]) is not None)
         for oid in oids[1:]:
@@ -980,9 +977,10 @@ class PickleCacheTests(unittest.TestCase):
 
         p._p_state = 0 # non-ghost, get in the ring
         cache[p._p_oid] = p
+        self.assertEqual(cache.cache_non_ghost_count, 1)
 
-        self.assertEqual(cache.ring.next.object, p)
-        cache.ring.next.object = None
+        self.assertEqual(cache.ring[0].object, p)
+        cache.ring[0].object = None
 
         # Nothing to test, just that it doesn't break
         cache._invalidate(p._p_oid)
@@ -1066,6 +1064,11 @@ class PickleCacheTests(unittest.TestCase):
         cache.invalidate(KEY)
 
         self.assertTrue(pclass.invalidated)
+
+    def test_ring_wrapper_equality(self):
+        from persistent.picklecache import _RingWrapper
+        self.assertEqual(_RingWrapper(self), _RingWrapper(self))
+        self.assertNotEqual(_RingWrapper(self), self)
 
 class DummyPersistent(object):
 
