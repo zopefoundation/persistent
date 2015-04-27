@@ -979,8 +979,8 @@ class PickleCacheTests(unittest.TestCase):
         cache[p._p_oid] = p
         self.assertEqual(cache.cache_non_ghost_count, 1)
 
-        self.assertEqual(cache.ring[0].object, p)
-        cache.ring[0].object = None
+        self.assertEqual(cache.ring[0], p)
+        cache.ring[0] = None
 
         # Nothing to test, just that it doesn't break
         cache._invalidate(p._p_oid)
@@ -1064,11 +1064,6 @@ class PickleCacheTests(unittest.TestCase):
         cache.invalidate(KEY)
 
         self.assertTrue(pclass.invalidated)
-
-    def test_ring_wrapper_equality(self):
-        from persistent.picklecache import _RingWrapper
-        self.assertEqual(_RingWrapper(self), _RingWrapper(self))
-        self.assertNotEqual(_RingWrapper(self), self)
 
 class DummyPersistent(object):
 
