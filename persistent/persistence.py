@@ -27,6 +27,8 @@ from persistent.timestamp import _ZERO
 from persistent._compat import copy_reg
 from persistent._compat import intern
 
+from . import ring
+
 _INITIAL_SERIAL = _ZERO
 
 
@@ -54,7 +56,7 @@ _SPECIAL_NAMES = set(SPECIAL_NAMES)
 class Persistent(object):
     """ Pure Python implmentation of Persistent base class
     """
-    __slots__ = ('__jar', '__oid', '__serial', '__flags', '__size')
+    __slots__ = ('__jar', '__oid', '__serial', '__flags', '__size', '__ring', '__ring_handle')
 
     def __new__(cls, *args, **kw):
         inst = super(Persistent, cls).__new__(cls)
@@ -67,6 +69,8 @@ class Persistent(object):
         _OSA(inst, '_Persistent__serial', None)
         _OSA(inst, '_Persistent__flags', None)
         _OSA(inst, '_Persistent__size', 0)
+        _OSA(inst, '_Persistent__ring', None)
+        _OSA(inst, '_Persistent__ring_handle', None)
         return inst
 
     # _p_jar:  see IPersistent.
@@ -483,12 +487,16 @@ class Persistent(object):
         jar = oga(self, '_Persistent__jar')
         if jar is None:
             return
+        myring = oga(self, '_Persistent__ring')
+        if ring is None:
+            return
         oid = oga(self, '_Persistent__oid')
         if oid is None:
             return
         flags = oga(self, '_Persistent__flags')
         if flags is None: # ghost
             return
+
 
         # The KeyError arises in ZODB: ZODB.serialize.ObjectWriter
         # can assign a jar and an oid to newly seen persistent objects,
@@ -497,9 +505,10 @@ class Persistent(object):
         # that at this level, all we can do is catch it.
         # The AttributeError arises in ZODB test cases
         try:
-            jar._cache.mru(oid)
+            ring.move_to_head(jar._cache.ring_home, myring)
         except (AttributeError,KeyError):
             pass
+
 
     def _p_is_in_cache(self):
         oid = self.__oid
@@ -510,6 +519,10 @@ class Persistent(object):
         cache = getattr(jar, '_cache', None)
         if cache is not None:
             return cache.get(oid) is self
+
+    def __del__(self):
+        if self._p_is_in_cache():
+            ring.del_(self._Persistent__ring)
 
 def _estimated_size_in_24_bits(value):
     if value > 1073741696:
