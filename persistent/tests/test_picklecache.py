@@ -979,8 +979,9 @@ class PickleCacheTests(unittest.TestCase):
         cache[p._p_oid] = p
         self.assertEqual(cache.cache_non_ghost_count, 1)
 
-        self.assertEqual(cache.ring[0], p)
-        cache.ring[0] = None
+        from ..ring import get_object,ffi
+        self.assertEqual(get_object(cache.ring_home.r_next), p)
+        cache.ring_home.r_next.object = ffi.NULL
 
         # Nothing to test, just that it doesn't break
         cache._invalidate(p._p_oid)

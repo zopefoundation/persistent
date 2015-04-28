@@ -487,9 +487,12 @@ class Persistent(object):
         jar = oga(self, '_Persistent__jar')
         if jar is None:
             return
-        myring = oga(self, '_Persistent__ring')
-        if ring is None:
-            return
+        # XXX: If we bail here, a number of persistence tests
+        # fail. However, the C implementation only does this if
+        # it's already in the ring (maybe somebody does that earlier?)
+        #myring = oga(self, '_Persistent__ring')
+        #if myring is None or not myring.r_next:
+        #    return
         oid = oga(self, '_Persistent__oid')
         if oid is None:
             return
@@ -505,7 +508,7 @@ class Persistent(object):
         # that at this level, all we can do is catch it.
         # The AttributeError arises in ZODB test cases
         try:
-            ring.move_to_head(jar._cache.ring_home, myring)
+            jar._cache.mru(oid)
         except (AttributeError,KeyError):
             pass
 
@@ -519,10 +522,6 @@ class Persistent(object):
         cache = getattr(jar, '_cache', None)
         if cache is not None:
             return cache.get(oid) is self
-
-    def __del__(self):
-        if self._p_is_in_cache():
-            ring.del_(self._Persistent__ring)
 
 def _estimated_size_in_24_bits(value):
     if value > 1073741696:
