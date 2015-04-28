@@ -75,8 +75,12 @@ class IRing(Interface):
         """
         Given a sequence of pairs (index, object), remove all of them from
         the ring. This should be equivalent to calling :meth:`delete` for each
-        value, but allows for a more efficient bulk deletion process. Should
-        be at least linear time (not quadratic).
+        value, but allows for a more efficient bulk deletion process.
+
+        If the index and object pairs do not match with the actual state of the
+        ring, this operation is undefined.
+
+        Should be at least linear time (not quadratic).
         """
 
     def __iter__():
@@ -85,10 +89,68 @@ class IRing(Interface):
         recently used to most recently used. Mutating the ring while an iteration
         is in progress has undefined consequences.
         """
+
+from collections import deque
+
+@implementer(IRing)
+class _DequeRing(object):
+    """
+    A ring backed by the :class:`collections.deque` class. Operations
+    are a mix of constant and linear time.
+
+    It is available on all platforms.
+    """
+
+    __slots__ = ('ring', 'ring_oids')
+
+    def __init__(self):
+
+        self.ring = deque()
+        self.ring_oids = set()
+
+    def __len__(self):
+        return len(self.ring)
+
+    def __contains__(self, pobj):
+        return pobj._p_oid in self.ring_oids
+
+    def add(self, pobj):
+        self.ring.append(pobj)
+        self.ring_oids.add(pobj._p_oid)
+
+    def delete(self, pobj):
+        # Note that we do not use self.ring.remove() because that
+        # uses equality semantics and we don't want to call the persistent
+        # object's __eq__ method (which might wake it up just after we
+        # tried to ghost it)
+        i = 0 # Using a manual numeric counter instead of enumerate() is much faster on PyPy
+        for o in self.ring:
+            if o is pobj:
+                del self.ring[i]
+                self.ring_oids.discard(pobj._p_oid)
+                return 1
+            i += 1
+
+    def move_to_head(self, pobj):
+        self.delete(pobj)
+        self.add(pobj)
+
+    def delete_all(self, indexes_and_values):
+        for ix, value in reversed(indexes_and_values):
+            del self.ring[ix]
+            self.ring_oids.discard(value._p_oid)
+
+    def __iter__(self):
+        return iter(self.ring)
+
+
 try:
     from cffi import FFI
-    import os
+except ImportError: #pragma: no cover
+    _CFFIRing = None
+else:
 
+    import os
     this_dir = os.path.dirname(os.path.abspath(__file__))
 
     ffi = FFI()
@@ -97,7 +159,7 @@ try:
 
     ring = ffi.verify("""
     #include "ring.c"
-    """, include_dirs=[os.path.dirname(os.path.abspath(__file__))])
+    """, include_dirs=[this_dir])
 
     _OGA = object.__getattribute__
     _OSA = object.__setattr__
@@ -107,6 +169,8 @@ try:
     class _CFFIRing(object):
         """
         A ring backed by a C implementation. All operations are constant time.
+
+        It is only available on platforms with ``cffi`` installed.
         """
 
         __slots__ = ('ring_home', 'ring_to_obj')
@@ -134,13 +198,11 @@ try:
             _OSA(pobj, '_Persistent__ring', node)
 
         def delete(self, pobj):
-            deleted = 0
-            node = getattr(pobj, '_Persistent__ring', None)
-            if node is not None and node.r_next:
-                ring.ring_del(node)
-                deleted = 1
-            self.ring_to_obj.pop(node, None)
-            return deleted
+            its_node = getattr(pobj, '_Persistent__ring', None)
+            our_obj = self.ring_to_obj.pop(its_node, None)
+            if its_node is not None and our_obj is not None and its_node.r_next:
+                ring.ring_del(its_node)
+                return 1
 
         def move_to_head(self, pobj):
             node = _OGA(pobj, '_Persistent__ring')
@@ -162,59 +224,5 @@ try:
             for node in self.iteritems():
                 yield ring_to_obj[node]
 
-    Ring = _CFFIRing
-
-except ImportError:
-
-    from collections import deque
-
-    @implementer(IRing)
-    class _DequeRing(object):
-        """
-        A ring backed by the :class:`collections.deque` class. Operations
-        are a mix of constant and linear time.
-        """
-
-        __slots__ = ('ring', 'ring_oids')
-
-        def __init__(self):
-
-            self.ring = deque()
-            self.ring_oids = set()
-
-        def __len__(self):
-            return len(self.ring)
-
-        def __contains__(self, pobj):
-            return pobj._p_oid in self.ring_oids
-
-        def add(self, pobj):
-            self.ring.append(pobj)
-            self.ring_oids.add(pobj._p_oid)
-
-        def delete(self, pobj):
-            # Note that we do not use self.ring.remove() because that
-            # uses equality semantics and we don't want to call the persistent
-            # object's __eq__ method (which might wake it up just after we
-            # tried to ghost it)
-            i = 0 # Using a manual numeric counter instead of enumerate() is much faster on PyPy
-            for o in self.ring:
-                if o is pobj:
-                    del self.ring[i]
-                    self.ring_oids.discard(pobj._p_oid)
-                    return 1
-                i += 1
-
-        def move_to_head(self, pobj):
-            self.delete(pobj)
-            self.add(pobj)
-
-        def delete_all(self, indexes_and_values):
-            for ix, value in reversed(indexes_and_values):
-                del self.ring[ix]
-                self.ring_oids.discard(value._p_oid)
-
-        def __iter__(self):
-            return iter(self.ring)
-
-    Ring = _DequeRing
+# Export the best available implementation
+Ring = _CFFIRing if _CFFIRing else _DequeRing
