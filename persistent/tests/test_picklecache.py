@@ -11,9 +11,16 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
-import unittest
 import gc
-_is_jython = hasattr(gc, 'getJythonGCFlags')
+import os
+import platform
+import sys
+import unittest
+
+_py_impl = getattr(platform, 'python_implementation', lambda: None)
+_is_pypy = _py_impl() == 'PyPy'
+_is_jython = 'java' in sys.platform
+
 _marker = object()
 
 class PickleCacheTests(unittest.TestCase):
@@ -970,22 +977,6 @@ class PickleCacheTests(unittest.TestCase):
         finally:
             persistent.picklecache._SWEEPABLE_TYPES = sweep_types
 
-    def test_invalidate_not_in_cache(self):
-        # A contrived test of corruption
-        cache = self._makeOne()
-        p = self._makePersist(jar=cache.jar)
-
-        p._p_state = 0 # non-ghost, get in the ring
-        cache[p._p_oid] = p
-        self.assertEqual(cache.cache_non_ghost_count, 1)
-
-        from ..ring import get_object,ffi
-        self.assertEqual(get_object(cache.ring_home.r_next), p)
-        cache.ring_home.r_next.object = ffi.NULL
-
-        # Nothing to test, just that it doesn't break
-        cache._invalidate(p._p_oid)
-
     if _is_jython:
         def with_deterministic_gc(f):
             def test(self):
@@ -1065,6 +1056,14 @@ class PickleCacheTests(unittest.TestCase):
         cache.invalidate(KEY)
 
         self.assertTrue(pclass.invalidated)
+
+    def test_ring_impl(self):
+        from .. import ring
+
+        if _is_pypy or os.getenv('USING_CFFI'):
+            self.assertEqual(ring.Ring, ring._CFFIRing)
+        else:
+            self.assertEqual(ring.Ring, ring._DequeRing)
 
 class DummyPersistent(object):
 

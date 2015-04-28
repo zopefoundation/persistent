@@ -69,9 +69,7 @@ def _sweeping_ring(f):
             self._is_sweeping_ring = False
     return locked
 
-from collections import deque
-
-from . import ring
+from .ring import Ring
 
 @implementer(IPickleCache)
 class PickleCache(object):
@@ -102,8 +100,7 @@ class PickleCache(object):
         self.non_ghost_count = 0
         self.persistent_classes = {}
         self.data = weakref.WeakValueDictionary()
-        self.ring_home = ring.CPersistentRingHead()
-        self.ring_nodes = set()
+        self.ring = Ring()
         self.cache_size_bytes = cache_size_bytes
 
     # IPickleCache API
@@ -163,11 +160,8 @@ class PickleCache(object):
         else:
             self.data[oid] = value
             _gc_monitor(value)
-            node = ring.CPersistentRing(value)
-            object.__setattr__(value, '_Persistent__ring', node)
-            if _OGA(value, '_p_state') != GHOST:
-                ring.add(self.ring_home, node)
-                self.ring_nodes.add(node)
+            if _OGA(value, '_p_state') != GHOST and value not in self.ring:
+                self.ring.add(value)
                 self.non_ghost_count += 1
 
     def __delitem__(self, oid):
@@ -179,7 +173,7 @@ class PickleCache(object):
             del self.persistent_classes[oid]
         else:
             value = self.data.pop(oid)
-            self._remove_from_ring(value)
+            self.ring.delete(value)
 
     def get(self, oid, default=None):
         """ See IPickleCache.
@@ -200,24 +194,19 @@ class PickleCache(object):
             return False # marker return for tests
 
         value = self.data[oid]
-        node = _OGA(value, '_Persistent__ring')
-        if node is None: # tests
-            return
 
-        was_in_ring = bool(node.r_next)
+        was_in_ring = value in self.ring
         if not was_in_ring:
             if _OGA(value, '_p_state') != GHOST:
-                ring.add(self.ring_home, node)
-                self.ring_nodes.add(node)
+                self.ring.add(value)
                 self.non_ghost_count += 1
         else:
-            ring.move_to_head(self.ring_home, node)
+            self.ring.move_to_head(value)
 
     def ringlen(self):
         """ See IPickleCache.
         """
-        return ring.ringlen(self.ring_home)
-
+        return len(self.ring)
 
     def items(self):
         """ See IPickleCache.
@@ -228,8 +217,7 @@ class PickleCache(object):
         """ See IPickleCache.
         """
         result = []
-        for item in ring.iteritems(self.ring_home):
-            obj = ring.get_object(item)
+        for obj in self.ring:
             result.append((obj._p_oid, obj))
         return result
 
@@ -356,15 +344,17 @@ class PickleCache(object):
 
     @_sweeping_ring
     def _sweep(self, target, target_size_bytes=0):
-        # lock
-        ejected = 0
-        for here in list(ring.iteritems(self.ring_home)):
-
+        # To avoid mutating datastructures in place or making a copy,
+        # and to work efficiently with both the CFFI ring and the
+        # deque-based ring, we collect the objects and their indexes
+        # up front and then hand them off for ejection.
+        # We don't use enumerate because that's slow under PyPy
+        i = -1
+        to_eject = []
+        for value in self.ring:
             if self.non_ghost_count <= target and (self.total_estimated_size <= target_size_bytes or not target_size_bytes):
                 break
-            value = ring.get_object(here)
-            here = here.r_next
-
+            i += 1
             if value._p_state == UPTODATE:
                 # The C implementation will only evict things that are specifically
                 # in the up-to-date state
@@ -387,9 +377,13 @@ class PickleCache(object):
                     # they don't cooperate (without this check a bunch of test_picklecache
                     # breaks)
                     or not isinstance(value, _SWEEPABLE_TYPES)):
-                    self._remove_from_ring(value)
+                    to_eject.append((i, value))
                     self.non_ghost_count -= 1
-                    ejected += 1
+
+        ejected = len(to_eject)
+        if ejected:
+            self.ring.delete_all(to_eject)
+        del to_eject # Got to clear our local if we want the GC to get the weak refs
 
         if ejected and _SWEEP_NEEDS_GC:
             # See comments on _SWEEP_NEEDS_GC
@@ -401,7 +395,7 @@ class PickleCache(object):
         value = self.data.get(oid)
         if value is not None and value._p_state != GHOST:
             value._p_invalidate()
-            self._remove_from_ring(value)
+            self.ring.delete(value)
         elif oid in self.persistent_classes:
             persistent_class = self.persistent_classes[oid]
             del self.persistent_classes[oid]
@@ -412,8 +406,3 @@ class PickleCache(object):
                 persistent_class._p_invalidate()
             except AttributeError:
                 pass
-
-    def _remove_from_ring(self, value):
-        if value._Persistent__ring.r_next:
-            ring.del_(value._Persistent__ring)
-            self.ring_nodes.discard(value._Persistent__ring)
