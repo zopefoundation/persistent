@@ -13,8 +13,78 @@
 #
 ##############################################################################
 
-#pylint: disable=W0212
+#pylint: disable=W0212,E0211,W0622,E0213,W0221,E0239
 
+from zope.interface import Interface
+from zope.interface import implementer
+
+class IRing(Interface):
+    """
+    Conceptually, a doubly-linked list for efficiently keeping track of least-
+    and most-recently used :class:`persistent.interfaces.IPersistent` objects.
+
+    This is meant to be used by the :class:`persistent.picklecache.PickleCache`
+    and should not be considered a public API. This interface documentation exists
+    to assist development of the picklecache and alternate implementations by
+    explaining assumptions and performance requirements.
+    """
+
+    def __len__():
+        """
+        Return the number of persistent objects stored in the ring. Should
+        be constant time.
+        """
+
+    def __contains__(object):
+        """
+        Answer whether the given persistent object is found in the ring.
+        Must not rely on object equality or object hashing, but only
+        identity or the `_p_oid`. Should be constant time.
+        """
+
+    def add(object):
+        """
+        Add the persistent object to the ring as most-recently used. When
+        an object is in the ring, the ring holds a strong reference to
+        it so it can be deactivated later by the pickle cache. Should
+        be constant time.
+
+        The object should not already be in the ring, but this is not necessarily
+        enforced.
+        """
+
+    def delete(object):
+        """
+        Remove the object from the ring if it is present. Returns a true
+        value if it was present and a false value otherwise. An ideal
+        implementation should be constant time, but linear time is
+        allowed.
+        """
+
+    def move_to_head(object):
+        """
+        Place the object as the most recently used object in the ring. The
+        object should already be in the ring, but this is not
+        necessarily enforced, and attempting to move an object that is
+        not in the ring has undefined consequences. An ideal
+        implementation should be constant time, but linear time is
+        allowed.
+        """
+
+    def delete_all(indexes_and_values):
+        """
+        Given a sequence of pairs (index, object), remove all of them from
+        the ring. This should be equivalent to calling :meth:`delete` for each
+        value, but allows for a more efficient bulk deletion process. Should
+        be at least linear time (not quadratic).
+        """
+
+    def __iter__():
+        """
+        Iterate over each persistent object in the ring, in the order of least
+        recently used to most recently used. Mutating the ring while an iteration
+        is in progress has undefined consequences.
+        """
 try:
     from cffi import FFI
     import os
@@ -33,7 +103,11 @@ try:
     _OSA = object.__setattr__
 
     #pylint: disable=E1101
+    @implementer(IRing)
     class _CFFIRing(object):
+        """
+        A ring backed by a C implementation. All operations are constant time.
+        """
 
         __slots__ = ('ring_home', 'ring_to_obj')
 
@@ -42,6 +116,9 @@ try:
             node.r_next = node
             node.r_prev = node
 
+            # In order for the CFFI objects to stay alive, we must keep
+            # a strong reference to them, otherwise they get freed. We must
+            # also keep strong references to the objects so they can be deactivated
             self.ring_to_obj = dict()
 
         def __len__(self):
@@ -57,10 +134,13 @@ try:
             object.__setattr__(pobj, '_Persistent__ring', node)
 
         def delete(self, pobj):
+            deleted = 0
             node = getattr(pobj, '_Persistent__ring', None)
             if node is not None and node.r_next:
                 ring.ring_del(node)
+                deleted = 1
             self.ring_to_obj.pop(node, None)
+            return deleted
 
         def move_to_head(self, pobj):
             node = pobj._Persistent__ring
@@ -88,7 +168,12 @@ except ImportError:
 
     from collections import deque
 
+    @implementer(IRing)
     class _DequeRing(object):
+        """
+        A ring backed by the :class:`collections.deque` class. Operations
+        are a mix of constant and linear time.
+        """
 
         __slots__ = ('ring', 'ring_oids')
 

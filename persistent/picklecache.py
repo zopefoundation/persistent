@@ -395,7 +395,8 @@ class PickleCache(object):
         value = self.data.get(oid)
         if value is not None and value._p_state != GHOST:
             value._p_invalidate()
-            self.ring.delete(value)
+            if self.ring.delete(value):
+                self.non_ghost_count -= 1
         elif oid in self.persistent_classes:
             persistent_class = self.persistent_classes[oid]
             del self.persistent_classes[oid]
