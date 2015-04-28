@@ -131,7 +131,7 @@ try:
             node = ffi.new("CPersistentRing*")
             ring.ring_add(self.ring_home, node)
             self.ring_to_obj[node] = pobj
-            object.__setattr__(pobj, '_Persistent__ring', node)
+            _OSA(pobj, '_Persistent__ring', node)
 
         def delete(self, pobj):
             deleted = 0
@@ -143,7 +143,7 @@ try:
             return deleted
 
         def move_to_head(self, pobj):
-            node = pobj._Persistent__ring
+            node = _OGA(pobj, '_Persistent__ring')
             ring.ring_move_to_head(self.ring_home, node)
 
         def delete_all(self, indexes_and_values):

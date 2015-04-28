@@ -56,7 +56,7 @@ _SPECIAL_NAMES = set(SPECIAL_NAMES)
 class Persistent(object):
     """ Pure Python implmentation of Persistent base class
     """
-    __slots__ = ('__jar', '__oid', '__serial', '__flags', '__size', '__ring', '__ring_handle')
+    __slots__ = ('__jar', '__oid', '__serial', '__flags', '__size', '__ring',)
 
     def __new__(cls, *args, **kw):
         inst = super(Persistent, cls).__new__(cls)
@@ -70,7 +70,6 @@ class Persistent(object):
         _OSA(inst, '_Persistent__flags', None)
         _OSA(inst, '_Persistent__size', 0)
         _OSA(inst, '_Persistent__ring', None)
-        _OSA(inst, '_Persistent__ring_handle', None)
         return inst
 
     # _p_jar:  see IPersistent.
@@ -487,12 +486,6 @@ class Persistent(object):
         jar = oga(self, '_Persistent__jar')
         if jar is None:
             return
-        # XXX: If we bail here, a number of persistence tests
-        # fail. However, the C implementation only does this if
-        # it's already in the ring (maybe somebody does that earlier?)
-        #myring = oga(self, '_Persistent__ring')
-        #if myring is None or not myring.r_next:
-        #    return
         oid = oga(self, '_Persistent__oid')
         if oid is None:
             return
