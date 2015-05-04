@@ -329,7 +329,15 @@ class Persistent(object):
                 raise TypeError('No instance dict')
             idict.clear()
             for k, v in inst_dict.items():
-                idict[intern(k)] = v
+                # Normally the keys for instance attributes are interned.
+                # Do that here, but only if it is possible to do so.
+
+                # TODO: On Python 2 codebases that straddle Python3,
+                # and use 'from __future__ import unicode_literals' it's not
+                # unheard of to have unicode objects in the __dict__ by accident.
+                # Should we watch for that and attempt to encode it so it can be
+                # interned?
+                idict[intern(k) if type(k) is str else k] = v
         slotnames = self._slotnames()
         if slotnames:
             for k, v in slots.items():
