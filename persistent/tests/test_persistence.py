@@ -966,6 +966,19 @@ class _Persistent_Base(object):
             key2 = list(inst2.__dict__.keys())[0]
             self.assertTrue(key1 is key2)
 
+    def test___setstate___doesnt_fail_on_non_string_keys(self):
+        class Derived(self._getTargetClass()):
+            pass
+        inst1 = Derived()
+        inst1.__setstate__({1: 2})
+        self.assertTrue(1 in inst1.__dict__)
+
+        class MyStr(str):
+            pass
+        mystr = MyStr('mystr')
+        inst1.__setstate__({mystr: 2})
+        self.assertTrue(mystr in inst1.__dict__)
+
     def test___reduce__(self):
         from persistent._compat import copy_reg
         inst = self._makeOne()
