@@ -692,6 +692,24 @@ class _Persistent_Base(object):
         self.assertEqual(getattr(inst, 'normal', None), 'value')
         self._checkMRU(jar, [OID])
 
+    def test___getattribute___non_cooperative(self):
+        # Getting attributes is NOT cooperative with the superclass.
+        # This comes from the C implementation and is maintained
+        # for backwards compatibility. (For example, Persistent and
+        # ExtensionClass.Base/Acquisition take special care to mix together.)
+        class Base(object):
+            def __getattribute__(self, name):
+                if name == 'magic':
+                    return 42
+                return super(Base,self).__getattribute__(name)
+
+        self.assertEqual(getattr(Base(), 'magic'), 42)
+
+        class Derived(self._getTargetClass(), Base):
+            pass
+
+        self.assertRaises(AttributeError, getattr, Derived(), 'magic')
+
     def test___setattr___p__names(self):
         from persistent.timestamp import _makeOctets
         SERIAL = _makeOctets('\x01' * 8)

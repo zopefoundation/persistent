@@ -146,7 +146,7 @@ class _DequeRing(object):
 
 try:
     from cffi import FFI
-except ImportError: #pragma: no cover
+except ImportError: # pragma: no cover
     _CFFIRing = None
 else:
 

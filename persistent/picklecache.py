@@ -48,7 +48,7 @@ _SWEEP_NEEDS_GC = not hasattr(sys, 'getrefcount')
 
 # On Jython, we need to explicitly ask it to monitor
 # objects if we want a more deterministic GC
-if hasattr(gc, 'monitorObject'): #pragma: no cover
+if hasattr(gc, 'monitorObject'): # pragma: no cover
     _gc_monitor = gc.monitorObject
 else:
     def _gc_monitor(o):
@@ -395,8 +395,9 @@ class PickleCache(object):
         value = self.data.get(oid)
         if value is not None and value._p_state != GHOST:
             value._p_invalidate()
-            if self.ring.delete(value):
-                self.non_ghost_count -= 1
+            was_in_ring = self.ring.delete(value)
+            assert was_in_ring, "Ring corruption: invalidated a non-ghost not in ring"
+            self.non_ghost_count -= 1
         elif oid in self.persistent_classes:
             persistent_class = self.persistent_classes[oid]
             del self.persistent_classes[oid]
