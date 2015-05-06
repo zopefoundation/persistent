@@ -45,6 +45,10 @@ class _Persistent_Base(object):
             # Set this to a value to have our `setstate`
             # pass it through to the object's __setstate__
             setstate_calls_object = None
+
+            # Set this to a value to have our `setstate`
+            # set the _p_serial of the object
+            setstate_sets_serial = None
             def __init__(self):
                 self._loaded = []
                 self._registered = []
@@ -52,6 +56,8 @@ class _Persistent_Base(object):
                 self._loaded.append(obj._p_oid)
                 if self.setstate_calls_object is not None:
                     obj.__setstate__(self.setstate_calls_object)
+                if self.setstate_sets_serial is not None:
+                    obj._p_serial = self.setstate_sets_serial
             def register(self, obj):
                 self._registered.append(obj._p_oid)
 
@@ -553,6 +559,17 @@ class _Persistent_Base(object):
         inst._p_serial = ts.raw()
         self.assertEqual(inst._p_mtime, ts.timeTime())
 
+    def test__p_mtime_activates_object(self):
+        # Accessing _p_mtime implicitly unghostifies the object
+        from persistent.timestamp import TimeStamp
+        WHEN_TUPLE = (2011, 2, 15, 13, 33, 27.5)
+        ts = TimeStamp(*WHEN_TUPLE)
+        inst, jar, OID = self._makeOneWithJar()
+        jar.setstate_sets_serial = ts.raw()
+        inst._p_invalidate()
+        self.assertEqual(inst._p_status, 'ghost')
+        self.assertEqual(inst._p_mtime, ts.timeTime())
+
     def test__p_state_unsaved(self):
         inst = self._makeOne()
         inst._p_changed = True
@@ -639,7 +656,6 @@ class _Persistent_Base(object):
                  '_p_oid',
                  '_p_changed',
                  '_p_serial',
-                 '_p_mtime',
                  '_p_state',
                  '_p_estimated_size',
                  '_p_sticky',
@@ -650,6 +666,9 @@ class _Persistent_Base(object):
         for name in NAMES:
             getattr(inst, name)
         self._checkMRU(jar, [])
+        # _p_mtime is special, it activates the object
+        getattr(inst, '_p_mtime')
+        self._checkMRU(jar, [OID])
 
     def test___getattribute__special_name(self):
         from persistent.persistence import SPECIAL_NAMES

@@ -170,6 +170,11 @@ class Persistent(object):
 
     # _p_mtime
     def _get_mtime(self):
+        # The C implementation automatically unghostifies the object
+        # when _p_mtime is accessed.
+        self._p_activate()
+        self._p_accessed()
+
         if self.__serial is not None:
             ts = TimeStamp(self.__serial)
             return ts.timeTime()
