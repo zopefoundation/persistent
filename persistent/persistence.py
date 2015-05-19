@@ -540,6 +540,4 @@ def _estimated_size_in_24_bits(value):
         return 16777215
     return (value//64) + 1
 
-for _name in Persistent.__slots__:
-    _SPECIAL_NAMES.add(intern('_Persistent' + _name))
-del _name
+_SPECIAL_NAMES.update([intern('_Persistent' + x) for x in Persistent.__slots__])
