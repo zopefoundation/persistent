@@ -926,8 +926,8 @@ class PickleCacheTests(unittest.TestCase):
         p = self._makePersist(jar=cache.jar)
 
         cache[p._p_oid] = p
-        # It accesses the private version directory to bypass
-        # the bit conversion
+        # The cache accesses the private attribute directly to bypass
+        # the bit conversion.
         # Note that the _p_estimated_size is set *after*
         # the update call is made in ZODB's serialize
         p._Persistent__size = 0
