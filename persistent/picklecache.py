@@ -396,7 +396,6 @@ class PickleCache(object):
         if value is not None and value._p_state != GHOST:
             value._p_invalidate()
             was_in_ring = self.ring.delete(value)
-            assert was_in_ring, "Ring corruption: invalidated a non-ghost not in ring"
             self.non_ghost_count -= 1
         elif oid in self.persistent_classes:
             persistent_class = self.persistent_classes[oid]
