@@ -13,3 +13,5 @@ nosetests.xml
 coverage.xml
 *.egg-info
 .installed.cfg
+.dir-locals.el
+dist

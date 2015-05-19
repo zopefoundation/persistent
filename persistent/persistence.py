@@ -27,6 +27,8 @@ from persistent.timestamp import _ZERO
 from persistent._compat import copy_reg
 from persistent._compat import intern
 
+from . import ring
+
 _INITIAL_SERIAL = _ZERO
 
 
@@ -37,20 +39,24 @@ _STICKY = 0x0002
 _OGA = object.__getattribute__
 _OSA = object.__setattr__
 
-# These names can be used from a ghost without causing it to be activated.
+# These names can be used from a ghost without causing it to be
+# activated. These are standardized with the C implementation
 SPECIAL_NAMES = ('__class__',
                  '__del__',
                  '__dict__',
                  '__of__',
-                 '__setstate__'
-                )
+                 '__setstate__',)
 
+# And this is an implementation detail of this class; it holds
+# the standard names plus the slot names, allowing for just one
+# check in __getattribute__
+_SPECIAL_NAMES = set(SPECIAL_NAMES)
 
 @implementer(IPersistent)
 class Persistent(object):
     """ Pure Python implmentation of Persistent base class
     """
-    __slots__ = ('__jar', '__oid', '__serial', '__flags', '__size')
+    __slots__ = ('__jar', '__oid', '__serial', '__flags', '__size', '__ring',)
 
     def __new__(cls, *args, **kw):
         inst = super(Persistent, cls).__new__(cls)
@@ -63,59 +69,69 @@ class Persistent(object):
         _OSA(inst, '_Persistent__serial', None)
         _OSA(inst, '_Persistent__flags', None)
         _OSA(inst, '_Persistent__size', 0)
+        _OSA(inst, '_Persistent__ring', None)
         return inst
 
     # _p_jar:  see IPersistent.
     def _get_jar(self):
-        return self.__jar
+        return _OGA(self, '_Persistent__jar')
 
     def _set_jar(self, value):
-        if self.__jar is not None:
-            if self.__jar != value:
-                raise ValueError('Already assigned a data manager')
-        else:
-            self.__jar = value
-            self.__flags = 0
+        jar = _OGA(self, '_Persistent__jar')
+        if self._p_is_in_cache(jar) and value is not None and jar != value:
+            # The C implementation only forbids changing the jar
+            # if we're already in a cache. Match its error message
+            raise ValueError('can not change _p_jar of cached object')
+
+        if _OGA(self, '_Persistent__jar') != value:
+            _OSA(self, '_Persistent__jar', value)
+            _OSA(self, '_Persistent__flags', 0)
 
     def _del_jar(self):
-        jar = self.__jar
-        oid = self.__oid
+        jar = _OGA(self, '_Persistent__jar')
         if jar is not None:
-            if oid and jar._cache.get(oid):
+            if self._p_is_in_cache(jar):
                 raise ValueError("can't delete _p_jar of cached object")
-            self.__setattr__('_Persistent__jar', None)
-            self.__flags = None
+            _OSA(self, '_Persistent__jar', None)
+            _OSA(self, '_Persistent__flags', None)
 
     _p_jar = property(_get_jar, _set_jar, _del_jar)
 
     # _p_oid:  see IPersistent.
     def _get_oid(self):
-        return self.__oid
+        return _OGA(self, '_Persistent__oid')
 
     def _set_oid(self, value):
-        if value == self.__oid:
+        if value == _OGA(self, '_Persistent__oid'):
             return
-        if value is not None:
-            if not isinstance(value, OID_TYPE):
-                raise ValueError('Invalid OID type: %s' % value)
-        if self.__jar is not None and self.__oid is not None:
-            raise ValueError('Already assigned an OID by our jar')
-        self.__oid = value
+        # The C implementation allows *any* value to be
+        # used as the _p_oid.
+        #if value is not None:
+        #    if not isinstance(value, OID_TYPE):
+        #        raise ValueError('Invalid OID type: %s' % value)
+        # The C implementation only forbids changing the OID
+        # if we're in a cache, regardless of what the current
+        # value or jar is
+        if self._p_is_in_cache():
+            # match the C error message
+            raise ValueError('can not change _p_oid of cached object')
+        _OSA(self, '_Persistent__oid', value)
 
     def _del_oid(self):
-        jar = self.__jar
-        oid = self.__oid
+        jar = _OGA(self, '_Persistent__jar')
+        oid = _OGA(self, '_Persistent__oid')
         if jar is not None:
             if oid and jar._cache.get(oid):
                 raise ValueError('Cannot delete _p_oid of cached object')
-        self.__oid = None
+        _OSA(self, '_Persistent__oid', None)
 
     _p_oid = property(_get_oid, _set_oid, _del_oid)
 
     # _p_serial:  see IPersistent.
     def _get_serial(self):
-        if self.__serial is not None:
-            return self.__serial
+        serial = _OGA(self, '_Persistent__serial')
+        if serial is not None:
+            return serial
         return _INITIAL_SERIAL
 
     def _set_serial(self, value):
@@ -123,23 +139,24 @@ class Persistent(object):
             raise ValueError('Invalid SERIAL type: %s' % value)
         if len(value) != 8:
             raise ValueError('SERIAL must be 8 octets')
-        self.__serial = value
+        _OSA(self, '_Persistent__serial', value)
 
     def _del_serial(self):
-        self.__serial = None
+        _OSA(self, '_Persistent__serial', None)
 
     _p_serial = property(_get_serial, _set_serial, _del_serial)
 
     # _p_changed:  see IPersistent.
     def _get_changed(self):
-        if self.__jar is None:
+        if _OGA(self, '_Persistent__jar') is None:
             return False
-        if self.__flags is None: # ghost
+        flags = _OGA(self, '_Persistent__flags')
+        if flags is None: # ghost
             return None
-        return bool(self.__flags & _CHANGED)
+        return bool(flags & _CHANGED)
 
     def _set_changed(self, value):
-        if self.__flags is None:
+        if _OGA(self, '_Persistent__flags') is None:
             if value:
                 self._p_activate()
                 self._p_set_changed_flag(value)
@@ -156,23 +173,31 @@ class Persistent(object):
 
     # _p_mtime
     def _get_mtime(self):
-        if self.__serial is not None:
-            ts = TimeStamp(self.__serial)
+        # The C implementation automatically unghostifies the object
+        # when _p_mtime is accessed.
+        self._p_activate()
+        self._p_accessed()
+        serial = _OGA(self, '_Persistent__serial')
+        if serial is not None:
+            ts = TimeStamp(serial)
             return ts.timeTime()
 
     _p_mtime = property(_get_mtime)
 
     # _p_state
     def _get_state(self):
-        if self.__jar is None:
+        # Note the use of OGA and caching to avoid recursive calls to __getattribute__:
+        # __getattribute__ calls _p_accessed calls cache.mru() calls _p_state
+        if _OGA(self, '_Persistent__jar') is None:
             return UPTODATE
-        if self.__flags is None:
+        flags = _OGA(self, '_Persistent__flags')
+        if flags is None:
             return GHOST
-        if self.__flags & _CHANGED:
+        if flags & _CHANGED:
             result = CHANGED
         else:
             result = UPTODATE
-        if self.__flags & _STICKY:
+        if flags & _STICKY:
             return STICKY
         return result
 
@@ -180,18 +205,18 @@ class Persistent(object):
 
     # _p_estimated_size:  XXX don't want to reserve the space?
     def _get_estimated_size(self):
-        return self.__size * 64
+        return _OGA(self, '_Persistent__size') * 64
 
     def _set_estimated_size(self, value):
         if isinstance(value, int):
             if value < 0:
                 raise ValueError('_p_estimated_size must not be negative')
-            self.__size = _estimated_size_in_24_bits(value)
+            _OSA(self, '_Persistent__size', _estimated_size_in_24_bits(value))
         else:
             raise TypeError("_p_estimated_size must be an integer")
 
     def _del_estimated_size(self):
-        self.__size = 0
+        _OSA(self, '_Persistent__size', 0)
 
     _p_estimated_size = property(
         _get_estimated_size, _set_estimated_size, _del_estimated_size)
@@ -199,28 +224,32 @@ class Persistent(object):
     # The '_p_sticky' property is not (yet) part of the API:  for now,
     # it exists to simplify debugging and testing assertions.
     def _get_sticky(self):
-        if self.__flags is None:
+        flags = _OGA(self, '_Persistent__flags')
+        if flags is None:
             return False
-        return bool(self.__flags & _STICKY)
+        return bool(flags & _STICKY)
     def _set_sticky(self, value):
-        if self.__flags is None:
+        flags = _OGA(self, '_Persistent__flags')
+        if flags is None:
             raise ValueError('Ghost')
         if value:
-            self.__flags |= _STICKY
+            flags |= _STICKY
         else:
-            self.__flags &= ~_STICKY
+            flags &= ~_STICKY
+        _OSA(self, '_Persistent__flags', flags)
     _p_sticky = property(_get_sticky, _set_sticky)
 
     # The '_p_status' property is not (yet) part of the API:  for now,
     # it exists to simplify debugging and testing assertions.
     def _get_status(self):
-        if self.__jar is None:
+        if _OGA(self, '_Persistent__jar') is None:
             return 'unsaved'
-        if self.__flags is None:
+        flags = _OGA(self, '_Persistent__flags')
+        if flags is None:
             return 'ghost'
-        if self.__flags & _STICKY:
+        if flags & _STICKY:
             return 'sticky'
-        if self.__flags & _CHANGED:
+        if flags & _CHANGED:
             return 'changed'
         return 'saved'
 
@@ -230,16 +259,16 @@ class Persistent(object):
     def __getattribute__(self, name):
         """ See IPersistent.
         """
-        if (not name.startswith('_Persistent__') and
-            not name.startswith('_p_') and
-            name not in SPECIAL_NAMES):
-            if _OGA(self, '_Persistent__flags') is None:
-                _OGA(self, '_p_activate')()
-            _OGA(self, '_p_accessed')()
-        return _OGA(self, name)
+        oga = _OGA
+        if (not name.startswith('_p_') and
+            name not in _SPECIAL_NAMES):
+            if oga(self, '_Persistent__flags') is None:
+                oga(self, '_p_activate')()
+            oga(self, '_p_accessed')()
+        return oga(self, name)
 
     def __setattr__(self, name, value):
-        special_name = (name.startswith('_Persistent__') or
+        special_name = (name in _SPECIAL_NAMES or
                         name.startswith('_p_'))
         volatile = name.startswith('_v_')
         if not special_name:
@@ -259,7 +288,7 @@ class Persistent(object):
                 _OGA(self, '_p_register')()
 
     def __delattr__(self, name):
-        special_name = (name.startswith('_Persistent__') or
+        special_name = (name in _SPECIAL_NAMES or
                         name.startswith('_p_'))
         if not special_name:
             if _OGA(self, '_Persistent__flags') is None:
@@ -315,7 +344,9 @@ class Persistent(object):
                 raise TypeError('No instance dict')
             idict.clear()
             for k, v in inst_dict.items():
-                idict[intern(k)] = v
+                # Normally the keys for instance attributes are interned.
+                # Do that here, but only if it is possible to do so.
+                idict[intern(k) if type(k) is str else k] = v
         slotnames = self._slotnames()
         if slotnames:
             for k, v in slots.items():
@@ -331,36 +362,85 @@ class Persistent(object):
     def _p_activate(self):
         """ See IPersistent.
         """
-        before = self.__flags
-        if self.__flags is None or self._p_state < 0: # Only do this if we're a ghost
-            self.__flags = 0
-            if self.__jar is not None and self.__oid is not None:
-                try:
-                    self.__jar.setstate(self)
-                except:
-                    self.__flags = before
-                    raise
+        oga = _OGA
+        before = oga(self, '_Persistent__flags')
+        if before is None: # Only do this if we're a ghost
+            # Begin by marking up-to-date in case we bail early
+            _OSA(self, '_Persistent__flags', 0)
+            jar = oga(self, '_Persistent__jar')
+            if jar is None:
+                return
+            oid = oga(self, '_Persistent__oid')
+            if oid is None:
+                return
+
+            # If we're actually going to execute a set-state,
+            # mark as changed to prevent any recursive call
+            # (actually, our earlier check that we're a ghost should
+            # prevent this, but the C implementation sets it to changed
+            # while calling jar.setstate, and this is observable to clients).
+            # The main point of this is to prevent changes made during
+            # setstate from registering the object with the jar.
+            _OSA(self, '_Persistent__flags', CHANGED)
+            try:
+                jar.setstate(self)
+            except:
+                _OSA(self, '_Persistent__flags', before)
+                raise
+            else:
+                # If we succeed, no matter what the implementation
+                # of setstate did, mark ourself as up-to-date. The
+                # C implementation unconditionally does this.
+                _OSA(self, '_Persistent__flags', 0) # up-to-date
+
+    # In the C implementation, _p_invalidate winds up calling
+    # _p_deactivate. There are ZODB tests that depend on this;
+    # it's not documented but there may be code in the wild
+    # that does as well
 
     def _p_deactivate(self):
         """ See IPersistent.
         """
-        if self.__flags is not None and not self.__flags:
-            self._p_invalidate()
+        flags = _OGA(self, '_Persistent__flags')
+        if flags is not None and not flags:
+            self._p_invalidate_deactivate_helper()
 
     def _p_invalidate(self):
         """ See IPersistent.
         """
-        if self.__jar is not None:
-            if self.__flags is not None:
-                self.__flags = None
-            idict = getattr(self, '__dict__', None)
-            if idict is not None:
-                idict.clear()
+        # If we think we have changes, we must pretend
+        # like we don't so that deactivate does its job
+        _OSA(self, '_Persistent__flags', 0)
+        self._p_deactivate()
+
+    def _p_invalidate_deactivate_helper(self):
+        jar = _OGA(self, '_Persistent__jar')
+        if jar is None:
+            return
+
+        if _OGA(self, '_Persistent__flags') is not None:
+            _OSA(self, '_Persistent__flags', None)
+        idict = getattr(self, '__dict__', None)
+        if idict is not None:
+            idict.clear()
+        # Implementation detail: deactivating/invalidating
+        # updates the size of the cache (if we have one)
+        # by telling it this object no longer takes any bytes
+        # (-1 is a magic number to compensate for the implementation,
+        # which always adds one to the size given)
+        try:
+            cache = jar._cache
+        except AttributeError:
+            pass
+        else:
+            cache.update_object_size_estimation(_OGA(self, '_Persistent__oid'), -1)
+            # See notes in PickleCache.sweep for why we have to do this
+            cache._persistent_deactivate_ran = True
 
     def _p_getattr(self, name):
         """ See IPersistent.
         """
-        if name.startswith('_p_') or name in SPECIAL_NAMES:
+        if name.startswith('_p_') or name in _SPECIAL_NAMES:
             return True
         self._p_activate()
         self._p_accessed()
@@ -389,18 +469,22 @@ class Persistent(object):
     # Helper methods:  not APIs:  we name them with '_p_' to bypass
     # the __getattribute__ bit which bumps the cache.
     def _p_register(self):
-        if self.__jar is not None and self.__oid is not None:
-            self.__jar.register(self)
+        jar = _OGA(self, '_Persistent__jar')
+        if jar is not None and _OGA(self, '_Persistent__oid') is not None:
+            jar.register(self)
 
     def _p_set_changed_flag(self, value):
         if value:
-            before = self.__flags
-            after = self.__flags | _CHANGED
+            before = _OGA(self, '_Persistent__flags')
+            after = before | _CHANGED
             if before != after:
                 self._p_register()
-            self.__flags = after
+            _OSA(self, '_Persistent__flags', after)
         else:
-            self.__flags &= ~_CHANGED
+            flags = _OGA(self, '_Persistent__flags')
+            flags &= ~_CHANGED
+            _OSA(self, '_Persistent__flags', flags)
+
 
     def _p_accessed(self):
         # Notify the jar's pickle cache that we have been accessed.
@@ -408,21 +492,52 @@ class Persistent(object):
         # detail, the '_cache' attribute of the jar.  We made it a
         # private API to avoid the cycle of keeping a reference to
         # the cache on the persistent object.
-        if (self.__jar is not None and
-            self.__oid is not None and
-            self._p_state >= 0):
-            # This scenario arises in ZODB: ZODB.serialize.ObjectWriter
-            # can assign a jar and an oid to newly seen persistent objects,
-            # but because they are newly created, they aren't in the
-            # pickle cache yet. There doesn't seem to be a way to distinguish
-            # that at this level, all we can do is catch it
-            try:
-                self.__jar._cache.mru(self.__oid)
-            except KeyError:
-                pass
 
+        # The below is the equivalent of this, but avoids
+        # several recursive through __getattribute__, especially for _p_state,
+        # and benchmarks much faster
+        #
+        # if(self.__jar is  None or
+        #    self.__oid is None or
+        #    self._p_state < 0 ): return
+
+        oga = _OGA
+        jar = oga(self, '_Persistent__jar')
+        if jar is None:
+            return
+        oid = oga(self, '_Persistent__oid')
+        if oid is None:
+            return
+        flags = oga(self, '_Persistent__flags')
+        if flags is None: # ghost
+            return
+
+
+        # The KeyError arises in ZODB: ZODB.serialize.ObjectWriter
+        # can assign a jar and an oid to newly seen persistent objects,
+        # but because they are newly created, they aren't in the
+        # pickle cache yet. There doesn't seem to be a way to distinguish
+        # that at this level, all we can do is catch it.
+        # The AttributeError arises in ZODB test cases
+        try:
+            jar._cache.mru(oid)
+        except (AttributeError,KeyError):
+            pass
+
+
+    def _p_is_in_cache(self, jar=None):
+        oid = _OGA(self, '_Persistent__oid')
+        if not oid:
+            return False
+
+        jar = jar or _OGA(self, '_Persistent__jar')
+        cache = getattr(jar, '_cache', None)
+        if cache is not None:
+            return cache.get(oid) is self
 
 def _estimated_size_in_24_bits(value):
     if value > 1073741696:
         return 16777215
     return (value//64) + 1
+
+_SPECIAL_NAMES.update([intern('_Persistent' + x) for x in Persistent.__slots__])

@@ -18,9 +18,19 @@ import platform
 import sys
 py_impl = getattr(platform, 'python_implementation', lambda: None)
 _is_pypy3 = py_impl() == 'PyPy' and sys.version_info[0] > 2
+_is_jython = py_impl() == 'Jython'
 
+#pylint: disable=R0904,W0212,E1101
 
 class _Persistent_Base(object):
+
+    def _getTargetClass(self):
+        # concrete testcase classes must override
+        raise NotImplementedError()
+
+    def _makeCache(self, jar):
+        # concrete testcase classes must override
+        raise NotImplementedError()
 
     def _makeOne(self, *args, **kw):
         return self._getTargetClass()(*args, **kw)
@@ -31,11 +41,23 @@ class _Persistent_Base(object):
 
         @implementer(IPersistentDataManager)
         class _Jar(object):
+            _cache = None
+            # Set this to a value to have our `setstate`
+            # pass it through to the object's __setstate__
+            setstate_calls_object = None
+
+            # Set this to a value to have our `setstate`
+            # set the _p_serial of the object
+            setstate_sets_serial = None
             def __init__(self):
                 self._loaded = []
                 self._registered = []
             def setstate(self, obj):
                 self._loaded.append(obj._p_oid)
+                if self.setstate_calls_object is not None:
+                    obj.__setstate__(self.setstate_calls_object)
+                if self.setstate_sets_serial is not None:
+                    obj._p_serial = self.setstate_sets_serial
             def register(self, obj):
                 self._registered.append(obj._p_oid)
 
@@ -112,12 +134,34 @@ class _Persistent_Base(object):
         del inst._p_jar
         self.assertEqual(inst._p_jar, None)
 
+    def test_del_jar_of_inactive_object_that_has_no_state(self):
+        # If an object is ghosted, and we try to delete its
+        # jar, we shouldn't activate the object.
+
+        # Simulate a POSKeyError on _p_activate; this can happen aborting
+        # a transaction using ZEO
+        broken_jar = self._makeBrokenJar()
+        inst = self._makeOne()
+        inst._p_oid = 42
+        inst._p_jar = broken_jar
+
+        # make it inactive
+        inst._p_deactivate()
+        self.assertEqual(inst._p_status, "ghost")
+
+        # delete the jar; if we activated the object, the broken
+        # jar would raise NotImplementedError
+        del inst._p_jar
+
     def test_assign_p_jar_w_new_jar(self):
         inst, jar, OID = self._makeOneWithJar()
         new_jar = self._makeJar()
-        def _test():
+        try:
             inst._p_jar = new_jar
-        self.assertRaises(ValueError, _test)
+        except ValueError as e:
+            self.assertEqual(str(e), "can not change _p_jar of cached object")
+        else:
+            self.fail("Should raise ValueError")
 
     def test_assign_p_jar_w_valid_jar(self):
         jar = self._makeJar()
@@ -127,11 +171,25 @@ class _Persistent_Base(object):
         self.assertTrue(inst._p_jar is jar)
         inst._p_jar = jar # reassign only to same DM
 
+    def test_assign_p_jar_not_in_cache_allowed(self):
+        jar = self._makeJar()
+        inst = self._makeOne()
+        inst._p_jar = jar
+        # Both of these are allowed
+        inst._p_jar = self._makeJar()
+        inst._p_jar = None
+        self.assertEqual(inst._p_jar, None)
+
     def test_assign_p_oid_w_invalid_oid(self):
         inst, jar, OID = self._makeOneWithJar()
-        def _test():
+
+        try:
             inst._p_oid = object()
-        self.assertRaises(ValueError, _test)
+        except ValueError as e:
+            self.assertEqual(str(e), 'can not change _p_oid of cached object')
+        else:
+            self.fail("Should raise value error")
+
 
     def test_assign_p_oid_w_valid_oid(self):
         from persistent.timestamp import _makeOctets
@@ -165,6 +223,14 @@ class _Persistent_Base(object):
         def _test():
             inst._p_oid = new_OID
         self.assertRaises(ValueError, _test)
+
+    def test_assign_p_oid_not_in_cache_allowed(self):
+        jar = self._makeJar()
+        inst = self._makeOne()
+        inst._p_jar = jar
+        inst._p_oid = 1 # anything goes
+        inst._p_oid = 42
+        self.assertEqual(inst._p_oid, 42)
 
     def test_delete_p_oid_wo_jar(self):
         from persistent.timestamp import _makeOctets
@@ -489,6 +555,18 @@ class _Persistent_Base(object):
         inst._p_serial = ts.raw()
         self.assertEqual(inst._p_mtime, ts.timeTime())
 
+    def test__p_mtime_activates_object(self):
+        # Accessing _p_mtime implicitly unghostifies the object
+        from persistent.timestamp import TimeStamp
+        WHEN_TUPLE = (2011, 2, 15, 13, 33, 27.5)
+        ts = TimeStamp(*WHEN_TUPLE)
+        inst, jar, OID = self._makeOneWithJar()
+        jar.setstate_sets_serial = ts.raw()
+        inst._p_invalidate()
+        self.assertEqual(inst._p_status, 'ghost')
+        self.assertEqual(inst._p_mtime, ts.timeTime())
+        self.assertEqual(inst._p_status, 'saved')
+
     def test__p_state_unsaved(self):
         inst = self._makeOne()
         inst._p_changed = True
@@ -575,7 +653,6 @@ class _Persistent_Base(object):
                  '_p_oid',
                  '_p_changed',
                  '_p_serial',
-                 '_p_mtime',
                  '_p_state',
                  '_p_estimated_size',
                  '_p_sticky',
@@ -586,6 +663,9 @@ class _Persistent_Base(object):
         for name in NAMES:
             getattr(inst, name)
         self._checkMRU(jar, [])
+        # _p_mtime is special, it activates the object
+        getattr(inst, '_p_mtime')
+        self._checkMRU(jar, [OID])
 
     def test___getattribute__special_name(self):
         from persistent.persistence import SPECIAL_NAMES
@@ -627,6 +707,24 @@ class _Persistent_Base(object):
         self._clearMRU(jar)
         self.assertEqual(getattr(inst, 'normal', None), 'value')
         self._checkMRU(jar, [OID])
+
+    def test___getattribute___non_cooperative(self):
+        # Getting attributes is NOT cooperative with the superclass.
+        # This comes from the C implementation and is maintained
+        # for backwards compatibility. (For example, Persistent and
+        # ExtensionClass.Base/Acquisition take special care to mix together.)
+        class Base(object):
+            def __getattribute__(self, name):
+                if name == 'magic':
+                    return 42
+                return super(Base,self).__getattribute__(name)
+
+        self.assertEqual(getattr(Base(), 'magic'), 42)
+
+        class Derived(self._getTargetClass(), Base):
+            pass
+
+        self.assertRaises(AttributeError, getattr, Derived(), 'magic')
 
     def test___setattr___p__names(self):
         from persistent.timestamp import _makeOctets
@@ -869,7 +967,7 @@ class _Persistent_Base(object):
         self.assertEqual(inst.baz, 'bam')
         self.assertEqual(inst.qux, 'spam')
 
-    if not _is_pypy3:
+    if not _is_pypy3 and not _is_jython:
         def test___setstate___interns_dict_keys(self):
             class Derived(self._getTargetClass()):
                 pass
@@ -883,6 +981,19 @@ class _Persistent_Base(object):
             key1 = list(inst1.__dict__.keys())[0]
             key2 = list(inst2.__dict__.keys())[0]
             self.assertTrue(key1 is key2)
+
+    def test___setstate___doesnt_fail_on_non_string_keys(self):
+        class Derived(self._getTargetClass()):
+            pass
+        inst1 = Derived()
+        inst1.__setstate__({1: 2})
+        self.assertTrue(1 in inst1.__dict__)
+
+        class MyStr(str):
+            pass
+        mystr = MyStr('mystr')
+        inst1.__setstate__({mystr: 2})
+        self.assertTrue(mystr in inst1.__dict__)
 
     def test___reduce__(self):
         from persistent._compat import copy_reg
@@ -1024,6 +1135,32 @@ class _Persistent_Base(object):
 
         inst._p_activate()
         self.assertEqual(list(jar._loaded), [OID])
+
+    def test__p_activate_leaves_object_in_saved_even_if_object_mutated_self(self):
+        # If the object's __setstate__ set's attributes
+        # when called by p_activate, the state is still
+        # 'saved' when done. Furthemore, the object is not
+        # registered with the jar
+
+        class WithSetstate(self._getTargetClass()):
+            state = None
+            def __setstate__(self, state):
+                self.state = state
+
+        inst, jar, OID = self._makeOneWithJar(klass=WithSetstate)
+        inst._p_invalidate() # make it a ghost
+        self.assertEqual(inst._p_status, 'ghost')
+
+        jar.setstate_calls_object = 42
+        inst._p_activate()
+        # It get loaded
+        self.assertEqual(list(jar._loaded), [OID])
+        # and __setstate__ got called to mutate the object
+        self.assertEqual(inst.state, 42)
+        # but it's still in the saved state
+        self.assertEqual(inst._p_status, 'saved')
+        # and it is not registered as changed by the jar
+        self.assertEqual(list(jar._registered), [])
 
     def test__p_deactivate_from_unsaved(self):
         inst = self._makeOne()
@@ -1381,6 +1518,36 @@ class _Persistent_Base(object):
         inst = subclass()
         self.assertEqual(object.__getattribute__(inst,'_v_setattr_called'), False)
 
+    def test_can_set__p_attrs_if_subclass_denies_setattr(self):
+        from persistent._compat import _b
+        # ZODB defines a PersistentBroken subclass that only lets us
+        # set things that start with _p, so make sure we can do that
+        class Broken(self._getTargetClass()):
+            def __setattr__(self, name, value):
+                if name.startswith('_p_'):
+                    super(Broken,self).__setattr__(name, value)
+                else:
+                    raise TypeError("Can't change broken objects")
+
+        KEY = _b('123')
+        jar = self._makeJar()
+
+        broken = Broken()
+        broken._p_oid = KEY
+        broken._p_jar = jar
+
+        broken._p_changed = True
+        broken._p_changed = 0
+
+    def test_p_invalidate_calls_p_deactivate(self):
+        class P(self._getTargetClass()):
+            deactivated = False
+            def _p_deactivate(self):
+                self.deactivated = True
+        p = P()
+        p._p_invalidate()
+        self.assertTrue(p.deactivated)
+
 class PyPersistentTests(unittest.TestCase, _Persistent_Base):
 
     def _getTargetClass(self):
@@ -1404,6 +1571,8 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
                 return self._data.get(oid)
             def __delitem__(self, oid):
                 del self._data[oid]
+            def update_object_size_estimation(self, oid, new_size):
+                pass
 
         return _Cache(jar)
 
@@ -1434,6 +1603,58 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
         jar._cache.mru = mru
         c1._p_accessed()
         self._checkMRU(jar, [])
+
+    def test_accessed_invalidated_with_jar_and_oid_but_no_cache(self):
+        # This scenario arises in ZODB tests where the jar is faked
+        from persistent._compat import _b
+        KEY = _b('123')
+        class Jar(object):
+            accessed = False
+            def __getattr__(self, name):
+                if name == '_cache':
+                    self.accessed = True
+                raise AttributeError(name)
+            def register(self, *args):
+                pass
+        c1 = self._makeOne()
+
+        c1._p_oid = KEY
+        c1._p_jar = Jar()
+        c1._p_changed = True
+        self.assertEqual(c1._p_state, 1)
+        c1._p_accessed()
+        self.assertTrue(c1._p_jar.accessed)
+
+        c1._p_jar.accessed = False
+        c1._p_invalidate_deactivate_helper()
+        self.assertTrue(c1._p_jar.accessed)
+
+        c1._p_jar.accessed = False
+        c1._Persistent__flags = None # coverage
+        c1._p_invalidate_deactivate_helper()
+        self.assertTrue(c1._p_jar.accessed)
+
+    def test_p_activate_with_jar_without_oid(self):
+        # Works, but nothing happens
+        inst = self._makeOne()
+        inst._p_jar = object()
+        inst._p_oid = None
+        object.__setattr__(inst, '_Persistent__flags', None)
+        inst._p_activate()
+
+    def test_p_accessed_with_jar_without_oid(self):
+        # Works, but nothing happens
+        inst = self._makeOne()
+        inst._p_jar = object()
+        inst._p_accessed()
+
+    def test_p_accessed_with_jar_with_oid_as_ghost(self):
+        # Works, but nothing happens
+        inst = self._makeOne()
+        inst._p_jar = object()
+        inst._p_oid = 42
+        inst._Persistent__flags = None
+        inst._p_accessed()
 
 _add_to_suite = [PyPersistentTests]
 

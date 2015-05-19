@@ -11,11 +11,32 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
+import gc
+import os
+import platform
+import sys
 import unittest
+
+_py_impl = getattr(platform, 'python_implementation', lambda: None)
+_is_pypy = _py_impl() == 'PyPy'
+_is_jython = 'java' in sys.platform
 
 _marker = object()
 
 class PickleCacheTests(unittest.TestCase):
+
+    def setUp(self):
+        import persistent.picklecache
+        self.orig_types = persistent.picklecache._CACHEABLE_TYPES
+        persistent.picklecache._CACHEABLE_TYPES += (DummyPersistent,)
+
+        self.orig_sweep_gc = persistent.picklecache._SWEEP_NEEDS_GC
+        persistent.picklecache._SWEEP_NEEDS_GC = True # coverage
+
+    def tearDown(self):
+        import persistent.picklecache
+        persistent.picklecache._CACHEABLE_TYPES = self.orig_types
+        persistent.picklecache._SWEEP_NEEDS_GC = self.orig_sweep_gc
 
     def _getTargetClass(self):
         from persistent.picklecache import PickleCache
@@ -79,12 +100,12 @@ class PickleCacheTests(unittest.TestCase):
 
         self.assertTrue(cache.get('nonesuch', default) is default)
 
-    def test___setitem___non_string_oid_raises_ValueError(self):
+    def test___setitem___non_string_oid_raises_TypeError(self):
         cache = self._makeOne()
 
         try:
             cache[object()] = self._makePersist()
-        except ValueError:
+        except TypeError:
             pass
         else:
             self.fail("Didn't raise ValueError with non-string OID.")
@@ -93,21 +114,21 @@ class PickleCacheTests(unittest.TestCase):
         from persistent._compat import _b
         KEY = _b('original')
         cache = self._makeOne()
-        original = self._makePersist()
+        original = self._makePersist(oid=KEY)
         cache[KEY] = original
         cache[KEY] = original
 
-    def test___setitem___duplicate_oid_raises_KeyError(self):
+    def test___setitem___duplicate_oid_raises_ValueError(self):
         from persistent._compat import _b
         KEY = _b('original')
         cache = self._makeOne()
-        original = self._makePersist()
+        original = self._makePersist(oid=KEY)
         cache[KEY] = original
-        duplicate = self._makePersist()
+        duplicate = self._makePersist(oid=KEY)
 
         try:
             cache[KEY] = duplicate
-        except KeyError:
+        except ValueError:
             pass
         else:
             self.fail("Didn't raise KeyError with duplicate OID.")
@@ -117,7 +138,7 @@ class PickleCacheTests(unittest.TestCase):
         from persistent._compat import _b
         KEY = _b('ghost')
         cache = self._makeOne()
-        ghost = self._makePersist(state=GHOST)
+        ghost = self._makePersist(state=GHOST, oid=KEY)
 
         cache[KEY] = ghost
 
@@ -130,12 +151,27 @@ class PickleCacheTests(unittest.TestCase):
         self.assertTrue(items[0][1] is ghost)
         self.assertTrue(cache[KEY] is ghost)
 
-    def test___setitem___non_ghost(self):
+    def test___setitem___mismatch_key_oid(self):
         from persistent.interfaces import UPTODATE
         from persistent._compat import _b
         KEY = _b('uptodate')
         cache = self._makeOne()
         uptodate = self._makePersist(state=UPTODATE)
+
+        try:
+            cache[KEY] = uptodate
+        except ValueError:
+            pass
+        else:
+            self.fail("Didn't raise ValueError when the key didn't match the OID")
+
+
+    def test___setitem___non_ghost(self):
+        from persistent.interfaces import UPTODATE
+        from persistent._compat import _b
+        KEY = _b('uptodate')
+        cache = self._makeOne()
+        uptodate = self._makePersist(state=UPTODATE, oid=KEY)
 
         cache[KEY] = uptodate
 
@@ -153,7 +189,7 @@ class PickleCacheTests(unittest.TestCase):
         from persistent._compat import _b
         KEY = _b('pclass')
         class pclass(object):
-            pass
+            _p_oid = KEY
         cache = self._makeOne()
 
         cache[KEY] = pclass
@@ -167,12 +203,12 @@ class PickleCacheTests(unittest.TestCase):
         self.assertTrue(cache[KEY] is pclass)
         self.assertTrue(cache.get(KEY) is pclass)
 
-    def test___delitem___non_string_oid_raises_ValueError(self):
+    def test___delitem___non_string_oid_raises_TypeError(self):
         cache = self._makeOne()
 
         try:
             del cache[object()]
-        except ValueError:
+        except TypeError:
             pass
         else:
             self.fail("Didn't raise ValueError with non-string OID.")
@@ -194,7 +230,7 @@ class PickleCacheTests(unittest.TestCase):
         KEY = _b('pclass')
         cache = self._makeOne()
         class pclass(object):
-            pass
+            _p_oid = KEY
         cache = self._makeOne()
 
         cache[KEY] = pclass
@@ -208,7 +244,7 @@ class PickleCacheTests(unittest.TestCase):
         from persistent._compat import _b
         KEY = _b('uptodate')
         cache = self._makeOne()
-        uptodate = self._makePersist(state=UPTODATE)
+        uptodate = self._makePersist(state=UPTODATE, oid=KEY)
 
         cache[KEY] = uptodate
 
@@ -219,9 +255,9 @@ class PickleCacheTests(unittest.TestCase):
         from persistent.interfaces import GHOST
         from persistent._compat import _b
         cache = self._makeOne()
-        ghost = self._makePersist(state=GHOST)
-
         KEY = _b('ghost')
+        ghost = self._makePersist(state=GHOST, oid=KEY)
+
         cache[KEY] = ghost
 
         del cache[KEY]
@@ -231,11 +267,11 @@ class PickleCacheTests(unittest.TestCase):
         from persistent.interfaces import UPTODATE
         from persistent._compat import _b
         cache = self._makeOne()
-        remains = self._makePersist(state=UPTODATE)
-        uptodate = self._makePersist(state=UPTODATE)
-
         REMAINS = _b('remains')
         UPTODATE = _b('uptodate')
+        remains = self._makePersist(state=UPTODATE, oid=REMAINS)
+        uptodate = self._makePersist(state=UPTODATE, oid=UPTODATE)
+
         cache[REMAINS] = remains
         cache[UPTODATE] = uptodate
 
@@ -423,7 +459,7 @@ class PickleCacheTests(unittest.TestCase):
         from persistent._compat import _b
         cache = self._makeOne()
         cache.drain_resistance = 2
-        cache.target_size = 90
+        cache.cache_size = 90
         oids = []
         for i in range(100):
             oid = _b('oid_%04d' % i)
@@ -451,7 +487,6 @@ class PickleCacheTests(unittest.TestCase):
         gc.collect() # banish the ghosts who are no longer in the ring
 
         self.assertEqual(cache.cache_non_ghost_count, 0)
-        self.assertTrue(cache.ring.next is cache.ring)
 
         for oid in oids:
             self.assertTrue(cache.get(oid) is None)
@@ -474,7 +509,6 @@ class PickleCacheTests(unittest.TestCase):
         gc.collect() # banish the ghosts who are no longer in the ring
 
         self.assertEqual(cache.cache_non_ghost_count, 1)
-        self.assertTrue(cache.ring.next is not cache.ring)
 
         self.assertTrue(cache.get(oids[0]) is not None)
         for oid in oids[1:]:
@@ -498,7 +532,6 @@ class PickleCacheTests(unittest.TestCase):
         gc.collect() # banish the ghosts who are no longer in the ring
 
         self.assertEqual(cache.cache_non_ghost_count, 1)
-        self.assertTrue(cache.ring.next is not cache.ring)
 
         self.assertTrue(cache.get(oids[0]) is not None)
         for oid in oids[1:]:
@@ -523,6 +556,23 @@ class PickleCacheTests(unittest.TestCase):
 
         for oid in oids:
             self.assertTrue(cache.get(oid) is None)
+
+    def test_minimize_turns_into_ghosts(self):
+        import gc
+        from persistent.interfaces import UPTODATE
+        from persistent.interfaces import GHOST
+        from persistent._compat import _b
+        cache = self._makeOne()
+        oid = _b('oid_%04d' % 1)
+        obj = cache[oid] = self._makePersist(oid=oid, state=UPTODATE)
+        self.assertEqual(cache.cache_non_ghost_count, 1)
+
+        cache.minimize()
+        gc.collect() # banish the ghosts who are no longer in the ring
+
+        self.assertEqual(cache.cache_non_ghost_count, 0)
+
+        self.assertEqual(obj._p_state, GHOST)
 
     def test_new_ghost_non_persistent_object(self):
         from persistent._compat import _b
@@ -549,8 +599,17 @@ class PickleCacheTests(unittest.TestCase):
         from persistent._compat import _b
         KEY = _b('123')
         cache = self._makeOne()
-        candidate = self._makePersist(oid=None, jar=None)
+        candidate = self._makePersist(oid=KEY)
         cache[KEY] = candidate
+        # Now, normally we can't get in the cache without an oid and jar
+        # (the C implementation doesn't allow it), so if we try to create
+        # a ghost, we get the value error
+        self.assertRaises(ValueError, cache.new_ghost, KEY, candidate)
+        candidate._p_oid = None
+        self.assertRaises(ValueError, cache.new_ghost, KEY, candidate)
+        # if we're sneaky and remove the OID and jar, then we get the duplicate
+        # key error
+        candidate._p_jar = None
         self.assertRaises(KeyError, cache.new_ghost, KEY, candidate)
 
     def test_new_ghost_success_already_ghost(self):
@@ -740,7 +799,7 @@ class PickleCacheTests(unittest.TestCase):
         from persistent._compat import _b
         KEY = _b('123')
         class Pclass(object):
-            _p_oid = None
+            _p_oid = KEY
             _p_jar = None
         cache = self._makeOne()
         cache[KEY] = Pclass
@@ -754,7 +813,7 @@ class PickleCacheTests(unittest.TestCase):
         from persistent._compat import _b
         KEY = _b('pclass')
         class pclass(object):
-            pass
+            _p_oid = KEY
         cache = self._makeOne()
         pclass._p_state = UPTODATE
         cache[KEY] = pclass
@@ -775,7 +834,7 @@ class PickleCacheTests(unittest.TestCase):
         from persistent._compat import _b
         KEY = _b('uptodate')
         cache = self._makeOne()
-        uptodate = self._makePersist(state=UPTODATE)
+        uptodate = self._makePersist(state=UPTODATE, oid=KEY)
         cache[KEY] = uptodate
 
         gc.collect() # pypy vs. refcounting
@@ -795,7 +854,7 @@ class PickleCacheTests(unittest.TestCase):
         from persistent._compat import _b
         KEY = _b('ghost')
         cache = self._makeOne()
-        ghost = self._makePersist(state=GHOST)
+        ghost = self._makePersist(state=GHOST, oid=KEY)
         cache[KEY] = ghost
 
         gc.collect() # pypy vs. refcounting
@@ -808,12 +867,210 @@ class PickleCacheTests(unittest.TestCase):
         self.assertEqual(typ, 'DummyPersistent')
         self.assertEqual(state, GHOST)
 
+    def test_init_with_cacheless_jar(self):
+        # Sometimes ZODB tests pass objects that don't
+        # have a _cache
+        class Jar(object):
+            was_set = False
+            def __setattr__(self, name, value):
+                if name == '_cache':
+                    object.__setattr__(self, 'was_set', True)
+                raise AttributeError(name)
+
+        jar = Jar()
+        self._makeOne(jar)
+        self.assertTrue(jar.was_set)
+
+    def test_setting_non_persistent_item(self):
+        cache = self._makeOne()
+        try:
+            cache[None] = object()
+        except TypeError as e:
+            self.assertEqual(str(e), "Cache values must be persistent objects.")
+        else:
+            self.fail("Should raise TypeError")
+
+    def test_setting_without_jar(self):
+        cache = self._makeOne()
+        p = self._makePersist(jar=None)
+        try:
+            cache[p._p_oid] = p
+        except ValueError as e:
+            self.assertEqual(str(e), "Cached object jar missing")
+        else:
+            self.fail("Should raise ValueError")
+
+    def test_setting_already_cached(self):
+        cache1 = self._makeOne()
+        p = self._makePersist(jar=cache1.jar)
+
+        cache1[p._p_oid] = p
+
+        cache2 = self._makeOne()
+        try:
+            cache2[p._p_oid] = p
+        except ValueError as e:
+            self.assertEqual(str(e), "Object already in another cache")
+        else:
+            self.fail("Should raise value error")
+
+    def test_cannot_update_mru_while_already_locked(self):
+        cache = self._makeOne()
+        cache._is_sweeping_ring = True
+
+        updated = cache.mru(None)
+        self.assertFalse(updated)
+
+    def test_update_object_size_estimation_simple(self):
+        cache = self._makeOne()
+        p = self._makePersist(jar=cache.jar)
+
+        cache[p._p_oid] = p
+        # The cache accesses the private attribute directly to bypass
+        # the bit conversion.
+        # Note that the _p_estimated_size is set *after*
+        # the update call is made in ZODB's serialize
+        p._Persistent__size = 0
+
+        cache.update_object_size_estimation(p._p_oid, 2)
+
+        self.assertEqual(cache.total_estimated_size, 64)
+
+        # A missing object does nothing
+        cache.update_object_size_estimation(None, 2)
+        self.assertEqual(cache.total_estimated_size, 64)
+
+    def test_cache_size(self):
+        size = 42
+        cache = self._makeOne(target_size=size)
+        self.assertEqual(cache.cache_size, size)
+
+        cache.cache_size = 64
+        self.assertEqual(cache.cache_size, 64)
+
+    def test_sweep_empty(self):
+        cache = self._makeOne()
+        self.assertEqual(cache.incrgc(), 0)
+
+    def test_sweep_of_non_deactivating_object(self):
+        cache = self._makeOne()
+        p = self._makePersist(jar=cache.jar)
+
+        p._p_state = 0 # non-ghost, get in the ring
+        cache[p._p_oid] = p
+
+
+        def bad_deactivate():
+            "Doesn't call super, for it's own reasons, so can't be ejected"
+            return
+
+        p._p_deactivate = bad_deactivate
+
+        import persistent.picklecache
+        sweep_types = persistent.picklecache._SWEEPABLE_TYPES
+        persistent.picklecache._SWEEPABLE_TYPES = DummyPersistent
+        try:
+            self.assertEqual(cache.full_sweep(), 0)
+        finally:
+            persistent.picklecache._SWEEPABLE_TYPES = sweep_types
+
+        del p._p_deactivate
+        self.assertEqual(cache.full_sweep(), 1)
+
+    if _is_jython:
+        def with_deterministic_gc(f):
+            def test(self):
+                old_flags = gc.getMonitorGlobal()
+                gc.setMonitorGlobal(True)
+                try:
+                    f(self, force_collect=True)
+                finally:
+                    gc.setMonitorGlobal(old_flags)
+            return test
+    else:
+        def with_deterministic_gc(f):
+            return f
+
+    @with_deterministic_gc
+    def test_cache_garbage_collection_bytes_also_deactivates_object(self, force_collect=False):
+        from persistent.interfaces import UPTODATE
+        from persistent._compat import _b
+        cache = self._makeOne()
+        cache.cache_size = 1000
+        oids = []
+        for i in range(100):
+            oid = _b('oid_%04d' % i)
+            oids.append(oid)
+            o = cache[oid] = self._makePersist(oid=oid, state=UPTODATE)
+            o._Persistent__size = 0 # must start 0, ZODB sets it AFTER updating the size
+            cache.update_object_size_estimation(oid, 64)
+            o._Persistent__size = 2
+
+            # mimic what the real persistent object does to update the cache
+            # size; if we don't get deactivated by sweeping, the cache size
+            # won't shrink so this also validates that _p_deactivate gets
+            # called when ejecting an object.
+            o._p_deactivate = lambda: cache.update_object_size_estimation(oid, -1)
+        self.assertEqual(cache.cache_non_ghost_count, 100)
+
+        # A GC at this point does nothing
+        cache.incrgc()
+        self.assertEqual(cache.cache_non_ghost_count, 100)
+        self.assertEqual(len(cache), 100)
+
+        # Now if we set a byte target:
+
+        cache.cache_size_bytes = 1
+        # verify the change worked as expected
+        self.assertEqual(cache.cache_size_bytes, 1)
+        # verify our entrance assumption is fulfilled
+        self.assertTrue(cache.cache_size > 100)
+        self.assertTrue(cache.total_estimated_size > 1)
+        # A gc shrinks the bytes
+        cache.incrgc()
+        self.assertEqual(cache.total_estimated_size, 0)
+
+        # It also shrank the measured size of the cache;
+        # this would fail under PyPy if _SWEEP_NEEDS_GC was False
+        if force_collect:
+            gc.collect()
+        self.assertEqual(len(cache), 1)
+
+    def test_invalidate_persistent_class_calls_p_invalidate(self):
+        from persistent._compat import _b
+        KEY = _b('pclass')
+        class pclass(object):
+            _p_oid = KEY
+            invalidated = False
+            @classmethod
+            def _p_invalidate(cls):
+                cls.invalidated = True
+
+
+        cache = self._makeOne()
+
+        cache[KEY] = pclass
+
+        cache.invalidate(KEY)
+
+        self.assertTrue(pclass.invalidated)
+
+    def test_ring_impl(self):
+        from .. import ring
+
+        if _is_pypy or os.getenv('USING_CFFI'):
+            self.assertTrue(ring.Ring is ring._CFFIRing)
+        else:
+            self.assertTrue(ring.Ring is ring._DequeRing)
 
 class DummyPersistent(object):
 
     def _p_invalidate(self):
         from persistent.interfaces import GHOST
         self._p_state = GHOST
+
+    _p_deactivate = _p_invalidate
+    _p_invalidate_deactivate_helper = _p_invalidate
 
     def _p_activate(self):
         from persistent.interfaces import UPTODATE
