@@ -294,7 +294,7 @@ class PyAndCComparisonTests(unittest.TestCase):
             persistent.timestamp.c_long = orig_c_long
 
         # These are *usually* aliases, but aren't required
-        # to be
+        # to be (and aren't under Jython 2.7).
         if orig_c_long is ctypes.c_int32:
             self.assertEqual(py.__hash__(), bit_32_hash)
         elif orig_c_long is ctypes.c_int64:
