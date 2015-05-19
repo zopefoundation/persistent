@@ -1059,9 +1059,9 @@ class PickleCacheTests(unittest.TestCase):
         from .. import ring
 
         if _is_pypy or os.getenv('USING_CFFI'):
-            assert ring.Ring is ring._CFFIRing
+            self.assertTrue(ring.Ring is ring._CFFIRing)
         else:
-            assert ring.Ring is ring._DequeRing
+            self.assertTrue(ring.Ring is ring._DequeRing)
 
 class DummyPersistent(object):
 
