@@ -124,13 +124,11 @@ class _DequeRing(object):
         # uses equality semantics and we don't want to call the persistent
         # object's __eq__ method (which might wake it up just after we
         # tried to ghost it)
-        i = 0 # Using a manual numeric counter instead of enumerate() is much faster on PyPy
-        for o in self.ring:
+        for i, o in enumerate(self.ring):
             if o is pobj:
                 del self.ring[i]
                 self.ring_oids.discard(pobj._p_oid)
                 return 1
-            i += 1
 
     def move_to_head(self, pobj):
         self.delete(pobj)
