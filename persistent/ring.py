@@ -19,8 +19,7 @@ from zope.interface import Interface
 from zope.interface import implementer
 
 class IRing(Interface):
-    """
-    Conceptually, a doubly-linked list for efficiently keeping track of least-
+    """Conceptually, a doubly-linked list for efficiently keeping track of least-
     and most-recently used :class:`persistent.interfaces.IPersistent` objects.
 
     This is meant to be used by the :class:`persistent.picklecache.PickleCache`
@@ -30,41 +29,41 @@ class IRing(Interface):
     """
 
     def __len__():
-        """
-        Return the number of persistent objects stored in the ring. Should
-        be constant time.
+        """Return the number of persistent objects stored in the ring.
+
+        Should be constant time.
         """
 
     def __contains__(object):
-        """
-        Answer whether the given persistent object is found in the ring.
+        """Answer whether the given persistent object is found in the ring.
+
         Must not rely on object equality or object hashing, but only
         identity or the `_p_oid`. Should be constant time.
         """
 
     def add(object):
-        """
-        Add the persistent object to the ring as most-recently used. When
-        an object is in the ring, the ring holds a strong reference to
-        it so it can be deactivated later by the pickle cache. Should
-        be constant time.
+        """Add the persistent object to the ring as most-recently used.
+
+        When an object is in the ring, the ring holds a strong
+        reference to it so it can be deactivated later by the pickle
+        cache. Should be constant time.
 
         The object should not already be in the ring, but this is not necessarily
         enforced.
-        """
+		"""
 
     def delete(object):
-        """
-        Remove the object from the ring if it is present. Returns a true
-        value if it was present and a false value otherwise. An ideal
-        implementation should be constant time, but linear time is
-        allowed.
+        """Remove the object from the ring if it is present.
+
+        Returns a true value if it was present and a false value
+        otherwise. An ideal implementation should be constant time,
+        but linear time is allowed.
         """
 
     def move_to_head(object):
-        """
-        Place the object as the most recently used object in the ring. The
-        object should already be in the ring, but this is not
+        """Place the object as the most recently used object in the ring.
+
+        The object should already be in the ring, but this is not
         necessarily enforced, and attempting to move an object that is
         not in the ring has undefined consequences. An ideal
         implementation should be constant time, but linear time is
@@ -72,9 +71,10 @@ class IRing(Interface):
         """
 
     def delete_all(indexes_and_values):
-        """
-        Given a sequence of pairs (index, object), remove all of them from
-        the ring. This should be equivalent to calling :meth:`delete` for each
+        """Given a sequence of pairs (index, object), remove all of them from
+        the ring.
+
+        This should be equivalent to calling :meth:`delete` for each
         value, but allows for a more efficient bulk deletion process.
 
         If the index and object pairs do not match with the actual state of the
@@ -84,19 +84,20 @@ class IRing(Interface):
         """
 
     def __iter__():
-        """
-        Iterate over each persistent object in the ring, in the order of least
-        recently used to most recently used. Mutating the ring while an iteration
-        is in progress has undefined consequences.
+        """Iterate over each persistent object in the ring, in the order of least
+        recently used to most recently used.
+
+        Mutating the ring while an iteration is in progress has
+        undefined consequences.
         """
 
 from collections import deque
 
 @implementer(IRing)
 class _DequeRing(object):
-    """
-    A ring backed by the :class:`collections.deque` class. Operations
-    are a mix of constant and linear time.
+    """A ring backed by the :class:`collections.deque` class.
+
+    Operations are a mix of constant and linear time.
 
     It is available on all platforms.
     """
@@ -167,8 +168,7 @@ else:
     #pylint: disable=E1101
     @implementer(IRing)
     class _CFFIRing(object):
-        """
-        A ring backed by a C implementation. All operations are constant time.
+        """A ring backed by a C implementation. All operations are constant time.
 
         It is only available on platforms with ``cffi`` installed.
         """
