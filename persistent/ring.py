@@ -156,7 +156,7 @@ else:
     with open(os.path.join(this_dir, 'ring.h')) as f:
         ffi.cdef(f.read())
 
-    ring = ffi.verify("""
+    _FFI_RING = ffi.verify("""
     #include "ring.c"
     """, include_dirs=[this_dir])
 
@@ -191,7 +191,7 @@ else:
 
         def add(self, pobj):
             node = ffi.new("CPersistentRing*")
-            ring.ring_add(self.ring_home, node)
+            _FFI_RING.ring_add(self.ring_home, node)
             self.ring_to_obj[node] = pobj
             _OSA(pobj, '_Persistent__ring', node)
 
@@ -199,12 +199,12 @@ else:
             its_node = getattr(pobj, '_Persistent__ring', None)
             our_obj = self.ring_to_obj.pop(its_node, None)
             if its_node is not None and our_obj is not None and its_node.r_next:
-                ring.ring_del(its_node)
+                _FFI_RING.ring_del(its_node)
                 return 1
 
         def move_to_head(self, pobj):
             node = _OGA(pobj, '_Persistent__ring')
-            ring.ring_move_to_head(self.ring_home, node)
+            _FFI_RING.ring_move_to_head(self.ring_home, node)
 
         def delete_all(self, indexes_and_values):
             for _, value in indexes_and_values:
