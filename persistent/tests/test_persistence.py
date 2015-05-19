@@ -25,7 +25,7 @@ _is_jython = py_impl() == 'Jython'
 class _Persistent_Base(object):
 
     def _getTargetClass(self):
-        """Return the type of the persistent object to test"""
+        # concrete testcase classes must override
         raise NotImplementedError()
 
     def _makeCache(self, jar):
