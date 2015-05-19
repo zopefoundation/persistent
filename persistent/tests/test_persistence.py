@@ -569,6 +569,7 @@ class _Persistent_Base(object):
         inst._p_invalidate()
         self.assertEqual(inst._p_status, 'ghost')
         self.assertEqual(inst._p_mtime, ts.timeTime())
+        self.assertEqual(inst._p_status, 'saved')
 
     def test__p_state_unsaved(self):
         inst = self._makeOne()
