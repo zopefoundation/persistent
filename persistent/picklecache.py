@@ -396,8 +396,7 @@ class PickleCache(object):
             was_in_ring = self.ring.delete(value)
             self.non_ghost_count -= 1
         elif oid in self.persistent_classes:
-            persistent_class = self.persistent_classes[oid]
-            del self.persistent_classes[oid]
+            persistent_class = self.persistent_classes.pop(oid)
             try:
                 # ZODB.persistentclass.PersistentMetaClass objects
                 # have this method and it must be called for transaction abort
