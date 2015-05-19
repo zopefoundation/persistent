@@ -146,11 +146,7 @@ class _Persistent_Base(object):
         inst._p_jar = broken_jar
 
         # make it inactive
-        if hasattr(inst, '_Persistent__flags'):
-            # Python version
-            inst._Persistent__flags = None
-        else:
-            inst._p_deactivate()
+        inst._p_deactivate()
         self.assertEqual(inst._p_status, "ghost")
 
         # delete the jar; if we activated the object, the broken
