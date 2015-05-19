@@ -155,6 +155,3 @@ if ring._CFFIRing:
 
 def test_suite():
     return unittest.TestSuite([unittest.makeSuite(x) for x in _add_to_suite])
-
-if __name__ == '__main__':
-    unittest.main()
