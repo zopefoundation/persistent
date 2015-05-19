@@ -459,7 +459,7 @@ class PickleCacheTests(unittest.TestCase):
         from persistent._compat import _b
         cache = self._makeOne()
         cache.drain_resistance = 2
-        cache.target_size = 90
+        cache.cache_size = 90
         oids = []
         for i in range(100):
             oid = _b('oid_%04d' % i)
@@ -996,7 +996,7 @@ class PickleCacheTests(unittest.TestCase):
         from persistent.interfaces import UPTODATE
         from persistent._compat import _b
         cache = self._makeOne()
-        cache.target_size = 1000
+        cache.cache_size = 1000
         oids = []
         for i in range(100):
             oid = _b('oid_%04d' % i)

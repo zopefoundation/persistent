@@ -95,7 +95,7 @@ class PickleCache(object):
         except AttributeError:
             # Some ZODB tests pass in an object that cannot have an _cache
             pass
-        self.target_size = target_size
+        self.cache_size = target_size
         self.drain_resistance = 0
         self.non_ghost_count = 0
         self.persistent_classes = {}
@@ -319,8 +319,6 @@ class PickleCache(object):
 
             self.total_estimated_size += new_est_size_in_bytes
 
-    cache_size = property(lambda self: self.target_size,
-                          lambda self, nv: setattr(self, 'target_size', nv))
     cache_drain_resistance = property(lambda self: self.drain_resistance)
     cache_non_ghost_count = property(lambda self: self.non_ghost_count)
     cache_data = property(lambda self: dict(self.data.items()))
