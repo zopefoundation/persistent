@@ -11,9 +11,6 @@
 
 - Fix the hashcode of the Python ``TimeStamp`` on 32-bit platforms.
 
-- Add support for Jython 2.7.
-
-
 4.0.9 (2015-04-08)
 ------------------
 
