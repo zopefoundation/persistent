@@ -1028,9 +1028,7 @@ class PickleCacheTests(unittest.TestCase):
         self.assertTrue(cache.total_estimated_size > 1)
         # A gc shrinks the bytes
         cache.incrgc()
-        self.assertTrue(cache.total_estimated_size <= 1)
-        # sanity check
-        self.assertTrue(cache.total_estimated_size >= 0)
+        self.assertEqual(cache.total_estimated_size, 0)
 
         # It also shrank the measured size of the cache;
         # this would fail under PyPy if _SWEEP_NEEDS_GC was False
