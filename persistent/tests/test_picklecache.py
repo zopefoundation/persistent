@@ -968,15 +968,14 @@ class PickleCacheTests(unittest.TestCase):
 
         import persistent.picklecache
         sweep_types = persistent.picklecache._SWEEPABLE_TYPES
+        persistent.picklecache._SWEEPABLE_TYPES = DummyPersistent
         try:
-            persistent.picklecache._SWEEPABLE_TYPES = DummyPersistent
             self.assertEqual(cache.full_sweep(), 0)
-
-            persistent.picklecache._SWEEPABLE_TYPES = sweep_types
-            del p._p_deactivate
-            self.assertEqual(cache.full_sweep(), 1)
         finally:
             persistent.picklecache._SWEEPABLE_TYPES = sweep_types
+
+        del p._p_deactivate
+        self.assertEqual(cache.full_sweep(), 1)
 
     if _is_jython:
         def with_deterministic_gc(f):
