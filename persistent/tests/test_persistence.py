@@ -29,7 +29,7 @@ class _Persistent_Base(object):
         raise NotImplementedError()
 
     def _makeCache(self, jar):
-        """Return a new pickle cache"""
+        # concrete testcase classes must override
         raise NotImplementedError()
 
     def _makeOne(self, *args, **kw):
