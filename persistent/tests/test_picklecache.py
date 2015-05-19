@@ -560,6 +560,7 @@ class PickleCacheTests(unittest.TestCase):
     def test_minimize_turns_into_ghosts(self):
         import gc
         from persistent.interfaces import UPTODATE
+        from persistent.interfaces import GHOST
         from persistent._compat import _b
         cache = self._makeOne()
         oid = _b('oid_%04d' % 1)
@@ -571,7 +572,7 @@ class PickleCacheTests(unittest.TestCase):
 
         self.assertEqual(cache.cache_non_ghost_count, 0)
 
-        self.assertEqual(obj._p_state, -1)
+        self.assertEqual(obj._p_state, GHOST)
 
     def test_new_ghost_non_persistent_object(self):
         from persistent._compat import _b
