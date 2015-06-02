@@ -1,15 +1,15 @@
 ``persistent`` Changelog
 ========================
 
-4.1.1 (unreleased)
+4.1.1 (2015-06-02)
 ------------------
 
-- TBD
+- Fix manifest and re-upload to fix stray files included in 4.1.0.
 
 4.1.0 (2015-05-19)
 ------------------
 
-- Made the Python implementation of ``Persistent`` and ``PickleCache``
+- Make the Python implementation of ``Persistent`` and ``PickleCache``
   behave more similarly to the C implementation. In particular, the
   Python version can now run the complete ZODB and ZEO test suites.
 
