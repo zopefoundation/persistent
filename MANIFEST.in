@@ -8,6 +8,10 @@ global-exclude *.dll
 global-exclude *.pyc
 global-exclude *.pyo
 global-exclude *.so
+global-exclude coverage.xml
+
+prune docs/_build
+prune persistent/__pycache__
 
 include .coveragerc
 include .travis.yml
