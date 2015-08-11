@@ -278,7 +278,6 @@ class Persistent(object):
                 _OGA(self, '_p_accessed')()
         _OSA(self, name, value)
         if (_OGA(self, '_Persistent__jar') is not None and
-            _OGA(self, '_Persistent__oid') is not None and
             not special_name and
             not volatile):
             before = _OGA(self, '_Persistent__flags')
@@ -470,7 +469,7 @@ class Persistent(object):
     # the __getattribute__ bit which bumps the cache.
     def _p_register(self):
         jar = _OGA(self, '_Persistent__jar')
-        if jar is not None and _OGA(self, '_Persistent__oid') is not None:
+        if jar is not None:
             jar.register(self)
 
     def _p_set_changed_flag(self, value):
