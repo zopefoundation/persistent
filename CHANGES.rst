@@ -1,10 +1,10 @@
 ``persistent`` Changelog
 ========================
 
-4.1.2 (unreleased)
+4.2.0 (unreleased)
 ------------------
 
-- TBD
+- Drop support for Python 2.6 and 3.2.
 
 4.1.1 (2015-06-02)
 ------------------
