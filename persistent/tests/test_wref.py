@@ -80,6 +80,8 @@ class WeakRefTests(unittest.TestCase):
         target = _makeTarget()
         lhs = self._makeOne(target)
         self.assertNotEqual(lhs, object())
+        # Test belt-and-suspenders directly
+        self.assertFalse(lhs.__eq__(object()))
 
     def test___eq___w_both_same_target(self):
         target = _makeTarget()
