@@ -4,6 +4,9 @@
 4.2.0 (unreleased)
 ------------------
 
+- When testing ``PURE_PYTHON`` environments under ``tox``, avoid poisoning
+  the user's global wheel cache.
+
 - Drop support for Python 2.6 and 3.2.
 
 4.1.1 (2015-06-02)
