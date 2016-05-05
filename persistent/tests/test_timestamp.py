@@ -100,9 +100,10 @@ class pyTimeStampTests(unittest.TestCase):
         self.assertEqual(ts.timeTime(), DELTA_SECS)
 
     def test_ctor_from_string_non_zero(self):
-        before = self._makeOne(2011, 2, 16, 14, 37, 22.0)
+        before = self._makeOne(2011, 2, 16, 14, 37, 22.80544)
         after = self._makeOne(before.raw())
         self.assertEqual(before.raw(), after.raw())
+        self.assertEqual(before.timeTime(), 1297867042.80544)
 
     def test_ctor_from_elements(self):
         from persistent.timestamp import _makeOctets

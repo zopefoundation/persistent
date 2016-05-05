@@ -119,7 +119,7 @@ class pyTimeStamp(object):
         """ -> seconds since epoch, as a float.
         """
         delta = _makeUTC(*self._elements) - _EPOCH
-        return delta.days * 86400.0 + delta.seconds
+        return delta.days * 86400 + delta.seconds + delta.microseconds / 1e6
 
     def laterThan(self, other):
         """ Return a timestamp instance which is later than 'other'.
