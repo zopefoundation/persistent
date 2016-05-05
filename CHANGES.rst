@@ -1,8 +1,11 @@
 ``persistent`` Changelog
 ========================
 
-4.2.0 (unreleased)
+4.2.0 (2016-05-05)
 ------------------
+
+- Fixed the Python(/PYPY) implementation ``TimeStamp.timeTime`` method
+  to have subsecond precision.
 
 - When testing ``PURE_PYTHON`` environments under ``tox``, avoid poisoning
   the user's global wheel cache.
