@@ -19,7 +19,7 @@ matrix:
           env: TERRYFY_PYTHON='homebrew 2'
         - os: osx
           language: generic
-          env: TERRYFY_PYTHON='homebrew 3.4'
+          env: TERRYFY_PYTHON='macpython 3.4'
         - os: osx
           language: generic
           env: TERRYFY_PYTHON='homebrew 3.5'
