@@ -1,6 +1,12 @@
 ``persistent`` Changelog
 ========================
 
+4.2.1 (TBD)
+-----------
+
+- Fix the hashcode of C ``TimeStamp`` objects on 64-bit Python 3 on
+  Windows.
+
 4.2.0 (2016-05-05)
 ------------------
 
