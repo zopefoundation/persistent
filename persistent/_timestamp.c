@@ -152,7 +152,12 @@ TimeStamp_richcompare(TimeStamp *self, TimeStamp *other, int op)
     return result;
 }
 
+
+#ifdef PY3K
+static Py_hash_t
+#else
 static long
+#endif
 TimeStamp_hash(TimeStamp *self)
 {
     register unsigned char *p = (unsigned char *)self->data;
