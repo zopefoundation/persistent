@@ -1319,6 +1319,27 @@ class _Persistent_Base(object):
         self.assertEqual(list(jar._loaded), [])
         self.assertEqual(list(jar._registered), [])
 
+    def test__p_invalidate_from_changed_w_slots(self):
+        class Derived(self._getTargetClass()):
+            __slots__ = ('myattr1', 'myattr2')
+            def __init__(self):
+                self.myattr1 = 'value1'
+                self.myattr2 = 'value2'
+        inst, jar, OID = self._makeOneWithJar(Derived)
+        inst._p_activate()
+        inst._p_changed = True
+        jar._loaded = []
+        jar._registered = []
+        self.assertEqual(Derived.myattr1.__get__(inst), 'value1')
+        self.assertEqual(Derived.myattr2.__get__(inst), 'value2')
+        inst._p_invalidate()
+        self.assertEqual(inst._p_status, 'ghost')
+        self.assertEqual(list(jar._loaded), [])
+        self.assertRaises(AttributeError, lambda: Derived.myattr1.__get__(inst))
+        self.assertRaises(AttributeError, lambda: Derived.myattr2.__get__(inst))
+        self.assertEqual(list(jar._loaded), [])
+        self.assertEqual(list(jar._registered), [])
+
     def test__p_invalidate_from_sticky(self):
         inst, jar, OID = self._makeOneWithJar()
         inst._p_activate() # XXX

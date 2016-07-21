@@ -303,11 +303,11 @@ class Persistent(object):
                     _OGA(self, '_p_register')()
         object.__delattr__(self, name)
 
-    def _slotnames(self):
+    def _slotnames(self, _v_exclude=True):
         slotnames = copy_reg._slotnames(type(self))
         return [x for x in slotnames
                    if not x.startswith('_p_') and
-                      not x.startswith('_v_') and
+                      not (x.startswith('_v_') and _v_exclude) and
                       not x.startswith('_Persistent__') and
                       x not in Persistent.__slots__]
 
@@ -423,6 +423,10 @@ class Persistent(object):
         idict = getattr(self, '__dict__', None)
         if idict is not None:
             idict.clear()
+        type_ = type(self)
+        for slotname in Persistent._slotnames(self, _v_exclude=False):
+            getattr(type_, slotname).__delete__(self)
+
         # Implementation detail: deactivating/invalidating
         # updates the size of the cache (if we have one)
         # by telling it this object no longer takes any bytes
