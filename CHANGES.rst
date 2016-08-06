@@ -4,7 +4,9 @@
 4.2.2 (unreleased)
 ------------------
 
-- TBD
+- Make ``h``, ``m``, and ``sec`` arguments to C implementation of
+  ``TimeStamp`` non-optional (matches Python implementation, and ZODB
+  does not use the flexibility).  Issue #13.
 
 4.2.1 (2016-05-26)
 ------------------
