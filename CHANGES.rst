@@ -4,7 +4,8 @@
 4.2.2 (unreleased)
 ------------------
 
-- TBD
+- Ensure that ``__slots__`` attributes are cleared when a persistent object
+  is ghostified.
 
 4.2.1 (2016-05-26)
 ------------------
