@@ -19,13 +19,21 @@ import struct
 import sys
 
 _RAWTYPE = bytes
+_MAXINT = sys.maxsize
 
 def _makeOctets(s):
     if sys.version_info < (3,):
         return bytes(s)
     return bytes(s, 'ascii') #pragma NO COVERAGE
 
+
 _ZERO = _makeOctets('\x00' * 8)
+
+
+def _wraparound(x):
+    # Make sure to overflow and wraparound just
+    # like the C code does.
+    return int(((x + (_MAXINT + 1)) & ((_MAXINT << 1) + 1)) - (_MAXINT + 1))
 
 
 class _UTC(datetime.tzinfo):
@@ -155,9 +163,8 @@ class pyTimeStamp(object):
             x = (1000003 * x) ^ i
         x ^= 8
 
-        # Make sure to overflow and wraparound just
-        # like the C code does.
-        x = int(((x + (sys.maxint + 1)) & ((sys.maxint << 1) + 1)) - (sys.maxint + 1))
+        x = _wraparound(x)
+
         if x == -1: #pragma: no cover
             # The C version has this condition, but it's not clear
             # why; it's also not immediately obvious what bytestring
