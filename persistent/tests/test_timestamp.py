@@ -269,16 +269,14 @@ class PyAndCComparisonTests(unittest.TestCase):
         # platform and test the same; also verify 64 bit
         bit_32_hash = -1419374591
         bit_64_hash = -3850693964765720575
-        import persistent.timestamp
-        import ctypes
-        orig_c_long = persistent.timestamp.c_long
+        import sys
+        orig_maxint = sys.maxint
         try:
-            persistent.timestamp.c_long = ctypes.c_int32
+            sys.maxint = int(2 ** 31 - 1)
             py = self._makePy(*self.now_ts_args)
             self.assertEqual(hash(py), bit_32_hash)
 
-
-            persistent.timestamp.c_long = ctypes.c_int64
+            sys.maxint = int(2 ** 63 - 1)
             # call __hash__ directly to avoid interpreter truncation
             # in hash() on 32-bit platforms
             if not _is_jython:
@@ -292,13 +290,13 @@ class PyAndCComparisonTests(unittest.TestCase):
                 # 32-bit ints for its hashCode methods.
                 self.assertEqual(py.__hash__(), 384009219096809580920179179233996861765753210540033)
         finally:
-            persistent.timestamp.c_long = orig_c_long
+            sys.maxint = orig_maxint
 
         # These are *usually* aliases, but aren't required
         # to be (and aren't under Jython 2.7).
-        if orig_c_long is ctypes.c_int32:
+        if orig_maxint == 2 ** 31 - 1:
             self.assertEqual(py.__hash__(), bit_32_hash)
-        elif orig_c_long is ctypes.c_int64:
+        elif orig_maxint == 2 ** 63 - 1:
             self.assertEqual(py.__hash__(), bit_64_hash)
 
     def test_hash_equal_constants(self):
@@ -307,7 +305,7 @@ class PyAndCComparisonTests(unittest.TestCase):
         import persistent.timestamp
         import ctypes
         # We get 32-bit hash values of 32-bit platforms, or on the JVM
-        is_32_bit = persistent.timestamp.c_long == ctypes.c_int32 or _is_jython
+        is_32_bit = persistent.timestamp.sys.maxint == (2**31 - 1) or _is_jython
 
         c, py = self._make_C_and_Py(b'\x00\x00\x00\x00\x00\x00\x00\x00')
         self.assertEqual(hash(c), 8)
