@@ -26,6 +26,9 @@ if not PURE_PYTHON:
         from persistent.cPersistence import CHANGED
         from persistent.cPersistence import STICKY
         from persistent.cPersistence import simple_new
+        from persistent.cPersistence import PER_USE
+        from persistent.cPersistence import PER_ALLOW_DEACTIVATION
+        from persistent.cPersistence import PER_ACCESSED
     except ImportError: #pragma NO COVER
         from persistent.persistence import Persistent
         from persistent.persistence import GHOST
