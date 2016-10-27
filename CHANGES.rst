@@ -10,6 +10,12 @@
 4.2.2 (2016-11-29)
 ------------------
 
+- Stop calling ``gc.collect`` every time ``PickleCache.incrgc`` is called (every
+  transaction boundary) in pure-Python mode (PyPy). This means that
+  the reported size of the cache may be wrong (until the next GC), but
+  it is much faster. This should not have any observable effects for
+  user code.
+
 - Drop use of ``ctypes`` for determining maximum integer size, to increase
   pure-Python compatibility. See https://github.com/zopefoundation/persistent/pull/31
 
