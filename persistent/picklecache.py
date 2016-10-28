@@ -246,7 +246,7 @@ class PickleCache(object):
                 # careful to avoid broken _p_invalidate and _p_deactivate
                 # that don't call the super class. See ZODB's
                 # testConnection.doctest_proper_ghost_initialization_with_empty__p_deactivate
-                obj._p_invalidate_deactivate_helper()
+                obj._p_invalidate_deactivate_helper(False)
         self[oid] = obj
 
     def reify(self, to_reify):
