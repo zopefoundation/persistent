@@ -428,7 +428,12 @@ class Persistent(object):
         #   class does not override __new__ )
         if type_.__new__ is Persistent.__new__:
             for slotname in Persistent._slotnames(self, _v_exclude=False):
-                getattr(type_, slotname).__delete__(self)
+                try:
+                    getattr(type_, slotname).__delete__(self)
+                except AttributeError:
+                    # AttributeError means slot variable was not initialized at all -
+                    # - we can simply skip its deletion.
+                    pass
 
         # Implementation detail: deactivating/invalidating
         # updates the size of the cache (if we have one)
