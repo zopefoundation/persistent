@@ -32,6 +32,9 @@ class _Persistent_Base(object):
         # concrete testcase classes must override
         raise NotImplementedError()
 
+    def _makeRealCache(self, jar):
+        return self._makeCache(jar)
+
     def _makeOne(self, *args, **kw):
         return self._getTargetClass()(*args, **kw)
 
@@ -1599,6 +1602,51 @@ class _Persistent_Base(object):
         p._p_invalidate()
         self.assertTrue(p.deactivated)
 
+
+    def test_new_ghost_success_not_already_ghost_dict(self):
+        # https://github.com/zopefoundation/persistent/issues/49
+        # calling new_ghost on an object that already has state just changes
+        # its flags, it doesn't destroy the state.
+        from persistent.interfaces import GHOST
+        from persistent.interfaces import UPTODATE
+        class TestPersistent(self._getTargetClass()):
+            pass
+        KEY = b'123'
+        jar = self._makeJar()
+        cache = self._makeRealCache(jar)
+        candidate = TestPersistent()
+
+        candidate.set_by_new = 1
+        self.assertEqual(candidate._p_state, UPTODATE)
+        cache.new_ghost(KEY, candidate)
+
+        self.assertTrue(cache.get(KEY) is candidate)
+        self.assertEqual(candidate._p_oid, KEY)
+        self.assertEqual(candidate._p_state, GHOST)
+        self.assertEqual(candidate.set_by_new, 1)
+
+    def test_new_ghost_success_not_already_ghost_slot(self):
+        # https://github.com/zopefoundation/persistent/issues/49
+        # calling new_ghost on an object that already has state just changes
+        # its flags, it doesn't destroy the state.
+        from persistent.interfaces import GHOST
+        from persistent.interfaces import UPTODATE
+        class TestPersistent(self._getTargetClass()):
+            __slots__ = ('set_by_new', '__weakref__')
+        KEY = b'123'
+        jar = self._makeJar()
+        cache = self._makeRealCache(jar)
+        candidate = TestPersistent()
+        candidate.set_by_new = 1
+        self.assertEqual(candidate._p_state, UPTODATE)
+        cache.new_ghost(KEY, candidate)
+
+        self.assertTrue(cache.get(KEY) is candidate)
+        self.assertEqual(candidate._p_oid, KEY)
+        self.assertEqual(candidate._p_state, GHOST)
+        self.assertEqual(candidate.set_by_new, 1)
+
+
 class PyPersistentTests(unittest.TestCase, _Persistent_Base):
 
     def _getTargetClass(self):
@@ -1626,6 +1674,10 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
                 pass
 
         return _Cache(jar)
+
+    def _makeRealCache(self, jar):
+        from persistent.picklecache import PickleCache
+        return PickleCache(jar, 10)
 
     def _checkMRU(self, jar, value):
         self.assertEqual(list(jar._cache._mru), value)

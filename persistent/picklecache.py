@@ -21,7 +21,7 @@ from persistent.interfaces import GHOST
 from persistent.interfaces import IPickleCache
 from persistent.interfaces import OID_TYPE
 from persistent.interfaces import UPTODATE
-from persistent import Persistent
+from persistent.persistence import Persistent
 from persistent.persistence import _estimated_size_in_24_bits
 
 # Tests may modify this to add additional types
