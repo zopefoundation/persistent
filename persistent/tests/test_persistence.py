@@ -1340,6 +1340,36 @@ class _Persistent_Base(object):
         self.assertEqual(list(jar._loaded), [])
         self.assertEqual(list(jar._registered), [])
 
+    def test__p_invalidate_from_changed_w_slots_compat(self):
+        # check that (for backward-compatibility reason) slots are not released
+        # for classes where __new__ is overwritten. Attributes in __dict__
+        # should be always released.
+        class Derived(self._getTargetClass()):
+            __slots__ = ('myattr1', 'myattr2', '__dict__')
+            def __new__(cls):
+                obj = cls.__base__.__new__(cls)
+                obj.myattr1 = 'value1'
+                obj.myattr2 = 'value2'
+                obj.foo = 'foo1' # .foo & .bar are in __dict__
+                obj.bar = 'bar2'
+                return obj
+        inst, jar, OID = self._makeOneWithJar(Derived)
+        inst._p_activate()
+        inst._p_changed = True
+        jar._loaded = []
+        jar._registered = []
+        self.assertEqual(Derived.myattr1.__get__(inst), 'value1')
+        self.assertEqual(Derived.myattr2.__get__(inst), 'value2')
+        self.assertEqual(inst.__dict__, {'foo': 'foo1', 'bar': 'bar2'})
+        inst._p_invalidate()
+        self.assertEqual(inst._p_status, 'ghost')
+        self.assertEqual(list(jar._loaded), [])
+        self.assertEqual(Derived.myattr1.__get__(inst), 'value1')
+        self.assertEqual(Derived.myattr2.__get__(inst), 'value2')
+        self.assertEqual(inst.__dict__, {})
+        self.assertEqual(list(jar._loaded), [])
+        self.assertEqual(list(jar._registered), [])
+
     def test__p_invalidate_from_sticky(self):
         inst, jar, OID = self._makeOneWithJar()
         inst._p_activate() # XXX
