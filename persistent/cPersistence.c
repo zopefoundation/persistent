@@ -190,47 +190,52 @@ ghostify(cPersistentObject *self)
         *dictptr = NULL;
     }
 
-    /* clear all slots besides _p_* */
-    slotnames = pickle_slotnames(Py_TYPE(self));
-    if (slotnames && slotnames != Py_None)
+    /* clear all slots besides _p_*
+     * ( for backward-compatibility reason we do this only if class does not
+     *   override __new__ ) */
+    if (Py_TYPE(self)->tp_new == Pertype.tp_new)
     {
-        int i;
-
-        for (i = 0; i < PyList_GET_SIZE(slotnames); i++)
+        slotnames = pickle_slotnames(Py_TYPE(self));
+        if (slotnames && slotnames != Py_None)
         {
-            PyObject *name;
-            char *cname;
-            int is_special;
+            int i;
 
-            name = PyList_GET_ITEM(slotnames, i);
-#ifdef PY3K
-            if (PyUnicode_Check(name))
+            for (i = 0; i < PyList_GET_SIZE(slotnames); i++)
             {
-                PyObject *converted = convert_name(name);
-                cname = PyBytes_AS_STRING(converted);
-#else
-            if (PyBytes_Check(name))
-            {
-                cname = PyBytes_AS_STRING(name);
-#endif
-                is_special = !strncmp(cname, "_p_", 3);
+                PyObject *name;
+                char *cname;
+                int is_special;
+
+                name = PyList_GET_ITEM(slotnames, i);
 #ifdef PY3K
-                Py_DECREF(converted);
-#endif
-                if (is_special) /* skip persistent */
+                if (PyUnicode_Check(name))
                 {
-                    continue;
+                    PyObject *converted = convert_name(name);
+                    cname = PyBytes_AS_STRING(converted);
+#else
+                if (PyBytes_Check(name))
+                {
+                    cname = PyBytes_AS_STRING(name);
+#endif
+                    is_special = !strncmp(cname, "_p_", 3);
+#ifdef PY3K
+                    Py_DECREF(converted);
+#endif
+                    if (is_special) /* skip persistent */
+                    {
+                        continue;
+                    }
                 }
-            }
 
-            /* NOTE: this skips our delattr hook */
-            if (PyObject_GenericSetAttr((PyObject *)self, name, NULL) < 0)
-                /* delattr of non-set slot will raise AttributeError - we
-                 * simply ignore. */
-                PyErr_Clear();
+                /* NOTE: this skips our delattr hook */
+                if (PyObject_GenericSetAttr((PyObject *)self, name, NULL) < 0)
+                    /* delattr of non-set slot will raise AttributeError - we
+                     * simply ignore. */
+                    PyErr_Clear();
+            }
         }
+        Py_XDECREF(slotnames);
     }
-    Py_XDECREF(slotnames);
 
     /* We remove the reference to the just ghosted object that the ring
     * holds.  Note that the dictionary of oids->objects has an uncounted

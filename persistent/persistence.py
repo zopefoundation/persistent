@@ -424,8 +424,11 @@ class Persistent(object):
         if idict is not None:
             idict.clear()
         type_ = type(self)
-        for slotname in Persistent._slotnames(self, _v_exclude=False):
-            getattr(type_, slotname).__delete__(self)
+        # ( for backward-compatibility reason we release __slots__ only if
+        #   class does not override __new__ )
+        if type_.__new__ is Persistent.__new__:
+            for slotname in Persistent._slotnames(self, _v_exclude=False):
+                getattr(type_, slotname).__delete__(self)
 
         # Implementation detail: deactivating/invalidating
         # updates the size of the cache (if we have one)
