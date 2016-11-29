@@ -1,14 +1,17 @@
 ``persistent`` Changelog
 ========================
 
-4.2.2 (unreleased)
+4.2.2 (2016-11-29)
 ------------------
 
 - Drop use of ``ctypes`` for determining maximum integer size, to increase
   pure-Python compatibility.
 
-- Ensure that ``__slots__`` attributes are cleared when a persistent object
-  is ghostified.
+- Ensure that ``__slots__`` attributes are cleared when a persistent
+  object is ghostified.  (This excluses classes that override
+  ``__new__``.  See
+  https://github.com/zopefoundation/persistent/wiki/Notes_on_state_new_and_slots
+  if you're curious.)
 
 4.2.1 (2016-05-26)
 ------------------
