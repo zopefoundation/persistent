@@ -1321,7 +1321,7 @@ class _Persistent_Base(object):
 
     def test__p_invalidate_from_changed_w_slots(self):
         class Derived(self._getTargetClass()):
-            __slots__ = ('myattr1', 'myattr2')
+            __slots__ = ('myattr1', 'myattr2', 'unset')
             def __init__(self):
                 self.myattr1 = 'value1'
                 self.myattr2 = 'value2'
