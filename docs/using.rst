@@ -212,12 +212,17 @@ manager.  Subsequent modifications don't have additional side-effects.
 Object which register themselves with the data manager are candidates
 for storage to the backing store at a later point in time.
 
+Note that mutating a non-persistent attribute of a persistent object
+such as a :class:`dict` or :class:`list` will *not* cause the
+containing object to be changed. Instead you can either explicitly
+control the state as described below, or use a
+:class:`~.PersistentList` or :class:`~.PersistentMapping`.
 
 Explicitly controlling ``_p_state``
 -----------------------------------
 
 Persistent objects expose three methods for moving an object into and out
-of the "ghost" state::  :meth:`persistent.Persistent._p_activate`, 
+of the "ghost" state::  :meth:`persistent.Persistent._p_activate`,
 :meth:`persistent.Persistent._p_activate_p_deactivate`, and
 :meth:`persistent.Persistent._p_invalidate`:
 
@@ -412,18 +417,19 @@ Overriding the attribute protocol
 Subclasses which override the attribute-management methods provided by
 :class:`persistent.Persistent`, but must obey some constraints:
 
-:meth:`__getattribute__``
+
+:meth:`__getattribute__`
   When overriding ``__getattribute__``, the derived class implementation
-  **must** first call :meth:`persistent.Persistent._p_getattr`, passing the
+  **must** first call :meth:`persistent.IPersistent._p_getattr`, passing the
   name being accessed.  This method ensures that the object is activated,
   if needed, and handles the "special" attributes which do not require
-  activation (e.g., ``_p_oid``, ``__class__``, ``__dict__``, etc.) 
+  activation (e.g., ``_p_oid``, ``__class__``, ``__dict__``, etc.)
   If ``_p_getattr`` returns ``True``, the derived class implementation
   **must** delegate to the base class implementation for the attribute.
 
 :meth:`__setattr__`
   When overriding ``__setattr__``, the derived class implementation
-  **must** first call :meth:`persistent.Persistent._p_setattr`, passing the
+  **must** first call :meth:`persistent.IPersistent._p_setattr`, passing the
   name being accessed and the value.  This method ensures that the object is
   activated, if needed, and handles the "special" attributes which do not
   require activation (``_p_*``).  If ``_p_setattr`` returns ``True``, the
@@ -432,7 +438,7 @@ Subclasses which override the attribute-management methods provided by
 
 :meth:`__detattr__`
   When overriding ``__detattr__``, the derived class implementation
-  **must** first call :meth:`persistent.Persistent._p_detattr`, passing the
+  **must** first call :meth:`persistent.IPersistent._p_detattr`, passing the
   name being accessed.  This method ensures that the object is
   activated, if needed, and handles the "special" attributes which do not
   require activation (``_p_*``).  If ``_p_delattr`` returns ``True``, the
@@ -440,5 +446,5 @@ Subclasses which override the attribute-management methods provided by
   base class.
 
 :meth:`__getattr__`
-  For the `__getattr__` method, the behavior is like that for regular Python
+  For the ``__getattr__`` method, the behavior is like that for regular Python
   classes and for earlier versions of ZODB 3.

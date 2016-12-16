@@ -21,6 +21,11 @@ from persistent._compat import UserList
 from persistent._compat import PYTHON2
 
 class PersistentList(UserList, persistent.Persistent):
+    """A persistent wrapper for list objects.
+
+    Mutating instances of this class will cause them to be marked
+    as changed and automatically persisted.
+    """
     __super_setitem = UserList.__setitem__
     __super_delitem = UserList.__delitem__
     if PYTHON2:  # pragma: no cover
