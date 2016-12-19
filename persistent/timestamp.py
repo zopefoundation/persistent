@@ -29,12 +29,19 @@ def _makeOctets(s):
 
 _ZERO = _makeOctets('\x00' * 8)
 
-
-def _wraparound(x):
+try:
     # Make sure to overflow and wraparound just
     # like the C code does.
-    return int(((x + (_MAXINT + 1)) & ((_MAXINT << 1) + 1)) - (_MAXINT + 1))
-
+    from ctypes import c_long
+except ImportError: # pragma: no cover
+    # XXX: This is broken on 64-bit windows, where
+    # sizeof(long) != sizeof(Py_ssize_t)
+    # sizeof(long) == 4, sizeof(Py_ssize_t) == 8
+    def _wraparound(x):
+        return int(((x + (_MAXINT + 1)) & ((_MAXINT << 1) + 1)) - (_MAXINT + 1))
+else:
+    def _wraparound(x):
+        return c_long(x).value
 
 class _UTC(datetime.tzinfo):
     def tzname(self):
