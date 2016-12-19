@@ -422,8 +422,11 @@ class Persistent(object):
             _OSA(self, '_Persistent__flags', None)
 
         if clear:
-            idict = _OGA(self, '__dict__', None)
-            if idict is not None:
+            try:
+                idict = _OGA(self, '__dict__')
+            except AttributeError:
+                pass
+            else:
                 idict.clear()
             type_ = type(self)
             # for backward-compatibility reason we release __slots__ only if
