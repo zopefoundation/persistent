@@ -5,7 +5,7 @@
 ------------------
 
 - Drop use of ``ctypes`` for determining maximum integer size, to increase
-  pure-Python compatibility.
+  pure-Python compatibility. See https://github.com/zopefoundation/persistent/pull/31
 
 - Ensure that ``__slots__`` attributes are cleared when a persistent
   object is ghostified.  (This excluses classes that override

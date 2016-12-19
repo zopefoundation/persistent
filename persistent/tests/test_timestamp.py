@@ -280,26 +280,13 @@ class PyAndCComparisonTests(unittest.TestCase):
 
         is_32_bit_hash = orig_maxint == MAX_32_BITS
 
-        orig_c_long = None
-        c_int64 = None
-        c_int32 = None
-        if hasattr(MUT, 'c_long'):
-            import ctypes
-            orig_c_long = MUT.c_long
-            c_int32 = ctypes.c_int32
-            c_int64 = ctypes.c_int64
-            # win32, even on 64-bit long, has funny sizes
-            is_32_bit_hash = c_int32 == ctypes.c_long
-
         try:
             MUT._MAXINT = MAX_32_BITS
-            MUT.c_long = c_int32
 
             py = self._makePy(*self.now_ts_args)
             self.assertEqual(hash(py), bit_32_hash)
 
             MUT._MAXINT = int(2 ** 63 - 1)
-            MUT.c_long = c_int64
             # call __hash__ directly to avoid interpreter truncation
             # in hash() on 32-bit platforms
             if not self._is_jython:
@@ -316,10 +303,6 @@ class PyAndCComparisonTests(unittest.TestCase):
                     384009219096809580920179179233996861765753210540033)
         finally:
             MUT._MAXINT = orig_maxint
-            if orig_c_long is not None:
-                MUT.c_long = orig_c_long
-            else:
-                del MUT.c_long
 
         # These are *usually* aliases, but aren't required
         # to be (and aren't under Jython 2.7).
@@ -334,7 +317,7 @@ class PyAndCComparisonTests(unittest.TestCase):
         import persistent.timestamp as MUT
         # We get 32-bit hash values on 32-bit platforms, or on the JVM
         # OR on Windows (whether compiled in 64 or 32-bit mode)
-        is_32_bit = MUT._MAXINT == (2**31 - 1) or self._is_jython or sys.platform == 'win32'
+        is_32_bit = MUT._MAXINT == (2**31 - 1) or self._is_jython
 
         c, py = self._make_C_and_Py(b'\x00\x00\x00\x00\x00\x00\x00\x00')
         self.assertEqual(hash(c), 8)
