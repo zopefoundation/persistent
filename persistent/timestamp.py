@@ -19,8 +19,7 @@ import struct
 import sys
 
 _RAWTYPE = bytes
-# On win32, long is 4 bytes even on a 64-bit platform.
-_MAXINT = sys.maxsize if not sys.platform == 'win32' else (2 ** 31 - 1)
+_MAXINT = sys.maxsize
 
 def _makeOctets(s):
     if sys.version_info < (3,):
@@ -30,11 +29,22 @@ def _makeOctets(s):
 
 _ZERO = _makeOctets('\x00' * 8)
 
-def _wraparound(x):
+try:
     # Make sure to overflow and wraparound just
-    # like the C code does. This is more compactly expressed
-    # as ctypes.c_long(x).value
-    return int(((x + (_MAXINT + 1)) & ((_MAXINT << 1) + 1)) - (_MAXINT + 1))
+    # like the C code does.
+    from ctypes import c_long
+except ImportError: # pragma: no cover
+    # XXX: This is broken on 64-bit windows, where
+    # sizeof(long) != sizeof(Py_ssize_t)
+    # sizeof(long) == 4, sizeof(Py_ssize_t) == 8
+    # It can be fixed by setting _MAXINT = 2 ** 31 - 1 on all
+    # win32 platforms, but then that breaks PyPy3 64 bit for an unknown
+    # reason.
+    def _wraparound(x):
+        return int(((x + (_MAXINT + 1)) & ((_MAXINT << 1) + 1)) - (_MAXINT + 1))
+else:
+    def _wraparound(x):
+        return c_long(x).value
 
 class _UTC(datetime.tzinfo):
     def tzname(self):

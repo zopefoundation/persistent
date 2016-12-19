@@ -1,6 +1,12 @@
 ``persistent`` Changelog
 ========================
 
+4.2.3 (unreleased)
+------------------
+
+- Fix the hashcode of Python ``TimeStamp`` objects on 64-bit Python on
+  Windows. See https://github.com/zopefoundation/persistent/pull/55
+
 4.2.2 (2016-11-29)
 ------------------
 
