@@ -1,11 +1,17 @@
 ``persistent`` Changelog
 ========================
 
+4.2.3 (unreleased)
+------------------
+
+- Fix the hashcode of Python ``TimeStamp`` objects on 64-bit Python on
+  Windows. See https://github.com/zopefoundation/persistent/pull/55
+
 4.2.2 (2016-11-29)
 ------------------
 
 - Drop use of ``ctypes`` for determining maximum integer size, to increase
-  pure-Python compatibility.
+  pure-Python compatibility. See https://github.com/zopefoundation/persistent/pull/31
 
 - Ensure that ``__slots__`` attributes are cleared when a persistent
   object is ghostified.  (This excluses classes that override

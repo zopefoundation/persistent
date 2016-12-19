@@ -12,7 +12,7 @@
 #
 ##############################################################################
 import unittest
-
+import sys
 
 MAX_32_BITS = 2 ** 31 - 1
 MAX_64_BITS = 2 ** 63 - 1
@@ -277,12 +277,29 @@ class PyAndCComparisonTests(unittest.TestCase):
         bit_32_hash = -1419374591
         bit_64_hash = -3850693964765720575
         orig_maxint = MUT._MAXINT
+
+        is_32_bit_hash = orig_maxint == MAX_32_BITS
+
+        orig_c_long = None
+        c_int64 = None
+        c_int32 = None
+        if hasattr(MUT, 'c_long'):
+            import ctypes
+            orig_c_long = MUT.c_long
+            c_int32 = ctypes.c_int32
+            c_int64 = ctypes.c_int64
+            # win32, even on 64-bit long, has funny sizes
+            is_32_bit_hash = c_int32 == ctypes.c_long
+
         try:
             MUT._MAXINT = MAX_32_BITS
+            MUT.c_long = c_int32
+
             py = self._makePy(*self.now_ts_args)
             self.assertEqual(hash(py), bit_32_hash)
 
             MUT._MAXINT = int(2 ** 63 - 1)
+            MUT.c_long = c_int64
             # call __hash__ directly to avoid interpreter truncation
             # in hash() on 32-bit platforms
             if not self._is_jython:
@@ -299,68 +316,73 @@ class PyAndCComparisonTests(unittest.TestCase):
                     384009219096809580920179179233996861765753210540033)
         finally:
             MUT._MAXINT = orig_maxint
+            if orig_c_long is not None:
+                MUT.c_long = orig_c_long
+            else:
+                del MUT.c_long
 
         # These are *usually* aliases, but aren't required
         # to be (and aren't under Jython 2.7).
-        if orig_maxint == MAX_32_BITS:
+        if is_32_bit_hash:
             self.assertEqual(py.__hash__(), bit_32_hash)
-        elif orig_maxint == MAX_64_BITS:
+        else:
             self.assertEqual(py.__hash__(), bit_64_hash)
 
     def test_hash_equal_constants(self):
         # The simple constants make it easier to diagnose
         # a difference in algorithms
         import persistent.timestamp as MUT
-        # We get 32-bit hash values of 32-bit platforms, or on the JVM
-        is_32_bit = MUT._MAXINT == (2**31 - 1) or self._is_jython
+        # We get 32-bit hash values on 32-bit platforms, or on the JVM
+        # OR on Windows (whether compiled in 64 or 32-bit mode)
+        is_32_bit = MUT._MAXINT == (2**31 - 1) or self._is_jython or sys.platform == 'win32'
 
         c, py = self._make_C_and_Py(b'\x00\x00\x00\x00\x00\x00\x00\x00')
-        self.assertEqual(c.__hash__(), 8)
+        self.assertEqual(hash(c), 8)
         self.assertEqual(hash(c), hash(py))
 
         c, py = self._make_C_and_Py(b'\x00\x00\x00\x00\x00\x00\x00\x01')
-        self.assertEqual(c.__hash__(), 9)
+        self.assertEqual(hash(c), 9)
         self.assertEqual(hash(c), hash(py))
 
         c, py = self._make_C_and_Py(b'\x00\x00\x00\x00\x00\x00\x01\x00')
-        self.assertEqual(c.__hash__(), 1000011)
+        self.assertEqual(hash(c), 1000011)
         self.assertEqual(hash(c), hash(py))
 
         # overflow kicks in here on 32-bit platforms
         c, py = self._make_C_and_Py(b'\x00\x00\x00\x00\x00\x01\x00\x00')
         if is_32_bit:
-            self.assertEqual(c.__hash__(), -721379967)
+            self.assertEqual(hash(c), -721379967)
         else:
-            self.assertEqual(c.__hash__(), 1000006000001)
+            self.assertEqual(hash(c), 1000006000001)
         self.assertEqual(hash(c), hash(py))
 
         c, py = self._make_C_and_Py(b'\x00\x00\x00\x00\x01\x00\x00\x00')
         if is_32_bit:
-            self.assertEqual(c.__hash__(), 583896275)
+            self.assertEqual(hash(c), 583896275)
         else:
-            self.assertEqual(c.__hash__(), 1000009000027000019)
+            self.assertEqual(hash(c), 1000009000027000019)
         self.assertEqual(hash(c), hash(py))
 
         # Overflow kicks in at this point on 64-bit platforms
         c, py = self._make_C_and_Py(b'\x00\x00\x00\x01\x00\x00\x00\x00')
         if is_32_bit:
-            self.assertEqual(c.__hash__(), 1525764953)
+            self.assertEqual(hash(c), 1525764953)
         else:
-            self.assertEqual(c.__hash__(), -4442925868394654887)
+            self.assertEqual(hash(c), -4442925868394654887)
         self.assertEqual(hash(c), hash(py))
 
         c, py = self._make_C_and_Py(b'\x00\x00\x01\x00\x00\x00\x00\x00')
         if is_32_bit:
-            self.assertEqual(c.__hash__(), -429739973)
+            self.assertEqual(hash(c), -429739973)
         else:
-            self.assertEqual(c.__hash__(), -3993531167153147845)
+            self.assertEqual(hash(c), -3993531167153147845)
         self.assertEqual(hash(c), hash(py))
 
         c, py = self._make_C_and_Py(b'\x01\x00\x00\x00\x00\x00\x00\x00')
         if is_32_bit:
-            self.assertEqual(c.__hash__(), 263152323)
+            self.assertEqual(hash(c), 263152323)
         else:
-            self.assertEqual(c.__hash__(), -3099646879006235965)
+            self.assertEqual(hash(c), -3099646879006235965)
         self.assertEqual(hash(c), hash(py))
 
     def test_ordering(self):
