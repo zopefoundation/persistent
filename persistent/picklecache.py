@@ -13,7 +13,7 @@
 ##############################################################################
 import gc
 import weakref
-import sys
+
 
 from zope.interface import implementer
 
@@ -27,24 +27,6 @@ from persistent.persistence import _estimated_size_in_24_bits
 # Tests may modify this to add additional types
 _CACHEABLE_TYPES = (type, Persistent)
 _SWEEPABLE_TYPES = (Persistent,)
-
-# The Python PickleCache implementation keeps track of the objects it
-# is caching in a WeakValueDictionary. The number of objects in the
-# cache (in this dictionary) is exposed as the len of the cache. Under
-# non-refcounted implementations like PyPy, the weak references in
-# this dictionary are only cleared when the garbage collector runs.
-# Thus, after an incrgc, the len of the cache is incorrect for some
-# period of time unless we ask the GC to run.
-# Furthermore, evicted objects can stay in the dictionary and be returned
-# from __getitem__ or possibly conflict with a new item in __setitem__.
-# We determine whether or not we need to do the GC based on the ability
-# to get a reference count: PyPy and Jython don't use refcounts and don't
-# expose this; this is safer than blacklisting specific platforms (e.g.,
-# what about IronPython?). On refcounted platforms, we don't want to
-# run a GC to avoid possible performance regressions (e.g., it may
-# block all threads).
-# Tests may modify this
-_SWEEP_NEEDS_GC = not hasattr(sys, 'getrefcount')
 
 # On Jython, we need to explicitly ask it to monitor
 # objects if we want a more deterministic GC
@@ -381,11 +363,7 @@ class PickleCache(object):
         ejected = len(to_eject)
         if ejected:
             self.ring.delete_all(to_eject)
-        del to_eject # Got to clear our local if we want the GC to get the weak refs
 
-        if ejected and _SWEEP_NEEDS_GC:
-            # See comments on _SWEEP_NEEDS_GC
-            gc.collect()
         return ejected
 
     @_sweeping_ring
