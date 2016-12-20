@@ -15,3 +15,12 @@
      :members:
      :member-order: bysource
 
+Implementations
+===============
+
+This package provides one implementation of :class:`IPersistent` that
+should be extended.
+
+  .. autoclass:: persistent.Persistent
+				 :members:
+				 :show-inheritance:
