@@ -413,27 +413,32 @@ class Persistent(object):
         _OSA(self, '_Persistent__flags', 0)
         self._p_deactivate()
 
-    def _p_invalidate_deactivate_helper(self):
+    def _p_invalidate_deactivate_helper(self, clear=True):
         jar = _OGA(self, '_Persistent__jar')
         if jar is None:
             return
 
         if _OGA(self, '_Persistent__flags') is not None:
             _OSA(self, '_Persistent__flags', None)
-        idict = getattr(self, '__dict__', None)
-        if idict is not None:
-            idict.clear()
-        type_ = type(self)
-        # ( for backward-compatibility reason we release __slots__ only if
-        #   class does not override __new__ )
-        if type_.__new__ is Persistent.__new__:
-            for slotname in Persistent._slotnames(self, _v_exclude=False):
-                try:
-                    getattr(type_, slotname).__delete__(self)
-                except AttributeError:
-                    # AttributeError means slot variable was not initialized at all -
-                    # - we can simply skip its deletion.
-                    pass
+
+        if clear:
+            try:
+                idict = _OGA(self, '__dict__')
+            except AttributeError:
+                pass
+            else:
+                idict.clear()
+            type_ = type(self)
+            # for backward-compatibility reason we release __slots__ only if
+            # class does not override __new__
+            if type_.__new__ is Persistent.__new__:
+                for slotname in Persistent._slotnames(self, _v_exclude=False):
+                    try:
+                        getattr(type_, slotname).__delete__(self)
+                    except AttributeError:
+                        # AttributeError means slot variable was not initialized at all -
+                        # - we can simply skip its deletion.
+                        pass
 
         # Implementation detail: deactivating/invalidating
         # updates the size of the cache (if we have one)

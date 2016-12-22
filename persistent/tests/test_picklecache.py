@@ -30,13 +30,9 @@ class PickleCacheTests(unittest.TestCase):
         self.orig_types = persistent.picklecache._CACHEABLE_TYPES
         persistent.picklecache._CACHEABLE_TYPES += (DummyPersistent,)
 
-        self.orig_sweep_gc = persistent.picklecache._SWEEP_NEEDS_GC
-        persistent.picklecache._SWEEP_NEEDS_GC = True # coverage
-
     def tearDown(self):
         import persistent.picklecache
         persistent.picklecache._CACHEABLE_TYPES = self.orig_types
-        persistent.picklecache._SWEEP_NEEDS_GC = self.orig_sweep_gc
 
     def _getTargetClass(self):
         from persistent.picklecache import PickleCache
@@ -992,7 +988,7 @@ class PickleCacheTests(unittest.TestCase):
             return f
 
     @with_deterministic_gc
-    def test_cache_garbage_collection_bytes_also_deactivates_object(self, force_collect=False):
+    def test_cache_garbage_collection_bytes_also_deactivates_object(self, force_collect=_is_pypy or _is_jython):
         from persistent.interfaces import UPTODATE
         from persistent._compat import _b
         cache = self._makeOne()
@@ -1070,7 +1066,9 @@ class DummyPersistent(object):
         self._p_state = GHOST
 
     _p_deactivate = _p_invalidate
-    _p_invalidate_deactivate_helper = _p_invalidate
+
+    def _p_invalidate_deactivate_helper(self, clear=True):
+        self._p_invalidate()
 
     def _p_activate(self):
         from persistent.interfaces import UPTODATE

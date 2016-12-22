@@ -7,6 +7,18 @@
 - Fix the hashcode of Python ``TimeStamp`` objects on 64-bit Python on
   Windows. See https://github.com/zopefoundation/persistent/pull/55
 
+- Stop calling ``gc.collect`` every time ``PickleCache.incrgc`` is called (every
+  transaction boundary) in pure-Python mode (PyPy). This means that
+  the reported size of the cache may be wrong (until the next GC), but
+  it is much faster. This should not have any observable effects for
+  user code.
+
+- Stop clearing the dict and slots of objects added to
+  ``PickleCache.new_ghost`` (typically these values are passed to
+  ``__new__`` from the pickle data) in pure-Python mode (PyPy). This
+  matches the behaviour of the C code.
+
+
 4.2.2 (2016-11-29)
 ------------------
 
