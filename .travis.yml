@@ -4,7 +4,7 @@ matrix:
     include:
         - os: osx
           language: generic
-          env: TERRYFY_PYTHON='macpython 3.6'
+          env: TERRYFY_PYTHON='homebrew 3.6'
         - os: linux
           python: 2.7
         - os: linux
