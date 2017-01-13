@@ -12,16 +12,15 @@
 #
 ##############################################################################
 
-__version__ = '4.2.2'
-
 import os
 import platform
 import sys
 
-
 from setuptools import Extension
 from setuptools import find_packages
 from setuptools import setup
+
+__version__ = '4.2.2'
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -84,6 +83,7 @@ setup(name='persistent',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
         "Framework :: ZODB",
@@ -100,9 +100,9 @@ setup(name='persistent',
       packages=find_packages(),
       include_package_data=True,
       zip_safe=False,
-      ext_modules = ext_modules,
-      headers = headers,
-      extras_require = {
+      ext_modules=ext_modules,
+      headers=headers,
+      extras_require={
         'test': (),
         'testing': ['nose', 'coverage'],
         'docs': ['Sphinx', 'repoze.sphinx.autointerface'],
@@ -111,6 +111,5 @@ setup(name='persistent',
       install_requires=[
         'zope.interface',
       ],
-      entry_points = """\
-      """
-     )
+      entry_points={},
+      )

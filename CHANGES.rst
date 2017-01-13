@@ -18,6 +18,8 @@
   ``__new__`` from the pickle data) in pure-Python mode (PyPy). This
   matches the behaviour of the C code.
 
+- Add support for Python 3.6.
+
 
 4.2.2 (2016-11-29)
 ------------------
