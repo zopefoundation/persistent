@@ -2,6 +2,9 @@ language: python
 sudo: false
 matrix:
     include:
+        - os: osx
+          language: generic
+          env: TERRYFY_PYTHON='macpython 3.6'
         - os: linux
           python: 2.7
         - os: linux
@@ -33,6 +36,7 @@ before_install:
 install:
     - pip install -e .
 script:
+    - python --version
     - python setup.py -q test -q
 notifications:
     email: false
