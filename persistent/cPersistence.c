@@ -588,8 +588,10 @@ pickle___setstate__(PyObject *self, PyObject *state)
     if (state != Py_None)
     {
         PyObject **dict;
+        PyObject *items;
         PyObject *d_key, *d_value;
         Py_ssize_t i;
+        int len;
 
         dict = _PyObject_GetDictPtr(self);
         
@@ -609,17 +611,41 @@ pickle___setstate__(PyObject *self, PyObject *state)
 
         PyDict_Clear(*dict);
 
-        i = 0;
-        while (PyDict_Next(state, &i, &d_key, &d_value)) {
-            /* normally the keys for instance attributes are
-               interned.  we should try to do that here. */
-            if (NATIVE_CHECK_EXACT(d_key)) {
-                Py_INCREF(d_key);
-                INTERN_INPLACE(&d_key);
-                Py_DECREF(d_key);
+        if (PyDict_CheckExact(state))
+        {
+            i = 0;
+            while (PyDict_Next(state, &i, &d_key, &d_value)) {
+                /* normally the keys for instance attributes are
+                   interned.  we should try to do that here. */
+                if (NATIVE_CHECK_EXACT(d_key)) {
+                    Py_INCREF(d_key);
+                    INTERN_INPLACE(&d_key);
+                    Py_DECREF(d_key);
+                }
+                if (PyObject_SetItem(*dict, d_key, d_value) < 0)
+                    return NULL;
             }
-            if (PyObject_SetItem(*dict, d_key, d_value) < 0)
-                return NULL;
+        }
+        else
+        {
+            /* can happen that not a built-in dict is passed as state
+               fall back to iterating over items, instead of silently
+               failing with PyDict_Next */
+            items = PyMapping_Items(state);
+            len = PySequence_Size(items);
+            for ( i=0; i<len; ++i ) {
+                PyObject *item = PySequence_GetItem(items, i);
+                d_key = PyTuple_GetItem(item, 0);
+                d_value = PyTuple_GetItem(item, 1);
+
+                if (NATIVE_CHECK_EXACT(d_key)) {
+                    Py_INCREF(d_key);
+                    INTERN_INPLACE(&d_key);
+                    Py_DECREF(d_key);
+                }
+                if (PyObject_SetItem(*dict, d_key, d_value) < 0)
+                    return NULL;
+            }
         }
     }
 

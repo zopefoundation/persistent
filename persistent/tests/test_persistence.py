@@ -985,6 +985,24 @@ class _Persistent_Base(object):
             key2 = list(inst2.__dict__.keys())[0]
             self.assertTrue(key1 is key2)
 
+            import UserDict
+            inst1 = Derived()
+            inst2 = Derived()
+            key1 = 'key'
+            key2 = 'ke'; key2 += 'y'  # construct in a way that won't intern the literal
+            self.assertFalse(key1 is key2)
+            state1 = UserDict.IterableUserDict({key1: 1})
+            state2 = UserDict.IterableUserDict({key2: 2})
+            k1 = list(state1.keys())[0]
+            k2 = list(state2.keys())[0]
+            self.assertFalse(k1 is k2)  # verify
+            inst1.__setstate__(state1)
+            inst2.__setstate__(state2)
+            key1 = list(inst1.__dict__.keys())[0]
+            key2 = list(inst2.__dict__.keys())[0]
+            self.assertTrue(key1 is key2)
+
+
     def test___setstate___doesnt_fail_on_non_string_keys(self):
         class Derived(self._getTargetClass()):
             pass
