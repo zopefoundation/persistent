@@ -998,6 +998,17 @@ class _Persistent_Base(object):
         inst1.__setstate__({mystr: 2})
         self.assertTrue(mystr in inst1.__dict__)
 
+    def test___setstate___doesnt_fail_on_non_dict(self):
+        class Derived(self._getTargetClass()):
+            pass
+        inst1 = Derived()
+
+        import UserDict
+        state = UserDict.IterableUserDict({'foobar': [1, 2]})
+
+        inst1.__setstate__(state)
+        self.assertTrue(hasattr(inst1, 'foobar'))
+
     def test___reduce__(self):
         from persistent._compat import copy_reg
         inst = self._makeOne()
