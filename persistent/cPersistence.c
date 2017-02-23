@@ -632,20 +632,47 @@ pickle___setstate__(PyObject *self, PyObject *state)
                fall back to iterating over items, instead of silently
                failing with PyDict_Next */
             items = PyMapping_Items(state);
+            if (items == NULL)
+                return NULL;
             len = PySequence_Size(items);
+            if (len < 0)
+            {
+                Py_DECREF(items);
+                return NULL;
+            }
             for ( i=0; i<len; ++i ) {
                 PyObject *item = PySequence_GetItem(items, i);
+                if (item == NULL)
+                    return NULL;
                 d_key = PyTuple_GetItem(item, 0);
+                if (d_key == NULL)
+                {
+                    Py_DECREF(item);
+                    Py_DECREF(items);
+                    return NULL;
+                }
                 d_value = PyTuple_GetItem(item, 1);
+                if (d_value == NULL)
+                {
+                    Py_DECREF(d_key);
+                    Py_DECREF(item);
+                    Py_DECREF(items);
+                    return NULL;
+                }
 
                 if (NATIVE_CHECK_EXACT(d_key)) {
                     Py_INCREF(d_key);
                     INTERN_INPLACE(&d_key);
                     Py_DECREF(d_key);
                 }
+                Py_DECREF(item);
                 if (PyObject_SetItem(*dict, d_key, d_value) < 0)
+                {
+                    Py_DECREF(items);
                     return NULL;
+                }
             }
+            Py_DECREF(items);
         }
     }
 
