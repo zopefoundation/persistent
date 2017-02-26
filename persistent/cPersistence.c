@@ -643,7 +643,10 @@ pickle___setstate__(PyObject *self, PyObject *state)
             for ( i=0; i<len; ++i ) {
                 PyObject *item = PySequence_GetItem(items, i);
                 if (item == NULL)
+                {
+                    Py_DECREF(items);
                     return NULL;
+                }
                 d_key = PyTuple_GetItem(item, 0);
                 if (d_key == NULL)
                 {
@@ -654,7 +657,6 @@ pickle___setstate__(PyObject *self, PyObject *state)
                 d_value = PyTuple_GetItem(item, 1);
                 if (d_value == NULL)
                 {
-                    Py_DECREF(d_key);
                     Py_DECREF(item);
                     Py_DECREF(items);
                     return NULL;
