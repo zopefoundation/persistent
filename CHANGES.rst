@@ -20,6 +20,8 @@
 
 - Add support for Python 3.6.
 
+- Fix ``__setstate__`` interning when ``state`` parameter is not a built-in dict
+
 
 4.2.2 (2016-11-29)
 ------------------

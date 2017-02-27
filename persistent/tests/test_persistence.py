@@ -985,6 +985,23 @@ class _Persistent_Base(object):
             key2 = list(inst2.__dict__.keys())[0]
             self.assertTrue(key1 is key2)
 
+            from persistent._compat import IterableUserDict
+            inst1 = Derived()
+            inst2 = Derived()
+            key1 = 'key'
+            key2 = 'ke'; key2 += 'y'  # construct in a way that won't intern the literal
+            self.assertFalse(key1 is key2)
+            state1 = IterableUserDict({key1: 1})
+            state2 = IterableUserDict({key2: 2})
+            k1 = list(state1.keys())[0]
+            k2 = list(state2.keys())[0]
+            self.assertFalse(k1 is k2)  # verify
+            inst1.__setstate__(state1)
+            inst2.__setstate__(state2)
+            key1 = list(inst1.__dict__.keys())[0]
+            key2 = list(inst2.__dict__.keys())[0]
+            self.assertTrue(key1 is key2)
+
     def test___setstate___doesnt_fail_on_non_string_keys(self):
         class Derived(self._getTargetClass()):
             pass
@@ -997,6 +1014,17 @@ class _Persistent_Base(object):
         mystr = MyStr('mystr')
         inst1.__setstate__({mystr: 2})
         self.assertTrue(mystr in inst1.__dict__)
+
+    def test___setstate___doesnt_fail_on_non_dict(self):
+        class Derived(self._getTargetClass()):
+            pass
+        inst1 = Derived()
+
+        from persistent._compat import IterableUserDict
+        state = IterableUserDict({'foobar': [1, 2]})
+
+        inst1.__setstate__(state)
+        self.assertTrue(hasattr(inst1, 'foobar'))
 
     def test___reduce__(self):
         from persistent._compat import copy_reg
