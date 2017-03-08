@@ -20,7 +20,7 @@ from setuptools import Extension
 from setuptools import find_packages
 from setuptools import setup
 
-version = '4.2.3'
+version = '4.2.4.dev0'
 
 here = os.path.abspath(os.path.dirname(__file__))
 
