@@ -20,7 +20,7 @@ from setuptools import Extension
 from setuptools import find_packages
 from setuptools import setup
 
-__version__ = '4.2.2'
+version = '4.2.2'
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -70,7 +70,7 @@ else:
                'persistent/ring.h']
 
 setup(name='persistent',
-      version=__version__,
+      version=version,
       description='Translucent persistent objects',
       long_description=README,
       classifiers=[
