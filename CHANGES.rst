@@ -1,7 +1,7 @@
 ``persistent`` Changelog
 ========================
 
-4.2.3 (unreleased)
+4.2.3 (2017-03-08)
 ------------------
 
 - Fix the hashcode of Python ``TimeStamp`` objects on 64-bit Python on
