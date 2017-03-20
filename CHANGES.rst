@@ -1,7 +1,7 @@
 ``persistent`` Changelog
 ========================
 
-4.2.4 (unreleased)
+4.2.4 (2017-03-20)
 ------------------
 
 - Avoid raising a ``SystemError: error return without exception set``
