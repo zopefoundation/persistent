@@ -101,7 +101,7 @@ unghostify(cPersistentObject *self)
         {
             /* Create a node in the ring for this unghostified object. */
             self->cache->non_ghost_count++;
-            self->cache->total_estimated_size += 
+            self->cache->total_estimated_size +=
                 _estimated_size_in_bytes(self->estimated_size);
             ring_add(&self->cache->ring_home, &self->ring);
             Py_INCREF(self);
@@ -152,13 +152,14 @@ static void
 ghostify(cPersistentObject *self)
 {
     PyObject **dictptr, *slotnames;
+    PyObject *errtype, *errvalue, *errtb;
 
     /* are we already a ghost? */
     if (self->state == cPersistent_GHOST_STATE)
         return;
 
     /* Is it ever possible to not have a cache? */
-    if (self->cache == NULL) 
+    if (self->cache == NULL)
     {
         self->state = cPersistent_GHOST_STATE;
         return;
@@ -177,7 +178,7 @@ ghostify(cPersistentObject *self)
     /* If we're ghostifying an object, we better have some non-ghosts. */
     assert(self->cache->non_ghost_count > 0);
     self->cache->non_ghost_count--;
-    self->cache->total_estimated_size -= 
+    self->cache->total_estimated_size -=
         _estimated_size_in_bytes(self->estimated_size);
     ring_del(&self->ring);
     self->state = cPersistent_GHOST_STATE;
@@ -195,6 +196,12 @@ ghostify(cPersistentObject *self)
      *   override __new__ ) */
     if (Py_TYPE(self)->tp_new == Pertype.tp_new)
     {
+        /* later we might clear an AttributeError but
+         * if we have a pending exception that still needs to be
+         * raised so that we don't generate a SystemError.
+         */
+        PyErr_Fetch(&errtype, &errvalue, &errtb);
+
         slotnames = pickle_slotnames(Py_TYPE(self));
         if (slotnames && slotnames != Py_None)
         {
@@ -235,6 +242,7 @@ ghostify(cPersistentObject *self)
             }
         }
         Py_XDECREF(slotnames);
+        PyErr_Restore(errtype, errvalue, errtb);
     }
 
     /* We remove the reference to the just ghosted object that the ring
@@ -262,7 +270,7 @@ changed(cPersistentObject *self)
         if (meth == NULL)
             return -1;
         arg = PyTuple_New(1);
-        if (arg == NULL) 
+        if (arg == NULL)
         {
             Py_DECREF(meth);
             return -1;
@@ -371,7 +379,7 @@ pickle_slotnames(PyTypeObject *cls)
             return NULL;
         if (n)
             slotnames = Py_None;
-        
+
         Py_INCREF(slotnames);
         return slotnames;
     }
@@ -594,7 +602,7 @@ pickle___setstate__(PyObject *self, PyObject *state)
         int len;
 
         dict = _PyObject_GetDictPtr(self);
-        
+
         if (!dict)
         {
             PyErr_SetString(PyExc_TypeError,

@@ -4,7 +4,9 @@
 4.2.4 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Avoid raising a ``SystemError: error return without exception set``
+  when loading an object with slots whose jar generates an exception
+  (such as a ZODB ``POSKeyError``) in ``setstate``.
 
 
 4.2.3 (2017-03-08)
