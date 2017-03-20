@@ -16,6 +16,9 @@ import unittest
 
 import platform
 import sys
+
+from persistent._compat import copy_reg
+
 py_impl = getattr(platform, 'python_implementation', lambda: None)
 _is_pypy3 = py_impl() == 'PyPy' and sys.version_info[0] > 2
 _is_jython = py_impl() == 'Jython'
@@ -78,22 +81,22 @@ class _Persistent_Base(object):
                 self.called = 0
             def register(self,ob):
                 self.called += 1
-                raise NotImplementedError
+                raise NotImplementedError()
             def setstate(self,ob):
-                raise NotImplementedError
+                raise NotImplementedError()
 
         jar = _BrokenJar()
         jar._cache = self._makeCache(jar)
         return jar
 
-    def _makeOneWithJar(self, klass=None):
+    def _makeOneWithJar(self, klass=None, broken_jar=False):
         from persistent.timestamp import _makeOctets
         OID = _makeOctets('\x01' * 8)
         if klass is not None:
             inst = klass()
         else:
             inst = self._makeOne()
-        jar = self._makeJar()
+        jar = self._makeJar() if not broken_jar else self._makeBrokenJar()
         jar._cache.new_ghost(OID, inst) # assigns _p_jar, _p_oid
         return inst, jar, OID
 
@@ -1400,6 +1403,26 @@ class _Persistent_Base(object):
         self.assertEqual(inst.__dict__, {})
         self.assertEqual(list(jar._loaded), [])
         self.assertEqual(list(jar._registered), [])
+
+    def test_p_invalidate_with_slots_broken_jar(self):
+        # If jar.setstate() raises a POSKeyError (or any error)
+        # clearing an object with unset slots doesn't result in a
+        # SystemError, the original error is propagated
+
+        class Derived(self._getTargetClass()):
+            __slots__ = ('slot1',)
+
+        # Pre-cache in __slotnames__; cpersistent goes directly for this
+        # and avoids a call to copy_reg. (If it calls the python code in
+        # copy_reg, the pending exception will be immediately propagated by
+        # copy_reg, not by us.)
+        copy_reg._slotnames(Derived)
+
+        inst, jar, OID = self._makeOneWithJar(Derived, broken_jar=True)
+        inst._p_invalidate()
+        self.assertEqual(inst._p_status, 'ghost')
+        self.assertRaises(NotImplementedError, inst._p_activate)
+
 
     def test__p_invalidate_from_sticky(self):
         inst, jar, OID = self._makeOneWithJar()
