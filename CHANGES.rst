@@ -1,10 +1,11 @@
 ``persistent`` Changelog
 ========================
 
-4.2.5 (unreleased)
-------------------
+4.2.4.1 (2017-04-21)
+--------------------
 
-- TBD
+- Packaging-only release:  get ``manylinux`` wheel built automatically.
+
 
 4.2.4 (2017-03-20)
 ------------------
