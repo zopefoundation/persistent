@@ -1,5 +1,7 @@
 include *.txt
 include *.rst
+include *.sh
+include *.yml
 
 recursive-include docs *
 recursive-include persistent *

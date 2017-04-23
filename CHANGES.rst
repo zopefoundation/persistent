@@ -1,10 +1,10 @@
 ``persistent`` Changelog
 ========================
 
-4.2.5 (unreleased)
-------------------
+4.2.4.2 (unreleased)
+--------------------
 
-- TBD
+- Packaging-only release: fix Python 2.7 ``manylinux`` wheels.
 
 
 4.2.4.1 (2017-04-21)
