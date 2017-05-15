@@ -1505,11 +1505,60 @@ simple_new(PyObject *self, PyObject *type_object)
     return PyType_GenericNew((PyTypeObject *)type_object, NULL, NULL);
 }
 
+static PyObject*
+py_per_use(PyObject* self, PyObject* ob) {
+    if (!PER_TypeCheck(ob)) {
+        return PyErr_Format(
+            PyExc_TypeError,
+            "object of type %s does not inherit from cPersistence.Persistent",
+            Py_TYPE(ob)->tp_name
+        );
+    }
+
+    if (PER_USE((cPersistentObject*) ob)) {
+        return NULL;
+    }
+
+    Py_RETURN_NONE;
+}
+
+static PyObject*
+py_per_allow_deactivation(PyObject* self, PyObject* ob) {
+    if (!PER_TypeCheck(ob)) {
+        return PyErr_Format(
+            PyExc_TypeError,
+            "object of type %s does not inherit from cPersistence.Persistent",
+            Py_TYPE(ob)->tp_name
+        );
+    }
+
+    PER_ALLOW_DEACTIVATION((cPersistentObject*) ob);
+    Py_RETURN_NONE;
+}
+
+static PyObject*
+py_per_accessed(PyObject* self, PyObject* ob) {
+    if (!PER_TypeCheck(ob)) {
+        return PyErr_Format(
+            PyExc_TypeError,
+            "object of type %s does not inherit from cPersistence.Persistent",
+            Py_TYPE(ob)->tp_name
+        );
+    }
+
+    PER_ACCESSED((cPersistentObject*) ob);
+    Py_RETURN_NONE;
+}
+
+
 static PyMethodDef cPersistence_methods[] =
 {
     {"simple_new", simple_new, METH_O,
      "Create an object by simply calling a class's __new__ method without "
      "arguments."},
+    {"PER_USE", py_per_use, METH_O, ""},
+    {"PER_ALLOW_DEACTIVATION", py_per_allow_deactivation, METH_O, ""},
+    {"PER_ACCESSED", py_per_accessed, METH_O, ""},
     {NULL, NULL}
 };
 
