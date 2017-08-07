@@ -206,7 +206,7 @@ scan_gc_items(ccobject *self, int target, Py_ssize_t target_bytes)
     {
         assert(self->ring_lock);
         assert(here != &self->ring_home);
-        
+
         /* At this point we know that the ring only contains nodes
             from persistent objects, plus our own home node.  We know
             this because the ring lock is held.  We can safely assume
@@ -214,14 +214,14 @@ scan_gc_items(ccobject *self, int target, Py_ssize_t target_bytes)
             is not the home */
         object = OBJECT_FROM_RING(self, here);
 
-        if (object->state == cPersistent_UPTODATE_STATE) 
+        if (object->state == cPersistent_UPTODATE_STATE)
         {
             CPersistentRing placeholder;
             PyObject *method;
             PyObject *temp;
             int error_occurred = 0;
             /* deactivate it. This is the main memory saver. */
-            
+
             /* Add a placeholder, a dummy node in the ring.  We need
                 to do this to mark our position in the ring.  It is
                 possible that the PyObject_GetAttr() call below will
@@ -237,7 +237,7 @@ scan_gc_items(ccobject *self, int target, Py_ssize_t target_bytes)
             method = PyObject_GetAttr((PyObject *)object, py__p_deactivate);
             if (method == NULL)
                 error_occurred = 1;
-            else 
+            else
             {
                 temp = PyObject_CallObject(method, NULL);
                 Py_DECREF(method);
@@ -891,6 +891,7 @@ cc_init(ccobject *self, PyObject *args, PyObject *kwds)
 static void
 cc_dealloc(ccobject *self)
 {
+    PyObject_GC_UnTrack((PyObject *)self);
     Py_XDECREF(self->data);
     Py_XDECREF(self->jar);
     PyObject_GC_Del(self);
@@ -1058,7 +1059,7 @@ cc_add_item(ccobject *self, PyObject *key, PyObject *v)
         PyErr_Format(PyExc_TypeError,
                     "Cached object oid must be bytes, not a %s",
                     oid->ob_type->tp_name);
-        
+
         return -1;
     }
 

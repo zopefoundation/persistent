@@ -783,6 +783,7 @@ Per__getstate__(cPersistentObject *self)
 static void
 Per_dealloc(cPersistentObject *self)
 {
+    PyObject_GC_UnTrack((PyObject *)self);
     if (self->state >= 0)
     {
         /* If the cache has been cleared, then a non-ghost object

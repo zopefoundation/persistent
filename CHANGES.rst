@@ -4,7 +4,8 @@
 4.2.5 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Fix the possibility of a rare crash in the C extension when
+  deallocating items. See https://github.com/zopefoundation/persistent/issues/66
 
 
 4.2.4.2 (2017-04-23)
