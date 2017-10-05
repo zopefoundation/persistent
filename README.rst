@@ -1,7 +1,7 @@
 ``persistent``:  automatic persistence for Python objects
 =========================================================
 
-.. image:: https://travis-ci.org/zopefoundation/persistent.png?branch=master
+.. image:: https://travis-ci.org/zopefoundation/persistent.svg?branch=master
         :target: https://travis-ci.org/zopefoundation/persistent
 
 .. image:: https://readthedocs.org/projects/persistent/badge/?version=latest
