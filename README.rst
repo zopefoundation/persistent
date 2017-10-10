@@ -21,7 +21,9 @@ forms the core protocol for making objects interact "transparently" with
 a database such as the ZODB.
 
 Please see the Sphinx documentation (``docs/index.rst``) for further
-information.
+information, or view the documentation at Read The Docs, for either
+the latest (``http://persistent.readthedocs.io/en/latest/) or stable 
+release (``http://persistent.readthedocs.io/en/stable/``).
 
 .. note::
 
