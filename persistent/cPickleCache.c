@@ -99,11 +99,6 @@ static char cPickleCache_doc_string[] =
 #include <stddef.h>
 #undef Py_FindMethod
 
-/* Python 2.4 backward compat */
-#if PY_MAJOR_VERSION <= 2 && PY_MINOR_VERSION < 5
-#define Py_ssize_t int
-typedef Py_ssize_t (*lenfunc)(PyObject *);
-#endif
 
 /* Python string objects to speed lookups; set by module init. */
 static PyObject *py__p_changed;
@@ -111,7 +106,7 @@ static PyObject *py__p_deactivate;
 static PyObject *py__p_jar;
 static PyObject *py__p_oid;
 
-static cPersistenceCAPIstruct *capi;
+static cPersistenceCAPIstruct *cPersistenceCAPI;
 
 /* This object is the pickle cache.  The CACHE_HEAD macro guarantees
    that layout of this struct is the same as the start of
@@ -523,7 +518,7 @@ cc_debug_info(ccobject *self)
             v = Py_BuildValue("Oi", k, v->ob_refcnt);
 
         else if (! PyType_Check(v) &&
-                (v->ob_type->tp_basicsize >= sizeof(cPersistentObject))
+                PER_TypeCheck(v)
                 )
             v = Py_BuildValue("Oisi",
                             k, v->ob_refcnt, v->ob_type->tp_name,
@@ -711,13 +706,12 @@ cc_new_ghost(ccobject *self, PyObject *args)
     {
         /* Its a persistent class, such as a ZClass. Thats ok. */
     }
-    else if (v->ob_type->tp_basicsize < sizeof(cPersistentObject))
+    else if (! PER_TypeCheck(v))
     {
         /* If it's not an instance of a persistent class, (ie Python
             classes that derive from persistent.Persistent, BTrees,
             etc), report an error.
 
-            TODO:  checking sizeof() seems a poor test.
         */
         PyErr_SetString(PyExc_TypeError,
                         "Cache values must be persistent objects.");
@@ -1034,13 +1028,11 @@ cc_add_item(ccobject *self, PyObject *key, PyObject *v)
     {
         /* Its a persistent class, such as a ZClass. Thats ok. */
     }
-    else if (v->ob_type->tp_basicsize < sizeof(cPersistentObject))
+    else if (! PER_TypeCheck(v))
     {
         /* If it's not an instance of a persistent class, (ie Python
             classes that derive from persistent.Persistent, BTrees,
             etc), report an error.
-
-            TODO:  checking sizeof() seems a poor test.
         */
         PyErr_SetString(PyExc_TypeError,
                         "Cache values must be persistent objects.");
@@ -1347,14 +1339,14 @@ module_init(void)
 #endif
 
 #ifdef PY3K
-    capi = (cPersistenceCAPIstruct *)PyCapsule_Import(CAPI_CAPSULE_NAME, 0);
+    cPersistenceCAPI = (cPersistenceCAPIstruct *)PyCapsule_Import(CAPI_CAPSULE_NAME, 0);
 #else
-    capi = (cPersistenceCAPIstruct *)PyCObject_Import(
-                    "persistent.cPersistence", "CAPI");
+    cPersistenceCAPI = (cPersistenceCAPIstruct *)PyCObject_Import(
+                       "persistent.cPersistence", "CAPI");
 #endif
-    if (!capi)
+    if (!cPersistenceCAPI)
         return NULL;
-    capi->percachedel = (percachedelfunc)cc_oid_unreferenced;
+    cPersistenceCAPI->percachedel = (percachedelfunc)cc_oid_unreferenced;
 
     py__p_changed = INTERN("_p_changed");
     if (!py__p_changed)

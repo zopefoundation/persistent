@@ -1,12 +1,20 @@
 ``persistent`` Changelog
 ========================
 
-4.2.5 (unreleased)
+4.3.0 (unreleased)
 ------------------
 
 - Fix the possibility of a rare crash in the C extension when
   deallocating items. See https://github.com/zopefoundation/persistent/issues/66
 
+- Change cPickleCache's comparison of object sizes to determine
+  whether an object can go in the cache to use ``PyObject_TypeCheck()``.
+  This matches what the pure Python implementation does and is a
+  stronger test that the object really is compatible with the cache.
+  Previously, an object could potentially include ``cPersistent_HEAD``
+  and *not* set ``tp_base`` to ``cPersistenceCAPI->pertype`` and still
+  be eligible for the pickle cache; that is no longer the case. See
+  `issue 69 <https://github.com/zopefoundation/persistent/issues/69>`_.
 
 4.2.4.2 (2017-04-23)
 --------------------
