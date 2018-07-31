@@ -163,14 +163,20 @@ class pyTimeStampTests(unittest.TestCase):
         # Check the corner cases when comparing non-comparable types
         ts = self._makeOne(2011, 2, 16, 14, 37, 22.0)
 
-        def check_py2(op, passes):
+        def check_common(op, passes):
             if passes == 'neither':
                 self.assertFalse(op(ts, None))
                 self.assertFalse(op(None, ts))
-            elif passes == 'both':
+                return True
+
+            if passes == 'both':
                 self.assertTrue(op(ts, None))
                 self.assertTrue(op(None, ts))
-            elif passes == 'first':
+                return True
+            return False
+
+        def check_py2(op, passes): # pragma: no cover
+            if passes == 'first':
                 self.assertTrue(op(ts, None))
                 self.assertFalse(op(None, ts))
             else:
@@ -178,15 +184,8 @@ class pyTimeStampTests(unittest.TestCase):
                 self.assertTrue(op(None, ts))
 
         def check_py3(op, passes):
-            if passes == 'neither':
-                self.assertFalse(op(ts, None))
-                self.assertFalse(op(None, ts))
-            elif passes == 'both':
-                self.assertTrue(op(ts, None))
-                self.assertTrue(op(None, ts))
-            else:
-                self.assertRaises(TypeError, op, ts, None)
-                self.assertRaises(TypeError, op, None, ts)
+            self.assertRaises(TypeError, op, ts, None)
+            self.assertRaises(TypeError, op, None, ts)
 
         check = check_py2 if PYTHON2 else check_py3
 
@@ -197,7 +196,8 @@ class pyTimeStampTests(unittest.TestCase):
                                 ('eq', 'neither'),
                                 ('ne', 'both')):
             op = getattr(operator, op_name)
-            check(op, passes)
+            if not check_common(op, passes):
+                check(op, passes)
 
 
 class TimeStampTests(pyTimeStampTests):
@@ -223,7 +223,7 @@ class PyAndCComparisonTests(unittest.TestCase):
         # it to test matching
         yield self.now_ts_args
         for i in range(2000):
-            yield self.now_ts_args[:-1] + (self.now_ts_args[-1] + (i % 60.0)/100.0 , )
+            yield self.now_ts_args[:-1] + (self.now_ts_args[-1] + (i % 60.0)/100.0, )
 
     def _makeC(self, *args, **kwargs):
         from persistent.timestamp import TimeStamp
@@ -304,7 +304,7 @@ class PyAndCComparisonTests(unittest.TestCase):
             # in hash() on 32-bit platforms
             if not self._is_jython:
                 self.assertEqual(py.__hash__(), bit_64_hash)
-            else:
+            else: # pragma: no cover
                 # Jython 2.7's ctypes module doesn't properly
                 # implement the 'value' attribute by truncating.
                 # (It does for native calls, but not visibly to Python).
@@ -318,15 +318,13 @@ class PyAndCComparisonTests(unittest.TestCase):
             MUT._MAXINT = orig_maxint
             if orig_c_long is not None:
                 MUT.c_long = orig_c_long
-            else:
+            else: # pragma: no cover
                 del MUT.c_long
 
         # These are *usually* aliases, but aren't required
         # to be (and aren't under Jython 2.7).
-        if is_32_bit_hash:
-            self.assertEqual(py.__hash__(), bit_32_hash)
-        else:
-            self.assertEqual(py.__hash__(), bit_64_hash)
+        expected_hash = bit_32_hash if is_32_bit_hash else bit_64_hash
+        self.assertEqual(py.__hash__(), expected_hash)
 
     def test_hash_equal_constants(self):
         # The simple constants make it easier to diagnose
@@ -350,46 +348,36 @@ class PyAndCComparisonTests(unittest.TestCase):
 
         # overflow kicks in here on 32-bit platforms
         c, py = self._make_C_and_Py(b'\x00\x00\x00\x00\x00\x01\x00\x00')
-        if is_32_bit:
-            self.assertEqual(hash(c), -721379967)
-        else:
-            self.assertEqual(hash(c), 1000006000001)
+        expected = -721379967 if is_32_bit else 1000006000001
+        self.assertEqual(hash(c), expected)
         self.assertEqual(hash(c), hash(py))
 
         c, py = self._make_C_and_Py(b'\x00\x00\x00\x00\x01\x00\x00\x00')
-        if is_32_bit:
-            self.assertEqual(hash(c), 583896275)
-        else:
-            self.assertEqual(hash(c), 1000009000027000019)
+        expected = 583896275 if is_32_bit else 1000009000027000019
+        self.assertEqual(hash(c), expected)
         self.assertEqual(hash(c), hash(py))
 
         # Overflow kicks in at this point on 64-bit platforms
         c, py = self._make_C_and_Py(b'\x00\x00\x00\x01\x00\x00\x00\x00')
-        if is_32_bit:
-            self.assertEqual(hash(c), 1525764953)
-        else:
-            self.assertEqual(hash(c), -4442925868394654887)
+        expected = 1525764953 if is_32_bit else -4442925868394654887
+        self.assertEqual(hash(c), expected)
         self.assertEqual(hash(c), hash(py))
 
         c, py = self._make_C_and_Py(b'\x00\x00\x01\x00\x00\x00\x00\x00')
-        if is_32_bit:
-            self.assertEqual(hash(c), -429739973)
-        else:
-            self.assertEqual(hash(c), -3993531167153147845)
+        expected = -429739973 if is_32_bit else -3993531167153147845
+        self.assertEqual(hash(c), expected)
         self.assertEqual(hash(c), hash(py))
 
         c, py = self._make_C_and_Py(b'\x01\x00\x00\x00\x00\x00\x00\x00')
-        if is_32_bit:
-            self.assertEqual(hash(c), 263152323)
-        else:
-            self.assertEqual(hash(c), -3099646879006235965)
+        expected = 263152323 if is_32_bit else -3099646879006235965
+        self.assertEqual(hash(c), expected)
         self.assertEqual(hash(c), hash(py))
 
     def test_ordering(self):
-        small_c  = self._makeC(b'\x00\x00\x00\x00\x00\x00\x00\x01')
-        big_c    = self._makeC(b'\x01\x00\x00\x00\x00\x00\x00\x00')
-
+        small_c = self._makeC(b'\x00\x00\x00\x00\x00\x00\x00\x01')
         small_py = self._makePy(b'\x00\x00\x00\x00\x00\x00\x00\x01')
+
+        big_c = self._makeC(b'\x01\x00\x00\x00\x00\x00\x00\x00')
         big_py = self._makePy(b'\x01\x00\x00\x00\x00\x00\x00\x00')
 
         self.assertTrue(small_py < big_py)
@@ -423,7 +411,7 @@ def test_suite():
     try:
         from persistent.timestamp import pyTimeStamp
         from persistent.timestamp import TimeStamp
-    except ImportError:
+    except ImportError: # pragma: no cover
         pass
     else:
         if pyTimeStamp != TimeStamp:

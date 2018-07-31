@@ -7,3 +7,4 @@ exclude_lines =
     class I[A-Z]\w+\((Interface|I[A-Z].*)\):
     raise NotImplementedError
     raise AssertionError
+    if __name__ == '__main__':
