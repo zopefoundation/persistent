@@ -110,6 +110,7 @@ setup(name='persistent',
       include_package_data=True,
       zip_safe=False,
       ext_modules=ext_modules,
+      cffi_modules=['persistent/_ring_build.py:ffi'],
       headers=headers,
       extras_require={
           'test': [
