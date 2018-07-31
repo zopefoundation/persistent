@@ -32,15 +32,13 @@ def _read_file(filename):
 
 README = (_read_file('README.rst') + '\n\n' + _read_file('CHANGES.rst'))
 
-py_impl = getattr(platform, 'python_implementation', lambda: None)
-is_pypy = py_impl() == 'PyPy'
+is_pypy = platform.python_implementation() == 'PyPy'
 is_jython = 'java' in sys.platform
-is_pure = os.environ.get('PURE_PYTHON')
 
 # Jython cannot build the C optimizations, while on PyPy they are
 # anti-optimizations (the C extension compatibility layer is known-slow,
 # and defeats JIT opportunities).
-if is_pypy or is_jython or is_pure:
+if is_pypy or is_jython:
     ext_modules = headers = []
 else:
     ext_modules = [
@@ -114,17 +112,16 @@ setup(name='persistent',
       ext_modules=ext_modules,
       headers=headers,
       extras_require={
-          'test': (),
-          'testing': [
-              'nose',
-              'coverage',
+          'test': [
+              'zope.testrunner',
+              "cffi ; platform_python_implementation == 'CPython'",
           ],
+          'testing': (),
           'docs': [
               'Sphinx',
               'repoze.sphinx.autointerface',
           ],
       },
-      test_suite="persistent.tests",
       install_requires=[
           'zope.interface',
       ],
