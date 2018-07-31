@@ -245,9 +245,18 @@ class _Persistent_Base(object):
 
     def test_delete_p_oid_w_jar(self):
         inst, jar, OID = self._makeOneWithJar()
-        def _test():
+        with self.assertRaises(ValueError):
             del inst._p_oid
-        self.assertRaises(ValueError, _test)
+
+    def test_delete_p_oid_of_subclass_calling_p_delattr(self):
+        class P(self._getTargetClass()):
+            def __delattr__(self, name):
+                super(P, self)._p_delattr(name)
+                raise AssertionError("Should not get here")
+
+        inst, _jar, _oid = self._makeOneWithJar(klass=P)
+        with self.assertRaises(ValueError):
+            del inst._p_oid
 
     def test_del_oid_like_ZODB_abort(self):
         # When a ZODB connection aborts, it removes registered objects from
@@ -273,13 +282,13 @@ class _Persistent_Base(object):
     def test_assign_p_serial_too_short(self):
         inst = self._makeOne()
         def _test():
-            inst._p_serial = '\x01\x02\x03'
+            inst._p_serial = b'\x01\x02\x03'
         self.assertRaises(ValueError, _test)
 
     def test_assign_p_serial_too_long(self):
         inst = self._makeOne()
         def _test():
-            inst._p_serial = '\x01\x02\x03' * 3
+            inst._p_serial = b'\x01\x02\x03' * 3
         self.assertRaises(ValueError, _test)
 
     def test_assign_p_serial_w_valid_serial(self):
