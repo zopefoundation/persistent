@@ -6,6 +6,13 @@
 
 - Add support for Python 3.7 and drop support for Python 3.3.
 
+- Build the CFFI modules (used on PyPy or when PURE_PYTHON is set) at
+  installation or wheel building time when CFFI is available. This
+  replaces the deprecated way of building them at import time. If
+  binary wheels are distributed, it eliminates the need to have a
+  functioning C compiler to use PyPy. See `issue 75
+  <https://github.com/zopefoundation/persistent/issues/75>`_.
+
 
 4.3.0 (2018-07-30)
 ------------------

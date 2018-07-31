@@ -144,21 +144,12 @@ class _DequeRing(object):
 
 
 try:
-    from cffi import FFI
+    from persistent import _ring
 except ImportError: # pragma: no cover
     _CFFIRing = None
 else:
-
-    import os
-    this_dir = os.path.dirname(os.path.abspath(__file__))
-
-    ffi = FFI()
-    with open(os.path.join(this_dir, 'ring.h')) as f:
-        ffi.cdef(f.read())
-
-    _FFI_RING = ffi.verify("""
-    #include "ring.c"
-    """, include_dirs=[this_dir])
+    ffi = _ring.ffi
+    _FFI_RING = _ring.lib
 
     _OGA = object.__getattribute__
     _OSA = object.__setattr__

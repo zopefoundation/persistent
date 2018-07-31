@@ -1055,7 +1055,7 @@ class PickleCacheTests(unittest.TestCase):
 
         if _is_pypy:
             self.assertIs(ring.Ring, ring._CFFIRing)
-        elif ring._CFFIRing is not None:
+        elif ring._CFFIRing is not None or os.environ.get('USING_CFFI'):
             self.assertIs(ring.Ring, ring._CFFIRing)
         else:
             self.assertIs(ring.Ring, ring._DequeRing)
