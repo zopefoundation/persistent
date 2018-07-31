@@ -35,9 +35,8 @@ class OverridesGetattr(Persistent):
         """
         # Don't pretend we have any special attributes.
         if name.startswith("__") and name.endswrith("__"):
-            raise AttributeError(name)
-        else:
-            return name.upper(), self._p_changed
+            raise AttributeError(name) # pragma: no cover
+        return name.upper(), self._p_changed
 
 
 class VeryPrivate(Persistent):

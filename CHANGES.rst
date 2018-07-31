@@ -16,6 +16,12 @@
   See `issue 75
   <https://github.com/zopefoundation/persistent/issues/75>`_.
 
+- Fix deleting the ``_p_oid`` of a pure-Python persistent object when
+  it is in a cache.
+
+- Fix deleting special (``_p``) attributes of a pure-Python persistent
+  object that overrides ``__delattr__`` and correctly calls ``_p_delattr``.
+
 
 4.3.0 (2018-07-30)
 ------------------
