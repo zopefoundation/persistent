@@ -20,6 +20,8 @@ l0 = []
 l1 = [0]
 l2 = [0, 1]
 
+# pylint:disable=protected-access
+
 class OtherList:
     def __init__(self, initlist):
         self.__data = initlist
@@ -33,6 +35,17 @@ class TestPList(unittest.TestCase):
     def _getTargetClass(self):
         from persistent.list import PersistentList
         return PersistentList
+
+    def _makeJar(self):
+        class Jar(object):
+            def register(self, obj):
+                "no-op"
+        return Jar()
+
+    def _makeOne(self, *args):
+        inst = self._getTargetClass()(*args)
+        inst._p_jar = self._makeJar()
+        return inst
 
     def test_volatile_attributes_not_persisted(self):
         # http://www.zope.org/Collectors/Zope/2052
@@ -247,6 +260,69 @@ class TestPList(unittest.TestCase):
         u = u1[:]
         u *= 3
         eq(u, u1 + u1 + u1, "u == u1 + u1 + u1")
+
+    def test_setslice(self):
+        inst = self._makeOne()
+        self.assertFalse(inst._p_changed)
+        inst[:] = [1, 2, 3]
+        self.assertEqual(inst, [1, 2, 3])
+        self.assertTrue(inst._p_changed)
+
+    def test_delslice(self):
+        inst = self._makeOne([1, 2, 3])
+        self.assertFalse(inst._p_changed)
+        self.assertEqual(inst, [1, 2, 3])
+        del inst[:]
+        self.assertTrue(inst._p_changed)
+
+    def test_iadd(self):
+        inst = self._makeOne()
+        self.assertFalse(inst._p_changed)
+        inst += [1, 2, 3]
+        self.assertEqual(inst, [1, 2, 3])
+        self.assertTrue(inst._p_changed)
+
+    def test_extend(self):
+        inst = self._makeOne()
+        self.assertFalse(inst._p_changed)
+        inst.extend([1, 2, 3])
+        self.assertEqual(inst, [1, 2, 3])
+        self.assertTrue(inst._p_changed)
+
+    def test_imul(self):
+        inst = self._makeOne([1])
+        self.assertFalse(inst._p_changed)
+        inst *= 2
+        self.assertEqual(inst, [1, 1])
+        self.assertTrue(inst._p_changed)
+
+    def test_append(self):
+        inst = self._makeOne()
+        self.assertFalse(inst._p_changed)
+        inst.append(1)
+        self.assertEqual(inst, [1])
+        self.assertTrue(inst._p_changed)
+
+    def test_insert(self):
+        inst = self._makeOne()
+        self.assertFalse(inst._p_changed)
+        inst.insert(0, 1)
+        self.assertEqual(inst, [1])
+        self.assertTrue(inst._p_changed)
+
+    def test_remove(self):
+        inst = self._makeOne([1])
+        self.assertFalse(inst._p_changed)
+        inst.remove(1)
+        self.assertEqual(inst, [])
+        self.assertTrue(inst._p_changed)
+
+    def test_reverse(self):
+        inst = self._makeOne([2, 1])
+        self.assertFalse(inst._p_changed)
+        inst.reverse()
+        self.assertEqual(inst, [1, 2])
+        self.assertTrue(inst._p_changed)
 
 
 def test_suite():
