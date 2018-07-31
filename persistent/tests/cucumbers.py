@@ -18,8 +18,7 @@ from persistent._compat import PYTHON2
 
 
 def print_dict(d):
-    d = d.items()
-    d.sort()
+    d = sorted(d.items())
     print('{%s}' % (', '.join(
         [('%r: %r' % (k, v)) for (k, v) in d]
         )))

@@ -467,7 +467,7 @@ class Persistent(object):
         """ See IPersistent.
         """
         if name.startswith('_p_'):
-            setattr(self, name, value)
+            _OSA(self, name, value)
             return True
         self._p_activate()
         self._p_accessed()

@@ -18,8 +18,8 @@ machinery happy:
    >>> f, (c,), state = x.__reduce__()
    >>> f.__name__
    '__newobj__'
-   >>> f.__module__
-   'copy_reg'
+   >>> f.__module__.replace('_', '') # Normalize Python2/3
+   'copyreg'
    >>> c.__name__
    'Simple'
 
@@ -57,8 +57,8 @@ by overriding :meth:`__getnewargs__`, :meth:`__getstate__` and
    >>> (f, (c, ax, ay), a) = x.__reduce__()
    >>> f.__name__
    '__newobj__'
-   >>> f.__module__
-   'copy_reg'
+   >>> f.__module__.replace('_', '') # Normalize Python2/3
+   'copyreg'
    >>> c.__name__
    'Custom'
    >>> ax, ay, a
@@ -79,7 +79,6 @@ ignores any slots which map onto the "persistent" namespace (prefixed with
 
 .. doctest::
 
-   >>> import copy_reg
    >>> from persistent.tests.cucumbers import SubSlotted
    >>> x = SubSlotted('x', 'y', 'z')
 
