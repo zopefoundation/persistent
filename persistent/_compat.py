@@ -13,6 +13,9 @@
 ##############################################################################
 
 import sys
+import os
+
+PURE_PYTHON = os.environ.get('PURE_PYTHON')
 
 if sys.version_info[0] > 2: # pragma: no cover
     import copyreg as copy_reg

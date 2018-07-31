@@ -18,6 +18,8 @@ import math
 import struct
 import sys
 
+from persistent._compat import PURE_PYTHON
+
 _RAWTYPE = bytes
 _MAXINT = sys.maxsize
 
@@ -205,6 +207,8 @@ class pyTimeStamp(object):
 
 
 try:
-    from persistent._timestamp import TimeStamp
+    from persistent._timestamp import TimeStamp as CTimeStamp
 except ImportError: # pragma: no cover
-    TimeStamp = pyTimeStamp
+    CTimeStamp = None
+
+TimeStamp = pyTimeStamp if PURE_PYTHON or CTimeStamp is None else CTimeStamp
