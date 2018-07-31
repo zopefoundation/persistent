@@ -1,5 +1,7 @@
 [run]
 source = persistent
+omit =
+     persistent/_ring_build.py
 
 [report]
 exclude_lines =
