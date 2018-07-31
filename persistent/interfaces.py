@@ -23,7 +23,7 @@ try:
     from persistent.cPersistence import UPTODATE
     from persistent.cPersistence import CHANGED
     from persistent.cPersistence import STICKY
-except ImportError: #pragma NO COVER
+except ImportError: # pragma: no cover
     GHOST = -1
     UPTODATE = 0
     CHANGED = 1

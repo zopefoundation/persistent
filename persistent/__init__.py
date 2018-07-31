@@ -26,7 +26,7 @@ if not PURE_PYTHON:
         from persistent.cPersistence import CHANGED
         from persistent.cPersistence import STICKY
         from persistent.cPersistence import simple_new
-    except ImportError: #pragma NO COVER
+    except ImportError: # pragma: no cover
         from persistent.persistence import Persistent
         from persistent.persistence import GHOST
         from persistent.persistence import UPTODATE
@@ -39,7 +39,7 @@ if not PURE_PYTHON:
         # is available.  Note that the Python version already does this.
         try:
             from zope.interface import classImplements
-        except ImportError: #pragma NO COVER
+        except ImportError: # pragma: no cover
             pass
         else:
             from persistent.interfaces import IPersistent
@@ -47,17 +47,17 @@ if not PURE_PYTHON:
 
     try:
         from persistent.cPickleCache import PickleCache
-    except ImportError: #pragma NO COVER
+    except ImportError: # pragma: no cover
         from persistent.picklecache import PickleCache
 
     try:
         import persistent.TimeStamp
-    except ImportError: #pragma NO COVER
+    except ImportError: # pragma: no cover
         import persistent.timestamp as TimeStamp
         import sys
         sys.modules['persistent.TimeStamp'
                    ] = sys.modules['persistent.timestamp']
-else: #pragma NO COVER
+else: # pragma: no cover
     from persistent.persistence import Persistent
     from persistent.persistence import GHOST
     from persistent.persistence import UPTODATE

@@ -14,7 +14,7 @@
 
 import sys
 
-if sys.version_info[0] > 2: #pragma NO COVER
+if sys.version_info[0] > 2: # pragma: no cover
     import copyreg as copy_reg
     from collections import UserDict as IterableUserDict
     from collections import UserList
@@ -36,7 +36,7 @@ if sys.version_info[0] > 2: #pragma NO COVER
     PYTHON3 = True
     PYTHON2 = False
 
-else: #pragma NO COVER
+else: # pragma: no cover
     import copy_reg
     from UserDict import IterableUserDict
     from UserList import UserList

@@ -83,7 +83,7 @@ class PersistentWeakKeyDictionary(Persistent):
             self.update(adict)
         # XXX 'kwargs' is pointless, because keys must be strings, but we
         #     are going to try (and fail) to wrap a WeakRef around them.
-        if kwargs: #pragma NO COVER
+        if kwargs: # pragma: no cover
             self.update(kwargs)
 
     def __getstate__(self):
