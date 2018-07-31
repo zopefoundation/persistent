@@ -17,8 +17,7 @@ import platform
 import sys
 import unittest
 
-_py_impl = getattr(platform, 'python_implementation', lambda: None)
-_is_pypy = _py_impl() == 'PyPy'
+_is_pypy = platform.python_implementation() == 'PyPy'
 _is_jython = 'java' in sys.platform
 
 _marker = object()
@@ -1054,10 +1053,12 @@ class PickleCacheTests(unittest.TestCase):
     def test_ring_impl(self):
         from .. import ring
 
-        if _is_pypy or os.getenv('USING_CFFI'):
-            self.assertTrue(ring.Ring is ring._CFFIRing)
+        if _is_pypy:
+            self.assertIs(ring.Ring, ring._CFFIRing)
+        elif ring._CFFIRing is not None:
+            self.assertIs(ring.Ring, ring._CFFIRing)
         else:
-            self.assertTrue(ring.Ring is ring._DequeRing)
+            self.assertIs(ring.Ring, ring._DequeRing)
 
 class DummyPersistent(object):
 
