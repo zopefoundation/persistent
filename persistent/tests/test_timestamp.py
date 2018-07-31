@@ -63,9 +63,11 @@ class pyTimeStampTests(unittest.TestCase):
                     (1, 2, 3, 4, 5),
                     ('1', '2', '3', '4', '5', '6'),
                     (1, 2, 3, 4, 5, 6, 7),
+                    (b'123',),
                    ]
         for args in BAD_ARGS:
-            self.assertRaises((TypeError, ValueError), self._makeOne, *args)
+            with self.assertRaises((TypeError, ValueError)):
+                self._makeOne(*args)
 
     def test_ctor_from_invalid_strings(self):
         BAD_ARGS = [''
@@ -80,13 +82,12 @@ class pyTimeStampTests(unittest.TestCase):
             self.assertRaises((TypeError, ValueError), self._makeOne, *args)
 
     def test_ctor_from_string(self):
-        from persistent.timestamp import _makeOctets
         from persistent.timestamp import _makeUTC
         ZERO = _makeUTC(1900, 1, 1, 0, 0, 0)
         EPOCH = _makeUTC(1970, 1, 1, 0, 0, 0)
         DELTA = ZERO - EPOCH
         DELTA_SECS = DELTA.days * 86400 + DELTA.seconds
-        SERIAL = _makeOctets('\x00' * 8)
+        SERIAL = b'\x00' * 8
         ts = self._makeOne(SERIAL)
         self.assertEqual(ts.raw(), SERIAL)
         self.assertEqual(ts.year(), 1900)
@@ -104,13 +105,12 @@ class pyTimeStampTests(unittest.TestCase):
         self.assertEqual(before.timeTime(), 1297867042.80544)
 
     def test_ctor_from_elements(self):
-        from persistent.timestamp import _makeOctets
         from persistent.timestamp import _makeUTC
         ZERO = _makeUTC(1900, 1, 1, 0, 0, 0)
         EPOCH = _makeUTC(1970, 1, 1, 0, 0, 0)
         DELTA = ZERO - EPOCH
         DELTA_SECS = DELTA.days * 86400 + DELTA.seconds
-        SERIAL = _makeOctets('\x00' * 8)
+        SERIAL = b'\x00' * 8
         ts = self._makeOne(1900, 1, 1, 0, 0, 0.0)
         self.assertEqual(ts.raw(), SERIAL)
         self.assertEqual(ts.year(), 1900)
@@ -122,9 +122,8 @@ class pyTimeStampTests(unittest.TestCase):
         self.assertEqual(ts.timeTime(), DELTA_SECS)
 
     def test_laterThan_invalid(self):
-        from persistent.timestamp import _makeOctets
         ERRORS = (ValueError, TypeError)
-        SERIAL = _makeOctets('\x01' * 8)
+        SERIAL = b'\x01' * 8
         ts = self._makeOne(SERIAL)
         self.assertRaises(ERRORS, ts.laterThan, None)
         self.assertRaises(ERRORS, ts.laterThan, '')
@@ -134,26 +133,23 @@ class pyTimeStampTests(unittest.TestCase):
         self.assertRaises(ERRORS, ts.laterThan, object())
 
     def test_laterThan_self_is_earlier(self):
-        from persistent.timestamp import _makeOctets
-        SERIAL1 = _makeOctets('\x01' * 8)
-        SERIAL2 = _makeOctets('\x02' * 8)
+        SERIAL1 = b'\x01' * 8
+        SERIAL2 = b'\x02' * 8
         ts1 = self._makeOne(SERIAL1)
         ts2 = self._makeOne(SERIAL2)
         later = ts1.laterThan(ts2)
-        self.assertEqual(later.raw(), _makeOctets('\x02' * 7 + '\x03'))
+        self.assertEqual(later.raw(), b'\x02' * 7 + b'\x03')
 
     def test_laterThan_self_is_later(self):
-        from persistent.timestamp import _makeOctets
-        SERIAL1 = _makeOctets('\x01' * 8)
-        SERIAL2 = _makeOctets('\x02' * 8)
+        SERIAL1 = b'\x01' * 8
+        SERIAL2 = b'\x02' * 8
         ts1 = self._makeOne(SERIAL1)
         ts2 = self._makeOne(SERIAL2)
         later = ts2.laterThan(ts1)
         self.assertTrue(later is ts2)
 
     def test_repr(self):
-        from persistent.timestamp import _makeOctets
-        SERIAL = _makeOctets('\x01' * 8)
+        SERIAL = b'\x01' * 8
         ts = self._makeOne(SERIAL)
         self.assertEqual(repr(ts), repr(SERIAL))
 

@@ -21,13 +21,7 @@ import sys
 _RAWTYPE = bytes
 _MAXINT = sys.maxsize
 
-def _makeOctets(s):
-    if sys.version_info < (3,):
-        return bytes(s)
-    return bytes(s, 'ascii') # pragma: no cover
-
-
-_ZERO = _makeOctets('\x00' * 8)
+_ZERO = b'\x00' * 8
 
 try:
     # Make sure to overflow and wraparound just
