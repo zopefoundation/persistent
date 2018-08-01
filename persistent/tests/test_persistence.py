@@ -1735,7 +1735,6 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
         # but because they are newly created, they aren't in the
         # pickle cache yet.
         # Nothing should blow up when this happens
-        from persistent._compat import _b
         KEY = b'123'
         jar = self._makeJar()
         c1 = self._makeOne()
@@ -1753,8 +1752,7 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
 
     def test_accessed_invalidated_with_jar_and_oid_but_no_cache(self):
         # This scenario arises in ZODB tests where the jar is faked
-        from persistent._compat import _b
-        KEY = _b('123')
+        KEY = b'123'
         class Jar(object):
             accessed = False
             def __getattr__(self, name):

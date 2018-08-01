@@ -24,21 +24,19 @@ class WeakRefTests(unittest.TestCase):
         return self._getTargetClass()(ob)
 
     def test_ctor_target_wo_jar(self):
-        from persistent._compat import _b
         target = _makeTarget()
         wref = self._makeOne(target)
         self.assertTrue(wref._v_ob is target)
-        self.assertEqual(wref.oid, _b('OID'))
+        self.assertEqual(wref.oid, b'OID')
         self.assertTrue(wref.dm is None)
         self.assertFalse('database_name' in wref.__dict__)
 
     def test_ctor_target_w_jar(self):
-        from persistent._compat import _b
         target = _makeTarget()
         target._p_jar = jar = _makeJar()
         wref = self._makeOne(target)
         self.assertTrue(wref._v_ob is target)
-        self.assertEqual(wref.oid, _b('OID'))
+        self.assertEqual(wref.oid, b'OID')
         self.assertTrue(wref.dm is jar)
         self.assertEqual(wref.database_name, 'testing')
 
@@ -181,14 +179,13 @@ class PersistentWeakKeyDictionaryTests(unittest.TestCase):
 
     def test___setstate___empty(self):
         from persistent.wref import WeakRef
-        from persistent._compat import _b
         jar = _makeJar()
-        KEY = _b('KEY')
-        KEY2 = _b('KEY2')
-        KEY3 = _b('KEY3')
-        VALUE = _b('VALUE')
-        VALUE2 = _b('VALUE2')
-        VALUE3 = _b('VALUE3')
+        KEY = b'KEY'
+        KEY2 = b'KEY2'
+        KEY3 = b'KEY3'
+        VALUE = b'VALUE'
+        VALUE2 = b'VALUE2'
+        VALUE3 = b'VALUE3'
         key = jar[KEY] = _makeTarget(oid=KEY)
         key._p_jar = jar
         kref = WeakRef(key)
@@ -208,7 +205,7 @@ class PersistentWeakKeyDictionaryTests(unittest.TestCase):
         value3._p_jar = jar
         pwkd = self._makeOne(None)
         pwkd.__setstate__({'data':
-                            [(kref, value), (kref2, value2), (kref3, value3)]})
+                           [(kref, value), (kref2, value2), (kref3, value3)]})
         self.assertTrue(pwkd[key] is value)
         self.assertTrue(pwkd.get(key2) is None)
         self.assertTrue(pwkd[key3] is value3)
@@ -317,9 +314,8 @@ class PersistentWeakKeyDictionaryTests(unittest.TestCase):
         self.assertTrue(target[key] is value)
 
 
-def _makeTarget(oid='OID'):
+def _makeTarget(oid=b'OID'):
     from persistent import Persistent
-    from persistent._compat import _b
     class Derived(Persistent):
         def __hash__(self):
             return hash(self._p_oid)
@@ -328,7 +324,7 @@ def _makeTarget(oid='OID'):
         def __repr__(self): # pragma: no cover
             return 'Derived: %s' % self._p_oid
     derived = Derived()
-    derived._p_oid = _b(oid)
+    derived._p_oid = oid
     return derived
 
 def _makeJar():

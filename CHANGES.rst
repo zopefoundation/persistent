@@ -7,7 +7,8 @@
 - Reach and maintain 100% test coverage.
 
 - Simplify ``__init__.py``, including removal of an attempted legacy
-  import of ``persistent.TimeStamp``.
+  import of ``persistent.TimeStamp``. See `PR 80
+  <https://github.com/zopefoundation/persistent/pull/80>`_.
 
 - Add support for Python 3.7 and drop support for Python 3.3.
 
@@ -27,6 +28,8 @@
 - Fix deleting special (``_p``) attributes of a pure-Python persistent
   object that overrides ``__delattr__`` and correctly calls ``_p_delattr``.
 
+- Remove some internal compatibility shims that are no longer
+  necessary. See `PR 82 <https://github.com/zopefoundation/persistent/pull/82>`_.
 
 4.3.0 (2018-07-30)
 ------------------
