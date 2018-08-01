@@ -31,7 +31,7 @@ class DummyPersistent(object):
         if oid is None:
             self._p_oid = self._next_oid()
 
-    def __repr__(self):
+    def __repr__(self): # pragma: no cover
         return "<Dummy %r>" % self._p_oid
 
 class _Ring_Base(object):

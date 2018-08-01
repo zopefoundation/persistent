@@ -116,6 +116,7 @@ setup(name='persistent',
           'test': [
               'zope.testrunner',
               "cffi ; platform_python_implementation == 'CPython'",
+              'manuel',
           ],
           'testing': (),
           'docs': [

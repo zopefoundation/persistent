@@ -13,7 +13,7 @@
 ##############################################################################
 import unittest
 
-
+# pylint:disable=blacklisted-name, protected-access
 
 class Test_default(unittest.TestCase):
 
@@ -25,15 +25,14 @@ class Test_default(unittest.TestCase):
         return self._getTargetClass()(func)
 
     def test___get___from_class(self):
-        _called_with = []
         def _test(inst):
-            _called_with.append(inst)
-            return '_test'
+            raise AssertionError("Must not be caled")
+
         descr = self._makeOne(_test)
         class Foo(object):
             testing = descr
-        self.assertTrue(Foo.testing is descr)
-        self.assertEqual(_called_with, [])
+        self.assertIs(Foo.testing, descr)
+
 
     def test___get___from_instance(self):
         _called_with = []
@@ -86,9 +85,9 @@ class PersistentMappingTests(unittest.TestCase):
             def __init__(self, initmapping):
                 self.__data = initmapping
             def items(self):
-                return self.__data.items()
-        v0 = self._makeOne(OtherMapping(u0))
-        vv = self._makeOne([(0, 0), (1, 1)])
+                raise AssertionError("Not called")
+        self._makeOne(OtherMapping(u0))
+        self._makeOne([(0, 0), (1, 1)])
 
         # Test __repr__
         eq = self.assertEqual
@@ -97,24 +96,37 @@ class PersistentMappingTests(unittest.TestCase):
         eq(repr(u1), repr(l1), "repr(u1) == repr(l1)")
 
         # Test __cmp__ and __len__
+        try:
+            cmp
+        except NameError:
+            def cmp(a, b):
+                if a == b:
+                    return 0
+                if hasattr(a, 'items'):
+                    a = sorted(a.items())
+                    b = sorted(b.items())
+                if a < b:
+                    return -1
+                return 1
 
-        if PYTHON2:
-            def mycmp(a, b):
-                r = cmp(a, b)
-                if r < 0: return -1
-                if r > 0: return 1
-                return r
+        def mycmp(a, b):
+            r = cmp(a, b)
+            if r < 0:
+                return -1
+            if r > 0:
+                return 1
+            return r
 
-            all = [l0, l1, l2, u, u0, u1, u2, uu, uu0, uu1, uu2]
-            for a in all:
-                for b in all:
-                    eq(mycmp(a, b), mycmp(len(a), len(b)),
-                        "mycmp(a, b) == mycmp(len(a), len(b))")
+        to_test = [l0, l1, l2, u, u0, u1, u2, uu, uu0, uu1, uu2]
+        for a in to_test:
+            for b in to_test:
+                eq(mycmp(a, b), mycmp(len(a), len(b)),
+                   "mycmp(a, b) == mycmp(len(a), len(b))")
 
         # Test __getitem__
 
-        for i in range(len(u2)):
-            eq(u2[i], i, "u2[i] == i")
+        for i, val in enumerate(u2):
+            eq(val, i, "u2[i] == i")
 
         # Test get
 
@@ -136,12 +148,8 @@ class PersistentMappingTests(unittest.TestCase):
 
         del uu2[1]
         del uu2[0]
-        try:
+        with self.assertRaises(KeyError):
             del uu2[0]
-        except KeyError:
-            pass
-        else:
-            raise TestFailed("uu2[0] shouldn't be deletable")
 
         # Test __contains__
         for i in u2:
@@ -176,12 +184,8 @@ class PersistentMappingTests(unittest.TestCase):
         eq(x, 1, "u2.pop(1) == 1")
         self.assertTrue(1 not in u2, "1 not in u2")
 
-        try:
+        with self.assertRaises(KeyError):
             u2.pop(1)
-        except KeyError:
-            pass
-        else:
-            self.fail("1 should not be poppable from u2")
 
         x = u2.pop(1, 7)
         eq(x, 7, "u2.pop(1, 7) == 7")
@@ -230,8 +234,4 @@ class Test_legacy_PersistentDict(unittest.TestCase):
 
 
 def test_suite():
-    return unittest.TestSuite((
-        unittest.makeSuite(Test_default),
-        unittest.makeSuite(PersistentMappingTests),
-        unittest.makeSuite(Test_legacy_PersistentDict),
-    ))
+    return unittest.defaultTestLoader.loadTestsFromName(__name__)

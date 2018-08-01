@@ -24,8 +24,17 @@ _is_pypy3 = py_impl() == 'PyPy' and sys.version_info[0] > 2
 _is_jython = py_impl() == 'Jython'
 
 #pylint: disable=R0904,W0212,E1101
+# pylint:disable=attribute-defined-outside-init,too-many-lines
+# pylint:disable=blacklisted-name
+# Hundreds of unused jar and OID vars make this useless
+# pylint:disable=unused-variable
 
 class _Persistent_Base(object):
+
+    # py2/3 compat
+    assertRaisesRegex = getattr(unittest.TestCase,
+                                'assertRaisesRegex',
+                                unittest.TestCase.assertRaisesRegexp)
 
     def _getTargetClass(self):
         # concrete testcase classes must override
@@ -79,10 +88,10 @@ class _Persistent_Base(object):
         class _BrokenJar(object):
             def __init__(self):
                 self.called = 0
-            def register(self,ob):
+            def register(self, ob):
                 self.called += 1
                 raise NotImplementedError()
-            def setstate(self,ob):
+            def setstate(self, ob):
                 raise NotImplementedError()
 
         jar = _BrokenJar()
@@ -90,8 +99,7 @@ class _Persistent_Base(object):
         return jar
 
     def _makeOneWithJar(self, klass=None, broken_jar=False):
-        from persistent.timestamp import _makeOctets
-        OID = _makeOctets('\x01' * 8)
+        OID = b'\x01' * 8
         if klass is not None:
             inst = klass()
         else:
@@ -162,12 +170,10 @@ class _Persistent_Base(object):
     def test_assign_p_jar_w_new_jar(self):
         inst, jar, OID = self._makeOneWithJar()
         new_jar = self._makeJar()
-        try:
+
+        with self.assertRaisesRegex(ValueError,
+                                    "can not change _p_jar of cached object"):
             inst._p_jar = new_jar
-        except ValueError as e:
-            self.assertEqual(str(e), "can not change _p_jar of cached object")
-        else:
-            self.fail("Should raise ValueError")
 
     def test_assign_p_jar_w_valid_jar(self):
         jar = self._makeJar()
@@ -189,43 +195,35 @@ class _Persistent_Base(object):
     def test_assign_p_oid_w_invalid_oid(self):
         inst, jar, OID = self._makeOneWithJar()
 
-        try:
+        with self.assertRaisesRegex(ValueError,
+                                    'can not change _p_oid of cached object'):
             inst._p_oid = object()
-        except ValueError as e:
-            self.assertEqual(str(e), 'can not change _p_oid of cached object')
-        else:
-            self.fail("Should raise value error")
-
 
     def test_assign_p_oid_w_valid_oid(self):
-        from persistent.timestamp import _makeOctets
-        OID = _makeOctets('\x01' * 8)
+        OID = b'\x01' * 8
         inst = self._makeOne()
         inst._p_oid = OID
         self.assertEqual(inst._p_oid, OID)
         inst._p_oid = OID  # reassign only same OID
 
     def test_assign_p_oid_w_new_oid_wo_jar(self):
-        from persistent.timestamp import _makeOctets
-        OID1 = _makeOctets('\x01' * 8)
-        OID2 = _makeOctets('\x02' * 8)
+        OID1 = b'\x01' * 8
+        OID2 = b'\x02' * 8
         inst = self._makeOne()
         inst._p_oid = OID1
         inst._p_oid = OID2
         self.assertEqual(inst._p_oid, OID2)
 
     def test_assign_p_oid_w_None_wo_jar(self):
-        from persistent.timestamp import _makeOctets
-        OID1 = _makeOctets('\x01' * 8)
+        OID1 = b'\x01' * 8
         inst = self._makeOne()
         inst._p_oid = OID1
         inst._p_oid = None
         self.assertEqual(inst._p_oid, None)
 
     def test_assign_p_oid_w_new_oid_w_jar(self):
-        from persistent.timestamp import _makeOctets
         inst, jar, OID = self._makeOneWithJar()
-        new_OID = _makeOctets('\x02' * 8)
+        new_OID = b'\x02' * 8
         def _test():
             inst._p_oid = new_OID
         self.assertRaises(ValueError, _test)
@@ -239,8 +237,7 @@ class _Persistent_Base(object):
         self.assertEqual(inst._p_oid, 42)
 
     def test_delete_p_oid_wo_jar(self):
-        from persistent.timestamp import _makeOctets
-        OID = _makeOctets('\x01' * 8)
+        OID = b'\x01' * 8
         inst = self._makeOne()
         inst._p_oid = OID
         del inst._p_oid
@@ -248,9 +245,18 @@ class _Persistent_Base(object):
 
     def test_delete_p_oid_w_jar(self):
         inst, jar, OID = self._makeOneWithJar()
-        def _test():
+        with self.assertRaises(ValueError):
             del inst._p_oid
-        self.assertRaises(ValueError, _test)
+
+    def test_delete_p_oid_of_subclass_calling_p_delattr(self):
+        class P(self._getTargetClass()):
+            def __delattr__(self, name):
+                super(P, self)._p_delattr(name)
+                raise AssertionError("Should not get here")
+
+        inst, _jar, _oid = self._makeOneWithJar(klass=P)
+        with self.assertRaises(ValueError):
+            del inst._p_oid
 
     def test_del_oid_like_ZODB_abort(self):
         # When a ZODB connection aborts, it removes registered objects from
@@ -276,30 +282,28 @@ class _Persistent_Base(object):
     def test_assign_p_serial_too_short(self):
         inst = self._makeOne()
         def _test():
-            inst._p_serial = '\x01\x02\x03'
+            inst._p_serial = b'\x01\x02\x03'
         self.assertRaises(ValueError, _test)
 
     def test_assign_p_serial_too_long(self):
         inst = self._makeOne()
         def _test():
-            inst._p_serial = '\x01\x02\x03' * 3
+            inst._p_serial = b'\x01\x02\x03' * 3
         self.assertRaises(ValueError, _test)
 
     def test_assign_p_serial_w_valid_serial(self):
-        from persistent.timestamp import _makeOctets
-        SERIAL = _makeOctets('\x01' * 8)
+        SERIAL = b'\x01' * 8
         inst = self._makeOne()
         inst._p_serial = SERIAL
         self.assertEqual(inst._p_serial, SERIAL)
 
     def test_delete_p_serial(self):
-        from persistent.timestamp import _makeOctets
         from persistent.persistence import _INITIAL_SERIAL
-        SERIAL = _makeOctets('\x01' * 8)
+        SERIAL = b'\x01' * 8
         inst = self._makeOne()
         inst._p_serial = SERIAL
         self.assertEqual(inst._p_serial, SERIAL)
-        del(inst._p_serial)
+        del inst._p_serial
         self.assertEqual(inst._p_serial, _INITIAL_SERIAL)
 
     def test_query_p_changed_unsaved(self):
@@ -623,15 +627,17 @@ class _Persistent_Base(object):
 
     def test_assign_p_estimated_size_wrong_type(self):
         inst = self._makeOne()
-        self.assertRaises(TypeError,
-                          lambda : setattr(inst, '_p_estimated_size', None))
+
+        with self.assertRaises(TypeError):
+            inst._p_estimated_size = None
+
         try:
-            long
+            constructor = long
         except NameError:
-            pass
-        else:
-            self.assertRaises(TypeError,
-                          lambda : setattr(inst, '_p_estimated_size', long(1)))
+            constructor = str
+
+        with self.assertRaises(TypeError):
+            inst._p_estimated_size = constructor(1)
 
     def test_assign_p_estimated_size_negative(self):
         inst = self._makeOne()
@@ -723,7 +729,7 @@ class _Persistent_Base(object):
             def __getattribute__(self, name):
                 if name == 'magic':
                     return 42
-                return super(Base,self).__getattribute__(name)
+                return super(Base, self).__getattribute__(name) # pragma: no cover
 
         self.assertEqual(getattr(Base(), 'magic'), 42)
 
@@ -733,8 +739,7 @@ class _Persistent_Base(object):
         self.assertRaises(AttributeError, getattr, Derived(), 'magic')
 
     def test___setattr___p__names(self):
-        from persistent.timestamp import _makeOctets
-        SERIAL = _makeOctets('\x01' * 8)
+        SERIAL = b'\x01' * 8
         inst, jar, OID = self._makeOneWithJar()
         inst._p_activate()
         NAMES = [('_p_jar', jar),
@@ -921,7 +926,7 @@ class _Persistent_Base(object):
         from persistent.persistence import _INITIAL_SERIAL
         inst = self._makeOne()
         self.assertRaises((ValueError, TypeError),
-                           inst.__setstate__, {'bogus': 1})
+                          inst.__setstate__, {'bogus': 1})
         self.assertEqual(inst._p_jar, None)
         self.assertEqual(inst._p_oid, None)
         self.assertEqual(inst._p_serial, _INITIAL_SERIAL)
@@ -1030,7 +1035,6 @@ class _Persistent_Base(object):
         self.assertTrue(hasattr(inst1, 'foobar'))
 
     def test___reduce__(self):
-        from persistent._compat import copy_reg
         inst = self._makeOne()
         first, second, third = inst.__reduce__()
         self.assertTrue(first is copy_reg.__newobj__)
@@ -1038,7 +1042,6 @@ class _Persistent_Base(object):
         self.assertEqual(third, None)
 
     def test___reduce__w_subclass_having_getnewargs(self):
-        from persistent._compat import copy_reg
         class Derived(self._getTargetClass()):
             def __getnewargs__(self):
                 return ('a', 'b')
@@ -1049,7 +1052,6 @@ class _Persistent_Base(object):
         self.assertEqual(third, {})
 
     def test___reduce__w_subclass_having_getstate(self):
-        from persistent._compat import copy_reg
         class Derived(self._getTargetClass()):
             def __getstate__(self):
                 return {}
@@ -1060,7 +1062,6 @@ class _Persistent_Base(object):
         self.assertEqual(third, {})
 
     def test___reduce__w_subclass_having_getnewargs_and_getstate(self):
-        from persistent._compat import copy_reg
         class Derived(self._getTargetClass()):
             def __getnewargs__(self):
                 return ('a', 'b')
@@ -1487,8 +1488,7 @@ class _Persistent_Base(object):
         self._checkMRU(jar, [OID])
 
     def test__p_setattr_w__p__name(self):
-        from persistent.timestamp import _makeOctets
-        SERIAL = _makeOctets('\x01' * 8)
+        SERIAL = b'\x01' * 8
         inst, jar, OID = self._makeOneWithJar()
         inst._p_deactivate()
         self.assertTrue(inst._p_setattr('_p_serial', SERIAL))
@@ -1537,14 +1537,12 @@ class _Persistent_Base(object):
         # object stays in the up-to-date state.
         # It shouldn't change to the modified state, because it won't
         # be saved when the transaction commits.
-        from persistent._compat import _b
         class P(self._getTargetClass()):
             def __init__(self):
                 self.x = 0
-            def inc(self):
-                self.x += 1
+
         p = P()
-        p._p_oid = _b('1')
+        p._p_oid = b'1'
         p._p_jar = self._makeBrokenJar()
         self.assertEqual(p._p_state, 0)
         self.assertEqual(p._p_jar.called, 0)
@@ -1557,14 +1555,11 @@ class _Persistent_Base(object):
     def test__p_activate_w_broken_jar(self):
         # Make sure that exceptions that occur inside the data manager's
         # ``setstate()`` method propagate out to the caller.
-        from persistent._compat import _b
         class P(self._getTargetClass()):
             def __init__(self):
                 self.x = 0
-            def inc(self):
-                self.x += 1
         p = P()
-        p._p_oid = _b('1')
+        p._p_oid = b'1'
         p._p_jar = self._makeBrokenJar()
         p._p_deactivate()
         self.assertEqual(p._p_state, -1)
@@ -1618,23 +1613,21 @@ class _Persistent_Base(object):
         class subclass(self._getTargetClass()):
             _v_setattr_called = False
             def __setattr__(self, name, value):
-                object.__setattr__(self, '_v_setattr_called', True)
-                super(subclass,self).__setattr__(name, value)
+                raise AssertionError("Should not be called")
         inst = subclass()
         self.assertEqual(object.__getattribute__(inst,'_v_setattr_called'), False)
 
     def test_can_set__p_attrs_if_subclass_denies_setattr(self):
-        from persistent._compat import _b
         # ZODB defines a PersistentBroken subclass that only lets us
         # set things that start with _p, so make sure we can do that
         class Broken(self._getTargetClass()):
             def __setattr__(self, name, value):
                 if name.startswith('_p_'):
-                    super(Broken,self).__setattr__(name, value)
+                    super(Broken, self).__setattr__(name, value)
                 else:
-                    raise TypeError("Can't change broken objects")
+                    raise AssertionError("Can't change broken objects")
 
-        KEY = _b('123')
+        KEY = b'123'
         jar = self._makeJar()
 
         broken = Broken()
@@ -1743,17 +1736,17 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
         # pickle cache yet.
         # Nothing should blow up when this happens
         from persistent._compat import _b
-        KEY = _b('123')
+        KEY = b'123'
         jar = self._makeJar()
         c1 = self._makeOne()
         c1._p_oid = KEY
         c1._p_jar = jar
-        orig_mru = jar._cache.mru
+
         def mru(oid):
             # Mimic what the real cache does
             if oid not in jar._cache._mru:
                 raise KeyError(oid)
-            orig_mru(oid)
+            raise AssertionError("Should never get here")
         jar._cache.mru = mru
         c1._p_accessed()
         self._checkMRU(jar, [])
@@ -1815,7 +1808,7 @@ _add_to_suite = [PyPersistentTests]
 if not os.environ.get('PURE_PYTHON'):
     try:
         from persistent import cPersistence
-    except ImportError:
+    except ImportError: # pragma: no cover
         pass
     else:
         class CPersistentTests(unittest.TestCase, _Persistent_Base):
@@ -1846,12 +1839,7 @@ if not os.environ.get('PURE_PYTHON'):
                 self.assertRaises(TypeError, self._callFUT, '')
 
             def test_w_type(self):
-                import sys
-                TO_CREATE = [type, list, tuple, object]
-                # Python 3.3 segfaults when destroying a dict created via
-                # PyType_GenericNew.  See http://bugs.python.org/issue16676
-                if sys.version_info < (3, 3):
-                    TO_CREATE.append(dict)
+                TO_CREATE = [type, list, tuple, object, dict]
                 for typ in TO_CREATE:
                     self.assertTrue(isinstance(self._callFUT(typ), typ))
 

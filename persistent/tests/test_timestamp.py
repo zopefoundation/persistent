@@ -63,9 +63,11 @@ class pyTimeStampTests(unittest.TestCase):
                     (1, 2, 3, 4, 5),
                     ('1', '2', '3', '4', '5', '6'),
                     (1, 2, 3, 4, 5, 6, 7),
+                    (b'123',),
                    ]
         for args in BAD_ARGS:
-            self.assertRaises((TypeError, ValueError), self._makeOne, *args)
+            with self.assertRaises((TypeError, ValueError)):
+                self._makeOne(*args)
 
     def test_ctor_from_invalid_strings(self):
         BAD_ARGS = [''
@@ -80,13 +82,12 @@ class pyTimeStampTests(unittest.TestCase):
             self.assertRaises((TypeError, ValueError), self._makeOne, *args)
 
     def test_ctor_from_string(self):
-        from persistent.timestamp import _makeOctets
         from persistent.timestamp import _makeUTC
         ZERO = _makeUTC(1900, 1, 1, 0, 0, 0)
         EPOCH = _makeUTC(1970, 1, 1, 0, 0, 0)
         DELTA = ZERO - EPOCH
         DELTA_SECS = DELTA.days * 86400 + DELTA.seconds
-        SERIAL = _makeOctets('\x00' * 8)
+        SERIAL = b'\x00' * 8
         ts = self._makeOne(SERIAL)
         self.assertEqual(ts.raw(), SERIAL)
         self.assertEqual(ts.year(), 1900)
@@ -104,13 +105,12 @@ class pyTimeStampTests(unittest.TestCase):
         self.assertEqual(before.timeTime(), 1297867042.80544)
 
     def test_ctor_from_elements(self):
-        from persistent.timestamp import _makeOctets
         from persistent.timestamp import _makeUTC
         ZERO = _makeUTC(1900, 1, 1, 0, 0, 0)
         EPOCH = _makeUTC(1970, 1, 1, 0, 0, 0)
         DELTA = ZERO - EPOCH
         DELTA_SECS = DELTA.days * 86400 + DELTA.seconds
-        SERIAL = _makeOctets('\x00' * 8)
+        SERIAL = b'\x00' * 8
         ts = self._makeOne(1900, 1, 1, 0, 0, 0.0)
         self.assertEqual(ts.raw(), SERIAL)
         self.assertEqual(ts.year(), 1900)
@@ -122,9 +122,8 @@ class pyTimeStampTests(unittest.TestCase):
         self.assertEqual(ts.timeTime(), DELTA_SECS)
 
     def test_laterThan_invalid(self):
-        from persistent.timestamp import _makeOctets
         ERRORS = (ValueError, TypeError)
-        SERIAL = _makeOctets('\x01' * 8)
+        SERIAL = b'\x01' * 8
         ts = self._makeOne(SERIAL)
         self.assertRaises(ERRORS, ts.laterThan, None)
         self.assertRaises(ERRORS, ts.laterThan, '')
@@ -134,26 +133,23 @@ class pyTimeStampTests(unittest.TestCase):
         self.assertRaises(ERRORS, ts.laterThan, object())
 
     def test_laterThan_self_is_earlier(self):
-        from persistent.timestamp import _makeOctets
-        SERIAL1 = _makeOctets('\x01' * 8)
-        SERIAL2 = _makeOctets('\x02' * 8)
+        SERIAL1 = b'\x01' * 8
+        SERIAL2 = b'\x02' * 8
         ts1 = self._makeOne(SERIAL1)
         ts2 = self._makeOne(SERIAL2)
         later = ts1.laterThan(ts2)
-        self.assertEqual(later.raw(), _makeOctets('\x02' * 7 + '\x03'))
+        self.assertEqual(later.raw(), b'\x02' * 7 + b'\x03')
 
     def test_laterThan_self_is_later(self):
-        from persistent.timestamp import _makeOctets
-        SERIAL1 = _makeOctets('\x01' * 8)
-        SERIAL2 = _makeOctets('\x02' * 8)
+        SERIAL1 = b'\x01' * 8
+        SERIAL2 = b'\x02' * 8
         ts1 = self._makeOne(SERIAL1)
         ts2 = self._makeOne(SERIAL2)
         later = ts2.laterThan(ts1)
         self.assertTrue(later is ts2)
 
     def test_repr(self):
-        from persistent.timestamp import _makeOctets
-        SERIAL = _makeOctets('\x01' * 8)
+        SERIAL = b'\x01' * 8
         ts = self._makeOne(SERIAL)
         self.assertEqual(repr(ts), repr(SERIAL))
 
@@ -163,14 +159,20 @@ class pyTimeStampTests(unittest.TestCase):
         # Check the corner cases when comparing non-comparable types
         ts = self._makeOne(2011, 2, 16, 14, 37, 22.0)
 
-        def check_py2(op, passes):
+        def check_common(op, passes):
             if passes == 'neither':
                 self.assertFalse(op(ts, None))
                 self.assertFalse(op(None, ts))
-            elif passes == 'both':
+                return True
+
+            if passes == 'both':
                 self.assertTrue(op(ts, None))
                 self.assertTrue(op(None, ts))
-            elif passes == 'first':
+                return True
+            return False
+
+        def check_py2(op, passes): # pragma: no cover
+            if passes == 'first':
                 self.assertTrue(op(ts, None))
                 self.assertFalse(op(None, ts))
             else:
@@ -178,15 +180,8 @@ class pyTimeStampTests(unittest.TestCase):
                 self.assertTrue(op(None, ts))
 
         def check_py3(op, passes):
-            if passes == 'neither':
-                self.assertFalse(op(ts, None))
-                self.assertFalse(op(None, ts))
-            elif passes == 'both':
-                self.assertTrue(op(ts, None))
-                self.assertTrue(op(None, ts))
-            else:
-                self.assertRaises(TypeError, op, ts, None)
-                self.assertRaises(TypeError, op, None, ts)
+            self.assertRaises(TypeError, op, ts, None)
+            self.assertRaises(TypeError, op, None, ts)
 
         check = check_py2 if PYTHON2 else check_py3
 
@@ -197,7 +192,8 @@ class pyTimeStampTests(unittest.TestCase):
                                 ('eq', 'neither'),
                                 ('ne', 'both')):
             op = getattr(operator, op_name)
-            check(op, passes)
+            if not check_common(op, passes):
+                check(op, passes)
 
 
 class TimeStampTests(pyTimeStampTests):
@@ -223,7 +219,7 @@ class PyAndCComparisonTests(unittest.TestCase):
         # it to test matching
         yield self.now_ts_args
         for i in range(2000):
-            yield self.now_ts_args[:-1] + (self.now_ts_args[-1] + (i % 60.0)/100.0 , )
+            yield self.now_ts_args[:-1] + (self.now_ts_args[-1] + (i % 60.0)/100.0, )
 
     def _makeC(self, *args, **kwargs):
         from persistent.timestamp import TimeStamp
@@ -304,7 +300,7 @@ class PyAndCComparisonTests(unittest.TestCase):
             # in hash() on 32-bit platforms
             if not self._is_jython:
                 self.assertEqual(py.__hash__(), bit_64_hash)
-            else:
+            else: # pragma: no cover
                 # Jython 2.7's ctypes module doesn't properly
                 # implement the 'value' attribute by truncating.
                 # (It does for native calls, but not visibly to Python).
@@ -318,15 +314,13 @@ class PyAndCComparisonTests(unittest.TestCase):
             MUT._MAXINT = orig_maxint
             if orig_c_long is not None:
                 MUT.c_long = orig_c_long
-            else:
+            else: # pragma: no cover
                 del MUT.c_long
 
         # These are *usually* aliases, but aren't required
         # to be (and aren't under Jython 2.7).
-        if is_32_bit_hash:
-            self.assertEqual(py.__hash__(), bit_32_hash)
-        else:
-            self.assertEqual(py.__hash__(), bit_64_hash)
+        expected_hash = bit_32_hash if is_32_bit_hash else bit_64_hash
+        self.assertEqual(py.__hash__(), expected_hash)
 
     def test_hash_equal_constants(self):
         # The simple constants make it easier to diagnose
@@ -350,46 +344,36 @@ class PyAndCComparisonTests(unittest.TestCase):
 
         # overflow kicks in here on 32-bit platforms
         c, py = self._make_C_and_Py(b'\x00\x00\x00\x00\x00\x01\x00\x00')
-        if is_32_bit:
-            self.assertEqual(hash(c), -721379967)
-        else:
-            self.assertEqual(hash(c), 1000006000001)
+        expected = -721379967 if is_32_bit else 1000006000001
+        self.assertEqual(hash(c), expected)
         self.assertEqual(hash(c), hash(py))
 
         c, py = self._make_C_and_Py(b'\x00\x00\x00\x00\x01\x00\x00\x00')
-        if is_32_bit:
-            self.assertEqual(hash(c), 583896275)
-        else:
-            self.assertEqual(hash(c), 1000009000027000019)
+        expected = 583896275 if is_32_bit else 1000009000027000019
+        self.assertEqual(hash(c), expected)
         self.assertEqual(hash(c), hash(py))
 
         # Overflow kicks in at this point on 64-bit platforms
         c, py = self._make_C_and_Py(b'\x00\x00\x00\x01\x00\x00\x00\x00')
-        if is_32_bit:
-            self.assertEqual(hash(c), 1525764953)
-        else:
-            self.assertEqual(hash(c), -4442925868394654887)
+        expected = 1525764953 if is_32_bit else -4442925868394654887
+        self.assertEqual(hash(c), expected)
         self.assertEqual(hash(c), hash(py))
 
         c, py = self._make_C_and_Py(b'\x00\x00\x01\x00\x00\x00\x00\x00')
-        if is_32_bit:
-            self.assertEqual(hash(c), -429739973)
-        else:
-            self.assertEqual(hash(c), -3993531167153147845)
+        expected = -429739973 if is_32_bit else -3993531167153147845
+        self.assertEqual(hash(c), expected)
         self.assertEqual(hash(c), hash(py))
 
         c, py = self._make_C_and_Py(b'\x01\x00\x00\x00\x00\x00\x00\x00')
-        if is_32_bit:
-            self.assertEqual(hash(c), 263152323)
-        else:
-            self.assertEqual(hash(c), -3099646879006235965)
+        expected = 263152323 if is_32_bit else -3099646879006235965
+        self.assertEqual(hash(c), expected)
         self.assertEqual(hash(c), hash(py))
 
     def test_ordering(self):
-        small_c  = self._makeC(b'\x00\x00\x00\x00\x00\x00\x00\x01')
-        big_c    = self._makeC(b'\x01\x00\x00\x00\x00\x00\x00\x00')
-
+        small_c = self._makeC(b'\x00\x00\x00\x00\x00\x00\x00\x01')
         small_py = self._makePy(b'\x00\x00\x00\x00\x00\x00\x00\x01')
+
+        big_c = self._makeC(b'\x01\x00\x00\x00\x00\x00\x00\x00')
         big_py = self._makePy(b'\x01\x00\x00\x00\x00\x00\x00\x00')
 
         self.assertTrue(small_py < big_py)
@@ -423,7 +407,7 @@ def test_suite():
     try:
         from persistent.timestamp import pyTimeStamp
         from persistent.timestamp import TimeStamp
-    except ImportError:
+    except ImportError: # pragma: no cover
         pass
     else:
         if pyTimeStamp != TimeStamp:

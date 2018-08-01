@@ -315,9 +315,9 @@ class PersistentWeakKeyDictionaryTests(unittest.TestCase):
         target = self._makeOne(None)
         target.update(source)
         self.assertTrue(target[key] is value)
- 
 
-def _makeTarget(oid='OID', **kw):
+
+def _makeTarget(oid='OID'):
     from persistent import Persistent
     from persistent._compat import _b
     class Derived(Persistent):
@@ -325,11 +325,9 @@ def _makeTarget(oid='OID', **kw):
             return hash(self._p_oid)
         def __eq__(self, other):
             return self._p_oid == other._p_oid
-        def __repr__(self):
+        def __repr__(self): # pragma: no cover
             return 'Derived: %s' % self._p_oid
     derived = Derived()
-    for k, v in kw.items():
-        setattr(derived, k, v)
     derived._p_oid = _b(oid)
     return derived
 
@@ -341,7 +339,4 @@ def _makeJar():
     return _Jar()
 
 def test_suite():
-    return unittest.TestSuite((
-        unittest.makeSuite(WeakRefTests),
-        unittest.makeSuite(PersistentWeakKeyDictionaryTests),
-    ))
+    return unittest.defaultTestLoader.loadTestsFromName(__name__)

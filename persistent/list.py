@@ -28,9 +28,6 @@ class PersistentList(UserList, persistent.Persistent):
     """
     __super_setitem = UserList.__setitem__
     __super_delitem = UserList.__delitem__
-    if PYTHON2:  # pragma: no cover
-        __super_setslice = UserList.__setslice__
-        __super_delslice = UserList.__delslice__
     __super_iadd = UserList.__iadd__
     __super_imul = UserList.__imul__
     __super_append = UserList.append
@@ -49,13 +46,17 @@ class PersistentList(UserList, persistent.Persistent):
         self.__super_delitem(i)
         self._p_changed = 1
 
-    def __setslice__(self, i, j, other):
-        self.__super_setslice(i, j, other)
-        self._p_changed = 1
+    if PYTHON2:  # pragma: no cover
+        __super_setslice = UserList.__setslice__
+        __super_delslice = UserList.__delslice__
 
-    def __delslice__(self, i, j):
-        self.__super_delslice(i, j)
-        self._p_changed = 1
+        def __setslice__(self, i, j, other):
+            self.__super_setslice(i, j, other)
+            self._p_changed = 1
+
+        def __delslice__(self, i, j):
+            self.__super_delslice(i, j)
+            self._p_changed = 1
 
     def __iadd__(self, other):
         L = self.__super_iadd(other)
@@ -95,9 +96,3 @@ class PersistentList(UserList, persistent.Persistent):
     def extend(self, other):
         self.__super_extend(other)
         self._p_changed = 1
-
-    # This works around a bug in Python 2.1.x (up to 2.1.2 at least) where the
-    # __cmp__ bogusly raises a RuntimeError, and because this is an extension
-    # class, none of the rich comparison stuff works anyway.
-    def __cmp__(self, other):
-        return cmp(self.data, self._UserList__cast(other))

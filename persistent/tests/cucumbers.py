@@ -14,29 +14,22 @@
 # Example objects for pickling.
 
 from persistent import Persistent
-from persistent._compat import PYTHON2
-
 
 def print_dict(d):
-    d = d.items()
-    d.sort()
+    d = sorted(d.items())
     print('{%s}' % (', '.join(
         [('%r: %r' % (k, v)) for (k, v) in d]
         )))
 
 def cmpattrs(self, other, *attrs):
+    result = 0
     for attr in attrs:
         if attr[:3] in ('_v_', '_p_'):
-            continue
-        lhs, rhs = getattr(self, attr, None), getattr(other, attr, None)
-        if PYTHON2:
-           c = cmp(lhs, rhs)
-           if c:
-               return c
-        else:
-            if lhs != rhs:
-                return 1
-    return 0
+            raise AssertionError("_v_ and _p_ attrs not allowed")
+        lhs = getattr(self, attr, None)
+        rhs = getattr(other, attr, None)
+        result += lhs != rhs
+    return result
 
 class Simple(Persistent):
     def __init__(self, name, **kw):
@@ -84,7 +77,7 @@ class Slotted(Persistent):
 
     @property
     def _attrs(self):
-        return list(self.__dict__.keys())
+        raise NotImplementedError()
 
     def __eq__(self, other):
         return cmpattrs(self, other, '__class__', *self._attrs) == 0

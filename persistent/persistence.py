@@ -38,6 +38,7 @@ _STICKY = 0x0002
 
 _OGA = object.__getattribute__
 _OSA = object.__setattr__
+_ODA = object.__delattr__
 
 # These names can be used from a ghost without causing it to be
 # activated. These are standardized with the C implementation
@@ -301,7 +302,7 @@ class Persistent(object):
                 if (_OGA(self, '_Persistent__jar') is not None and
                     _OGA(self, '_Persistent__oid') is not None):
                     _OGA(self, '_p_register')()
-        object.__delattr__(self, name)
+        _ODA(self, name)
 
     def _slotnames(self, _v_exclude=True):
         slotnames = copy_reg._slotnames(type(self))
@@ -467,7 +468,7 @@ class Persistent(object):
         """ See IPersistent.
         """
         if name.startswith('_p_'):
-            setattr(self, name, value)
+            _OSA(self, name, value)
             return True
         self._p_activate()
         self._p_accessed()
@@ -477,7 +478,12 @@ class Persistent(object):
         """ See IPersistent.
         """
         if name.startswith('_p_'):
-            delattr(self, name)
+            if name == '_p_oid' and self._p_is_in_cache(_OGA(self, '_Persistent__jar')):
+                # The C implementation forbids deleting the oid
+                # if we're already in a cache. Match its error message
+                raise ValueError('can not change _p_jar of cached object')
+
+            _ODA(self, name)
             return True
         self._p_activate()
         self._p_accessed()

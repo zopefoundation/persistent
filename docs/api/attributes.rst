@@ -309,3 +309,21 @@ object as changed if the name starts with ``tmp_``:
    Traceback (most recent call last):
    ...
    AttributeError: tmp_z
+
+If we attempt to delete ``_p_oid``, we find that we can't, and the
+object is also not activated or changed:
+
+.. doctest::
+
+   >>> del o._p_oid
+   Traceback (most recent call last):
+   ...
+   ValueError: can't delete _p_oid of cached object
+   >>> o._p_changed
+   False
+
+We are allowed to delete ``_p_changed``, which sets it to ``None``:
+
+   >>> del o._p_changed
+   >>> o._p_changed is None
+   True

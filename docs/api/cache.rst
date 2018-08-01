@@ -47,13 +47,13 @@ Caches have a :meth:`new_ghost` method that:
    >>> jar = ResettingJar()
    >>> cache = persistent.PickleCache(jar, 10, 100)
    >>> ob = C.__new__(C)
-   >>> cache.new_ghost('1', ob)
+   >>> cache.new_ghost(b'1', ob)
 
    >>> ob._p_changed
    >>> ob._p_jar is jar
    True
-   >>> ob._p_oid
-   '1'
+   >>> ob._p_oid == b'1'
+   True
 
    >>> cache.cache_non_ghost_count
    0

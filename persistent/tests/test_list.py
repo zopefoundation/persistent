@@ -20,6 +20,8 @@ l0 = []
 l1 = [0]
 l2 = [0, 1]
 
+# pylint:disable=protected-access
+
 class OtherList:
     def __init__(self, initlist):
         self.__data = initlist
@@ -33,6 +35,17 @@ class TestPList(unittest.TestCase):
     def _getTargetClass(self):
         from persistent.list import PersistentList
         return PersistentList
+
+    def _makeJar(self):
+        class Jar(object):
+            def register(self, obj):
+                "no-op"
+        return Jar()
+
+    def _makeOne(self, *args):
+        inst = self._getTargetClass()(*args)
+        inst._p_jar = self._makeJar()
+        return inst
 
     def test_volatile_attributes_not_persisted(self):
         # http://www.zope.org/Collectors/Zope/2052
@@ -57,9 +70,9 @@ class TestPList(unittest.TestCase):
         uu1 = pl(u1)
         uu2 = pl(u2)
 
-        v = pl(tuple(u))
-        v0 = pl(OtherList(u0))
-        vv = pl("this is also a sequence")
+        pl(tuple(u))
+        pl(OtherList(u0))
+        pl("this is also a sequence")
 
         # Test __repr__
         eq = self.assertEqual
@@ -68,46 +81,48 @@ class TestPList(unittest.TestCase):
         eq(repr(u1), repr(l1), "repr(u1) == repr(l1)")
 
         # Test __cmp__ and __len__
+        try:
+            cmp
+        except NameError:
+            def cmp(a, b):
+                if a == b:
+                    return 0
+                if a < b:
+                    return -1
+                return 1
 
-        if PYTHON2:
-            def mycmp(a, b):
-                r = cmp(a, b)
-                if r < 0: return -1
-                if r > 0: return 1
-                return r
+        def mycmp(a, b):
+            r = cmp(a, b)
+            if r < 0:
+                return -1
+            if r > 0:
+                return 1
+            return r
 
-            all = [l0, l1, l2, u, u0, u1, u2, uu, uu0, uu1, uu2]
-            for a in all:
-                for b in all:
-                    eq(mycmp(a, b), mycmp(len(a), len(b)),
-                        "mycmp(a, b) == mycmp(len(a), len(b))")
+        to_test = [l0, l1, l2, u, u0, u1, u2, uu, uu0, uu1, uu2]
+        for a in to_test:
+            for b in to_test:
+                eq(mycmp(a, b), mycmp(len(a), len(b)),
+                   "mycmp(a, b) == mycmp(len(a), len(b))")
 
         # Test __getitem__
 
-        for i in range(len(u2)):
-            eq(u2[i], i, "u2[i] == i")
+        for i, val in enumerate(u2):
+            eq(val, i, "u2[i] == i")
 
         # Test __setitem__
 
         uu2[0] = 0
         uu2[1] = 100
-        try:
+        with self.assertRaises(IndexError):
             uu2[2] = 200
-        except IndexError:
-            pass
-        else:
-            raise TestFailed("uu2[2] shouldn't be assignable")
 
         # Test __delitem__
 
         del uu2[1]
         del uu2[0]
-        try:
+        with self.assertRaises(IndexError):
             del uu2[0]
-        except IndexError:
-            pass
-        else:
-            raise TestFailed("uu2[0] shouldn't be deletable")
 
         # Test __getslice__
 
@@ -198,12 +213,8 @@ class TestPList(unittest.TestCase):
 
         eq(u2.index(0), 0, "u2.index(0) == 0")
         eq(u2.index(1), 1, "u2.index(1) == 1")
-        try:
+        with self.assertRaises(ValueError):
             u2.index(2)
-        except ValueError:
-            pass
-        else:
-            raise TestFailed("expected ValueError")
 
         # Test reverse
 
@@ -220,23 +231,19 @@ class TestPList(unittest.TestCase):
         eq(u, u2, "u == u2")
 
         # Test keyword arguments to sort
-        if PYTHON2:
-            u.sort(cmp=lambda x,y: cmp(y, x))
+        if PYTHON2: # pragma: no cover
+            u.sort(cmp=lambda x, y: cmp(y, x))
             eq(u, [1, 0], "u == [1, 0]")
 
-        u.sort(key=lambda x:-x)
+        u.sort(key=lambda x: -x)
         eq(u, [1, 0], "u == [1, 0]")
 
         u.sort(reverse=True)
         eq(u, [1, 0], "u == [1, 0]")
 
         # Passing any other keyword arguments results in a TypeError
-        try:
+        with self.assertRaises(TypeError):
             u.sort(blah=True)
-        except TypeError:
-            pass
-        else:
-            raise TestFailed("expected TypeError")
 
         # Test extend
 
@@ -254,10 +261,72 @@ class TestPList(unittest.TestCase):
         u *= 3
         eq(u, u1 + u1 + u1, "u == u1 + u1 + u1")
 
+    def test_setslice(self):
+        inst = self._makeOne()
+        self.assertFalse(inst._p_changed)
+        inst[:] = [1, 2, 3]
+        self.assertEqual(inst, [1, 2, 3])
+        self.assertTrue(inst._p_changed)
+
+    def test_delslice(self):
+        inst = self._makeOne([1, 2, 3])
+        self.assertFalse(inst._p_changed)
+        self.assertEqual(inst, [1, 2, 3])
+        del inst[:]
+        self.assertTrue(inst._p_changed)
+
+    def test_iadd(self):
+        inst = self._makeOne()
+        self.assertFalse(inst._p_changed)
+        inst += [1, 2, 3]
+        self.assertEqual(inst, [1, 2, 3])
+        self.assertTrue(inst._p_changed)
+
+    def test_extend(self):
+        inst = self._makeOne()
+        self.assertFalse(inst._p_changed)
+        inst.extend([1, 2, 3])
+        self.assertEqual(inst, [1, 2, 3])
+        self.assertTrue(inst._p_changed)
+
+    def test_imul(self):
+        inst = self._makeOne([1])
+        self.assertFalse(inst._p_changed)
+        inst *= 2
+        self.assertEqual(inst, [1, 1])
+        self.assertTrue(inst._p_changed)
+
+    def test_append(self):
+        inst = self._makeOne()
+        self.assertFalse(inst._p_changed)
+        inst.append(1)
+        self.assertEqual(inst, [1])
+        self.assertTrue(inst._p_changed)
+
+    def test_insert(self):
+        inst = self._makeOne()
+        self.assertFalse(inst._p_changed)
+        inst.insert(0, 1)
+        self.assertEqual(inst, [1])
+        self.assertTrue(inst._p_changed)
+
+    def test_remove(self):
+        inst = self._makeOne([1])
+        self.assertFalse(inst._p_changed)
+        inst.remove(1)
+        self.assertEqual(inst, [])
+        self.assertTrue(inst._p_changed)
+
+    def test_reverse(self):
+        inst = self._makeOne([2, 1])
+        self.assertFalse(inst._p_changed)
+        inst.reverse()
+        self.assertEqual(inst, [1, 2])
+        self.assertTrue(inst._p_changed)
+
 
 def test_suite():
-    return unittest.makeSuite(TestPList)
+    return unittest.defaultTestLoader.loadTestsFromName(__name__)
 
-if __name__ == "__main__":
-    loader = unittest.TestLoader()
-    unittest.main(testLoader=loader)
+if __name__ == '__main__':
+    unittest.main()

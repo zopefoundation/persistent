@@ -18,16 +18,12 @@ import math
 import struct
 import sys
 
+from persistent._compat import PURE_PYTHON
+
 _RAWTYPE = bytes
 _MAXINT = sys.maxsize
 
-def _makeOctets(s):
-    if sys.version_info < (3,):
-        return bytes(s)
-    return bytes(s, 'ascii') #pragma NO COVERAGE
-
-
-_ZERO = _makeOctets('\x00' * 8)
+_ZERO = b'\x00' * 8
 
 try:
     # Make sure to overflow and wraparound just
@@ -175,7 +171,7 @@ class pyTimeStamp(object):
 
         x = _wraparound(x)
 
-        if x == -1: #pragma: no cover
+        if x == -1: # pragma: no cover
             # The C version has this condition, but it's not clear
             # why; it's also not immediately obvious what bytestring
             # would generate this---hence the no-cover
@@ -211,6 +207,8 @@ class pyTimeStamp(object):
 
 
 try:
-    from persistent._timestamp import TimeStamp
-except ImportError: #pragma NO COVER
-    TimeStamp = pyTimeStamp
+    from persistent._timestamp import TimeStamp as CTimeStamp
+except ImportError: # pragma: no cover
+    CTimeStamp = None
+
+TimeStamp = pyTimeStamp if PURE_PYTHON or CTimeStamp is None else CTimeStamp

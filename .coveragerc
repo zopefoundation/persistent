@@ -1,9 +1,12 @@
 [run]
 source = persistent
+omit =
+     persistent/_ring_build.py
 
 [report]
 exclude_lines =
-    # pragma: no cover
+    pragma: no cover
     class I[A-Z]\w+\((Interface|I[A-Z].*)\):
     raise NotImplementedError
     raise AssertionError
+    if __name__ == '__main__':

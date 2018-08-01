@@ -4,6 +4,11 @@
 4.3.1 (unreleased)
 ------------------
 
+- Reach and maintain 100% test coverage.
+
+- Simplify ``__init__.py``, including removal of an attempted legacy
+  import of ``persistent.TimeStamp``.
+
 - Add support for Python 3.7 and drop support for Python 3.3.
 
 - Build the CFFI modules (used on PyPy or when PURE_PYTHON is set) `at
@@ -15,6 +20,12 @@
   it eliminates the need to have a functioning C compiler to use PyPy.
   See `issue 75
   <https://github.com/zopefoundation/persistent/issues/75>`_.
+
+- Fix deleting the ``_p_oid`` of a pure-Python persistent object when
+  it is in a cache.
+
+- Fix deleting special (``_p``) attributes of a pure-Python persistent
+  object that overrides ``__delattr__`` and correctly calls ``_p_delattr``.
 
 
 4.3.0 (2018-07-30)

@@ -24,6 +24,12 @@ _marker = object()
 
 class PickleCacheTests(unittest.TestCase):
 
+    # py2/3 compat
+    assertRaisesRegex = getattr(unittest.TestCase,
+                                'assertRaisesRegex',
+                                unittest.TestCase.assertRaisesRegexp)
+
+
     def setUp(self):
         import persistent.picklecache
         self.orig_types = persistent.picklecache._CACHEABLE_TYPES
@@ -98,12 +104,8 @@ class PickleCacheTests(unittest.TestCase):
     def test___setitem___non_string_oid_raises_TypeError(self):
         cache = self._makeOne()
 
-        try:
+        with self.assertRaises(TypeError):
             cache[object()] = self._makePersist()
-        except TypeError:
-            pass
-        else:
-            self.fail("Didn't raise ValueError with non-string OID.")
 
     def test___setitem___duplicate_oid_same_obj(self):
         from persistent._compat import _b
@@ -121,12 +123,8 @@ class PickleCacheTests(unittest.TestCase):
         cache[KEY] = original
         duplicate = self._makePersist(oid=KEY)
 
-        try:
+        with self.assertRaises(ValueError):
             cache[KEY] = duplicate
-        except ValueError:
-            pass
-        else:
-            self.fail("Didn't raise KeyError with duplicate OID.")
 
     def test___setitem___ghost(self):
         from persistent.interfaces import GHOST
@@ -153,12 +151,8 @@ class PickleCacheTests(unittest.TestCase):
         cache = self._makeOne()
         uptodate = self._makePersist(state=UPTODATE)
 
-        try:
+        with self.assertRaises(ValueError):
             cache[KEY] = uptodate
-        except ValueError:
-            pass
-        else:
-            self.fail("Didn't raise ValueError when the key didn't match the OID")
 
 
     def test___setitem___non_ghost(self):
@@ -201,24 +195,16 @@ class PickleCacheTests(unittest.TestCase):
     def test___delitem___non_string_oid_raises_TypeError(self):
         cache = self._makeOne()
 
-        try:
+        with self.assertRaises(TypeError):
             del cache[object()]
-        except TypeError:
-            pass
-        else:
-            self.fail("Didn't raise ValueError with non-string OID.")
 
     def test___delitem___nonesuch_raises_KeyError(self):
         from persistent._compat import _b
         cache = self._makeOne()
         original = self._makePersist()
 
-        try:
+        with self.assertRaises(KeyError):
             del cache[_b('nonesuch')]
-        except KeyError:
-            pass
-        else:
-            self.fail("Didn't raise KeyError with nonesuch OID.")
 
     def test___delitem___w_persistent_class(self):
         from persistent._compat import _b
@@ -878,22 +864,16 @@ class PickleCacheTests(unittest.TestCase):
 
     def test_setting_non_persistent_item(self):
         cache = self._makeOne()
-        try:
+        with self.assertRaisesRegex(TypeError,
+                                    "Cache values must be persistent objects."):
             cache[None] = object()
-        except TypeError as e:
-            self.assertEqual(str(e), "Cache values must be persistent objects.")
-        else:
-            self.fail("Should raise TypeError")
 
     def test_setting_without_jar(self):
         cache = self._makeOne()
         p = self._makePersist(jar=None)
-        try:
+        with self.assertRaisesRegex(ValueError,
+                                    "Cached object jar missing"):
             cache[p._p_oid] = p
-        except ValueError as e:
-            self.assertEqual(str(e), "Cached object jar missing")
-        else:
-            self.fail("Should raise ValueError")
 
     def test_setting_already_cached(self):
         cache1 = self._makeOne()
@@ -902,12 +882,9 @@ class PickleCacheTests(unittest.TestCase):
         cache1[p._p_oid] = p
 
         cache2 = self._makeOne()
-        try:
+        with self.assertRaisesRegex(ValueError,
+                                    "Object already in another cache"):
             cache2[p._p_oid] = p
-        except ValueError as e:
-            self.assertEqual(str(e), "Object already in another cache")
-        else:
-            self.fail("Should raise value error")
 
     def test_cannot_update_mru_while_already_locked(self):
         cache = self._makeOne()
@@ -972,7 +949,7 @@ class PickleCacheTests(unittest.TestCase):
         del p._p_deactivate
         self.assertEqual(cache.full_sweep(), 1)
 
-    if _is_jython:
+    if _is_jython: # pragma: no cover
         def with_deterministic_gc(f):
             def test(self):
                 old_flags = gc.getMonitorGlobal()
@@ -1027,7 +1004,7 @@ class PickleCacheTests(unittest.TestCase):
 
         # It also shrank the measured size of the cache;
         # this would fail under PyPy if _SWEEP_NEEDS_GC was False
-        if force_collect:
+        if force_collect: # pragma: no cover
             gc.collect()
         self.assertEqual(len(cache), 1)
 
@@ -1053,12 +1030,11 @@ class PickleCacheTests(unittest.TestCase):
     def test_ring_impl(self):
         from .. import ring
 
-        if _is_pypy:
-            self.assertIs(ring.Ring, ring._CFFIRing)
-        elif ring._CFFIRing is not None or os.environ.get('USING_CFFI'):
-            self.assertIs(ring.Ring, ring._CFFIRing)
-        else:
-            self.assertIs(ring.Ring, ring._DequeRing)
+        expected = (ring._CFFIRing
+                    if _is_pypy or ring._CFFIRing is not None or os.environ.get('USING_CFFI')
+                    else ring._DequeRing)
+        self.assertIs(ring.Ring, expected)
+
 
 class DummyPersistent(object):
 
