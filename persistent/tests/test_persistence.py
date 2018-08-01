@@ -1746,7 +1746,7 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
             # Mimic what the real cache does
             if oid not in jar._cache._mru:
                 raise KeyError(oid)
-            raise AssertionError("Shold never get here")
+            raise AssertionError("Should never get here")
         jar._cache.mru = mru
         c1._p_accessed()
         self._checkMRU(jar, [])

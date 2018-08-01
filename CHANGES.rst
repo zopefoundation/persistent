@@ -4,6 +4,11 @@
 4.3.1 (unreleased)
 ------------------
 
+- Reach and maintain 100% test coverage.
+
+- Simplify ``__init__.py``, including removal of an attempted legacy
+  import of ``persistent.TimeStamp``.
+
 - Add support for Python 3.7 and drop support for Python 3.3.
 
 - Build the CFFI modules (used on PyPy or when PURE_PYTHON is set) `at
