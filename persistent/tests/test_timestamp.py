@@ -17,6 +17,8 @@ import sys
 MAX_32_BITS = 2 ** 31 - 1
 MAX_64_BITS = 2 ** 63 - 1
 
+import persistent.timestamp
+
 class Test__UTC(unittest.TestCase):
 
     def _getTargetClass(self):
@@ -202,7 +204,8 @@ class TimeStampTests(pyTimeStampTests):
         from persistent.timestamp import TimeStamp
         return TimeStamp
 
-
+@unittest.skipIf(persistent.timestamp.CTimeStamp is None,
+                 "CTimeStamp not available")
 class PyAndCComparisonTests(unittest.TestCase):
     """
     Compares C and Python implementations.
@@ -254,7 +257,6 @@ class PyAndCComparisonTests(unittest.TestCase):
 
     def test_equal(self):
         c, py = self._make_C_and_Py(*self.now_ts_args)
-
         self.assertEqual(c, py)
 
     def test_hash_equal(self):
@@ -396,22 +398,32 @@ class PyAndCComparisonTests(unittest.TestCase):
         self.assertTrue(big_c != small_py)
         self.assertTrue(small_py != big_c)
 
+    def test_seconds_precision(self, seconds=6.123456789):
+        # https://github.com/zopefoundation/persistent/issues/41
+        args = (2001, 2, 3, 4, 5, seconds)
+        c = self._makeC(*args)
+        py = self._makePy(*args)
+
+        self.assertEqual(c, py)
+        self.assertEqual(c.second(), py.second())
+
+        py2 = self._makePy(c.raw())
+        self.assertEqual(py2, c)
+
+        c2 = self._makeC(c.raw())
+        self.assertEqual(c2, c)
+
+    def test_seconds_precision_half(self):
+        # make sure our rounding matches
+        self.test_seconds_precision(seconds=6.5)
+        self.test_seconds_precision(seconds=6.55)
+        self.test_seconds_precision(seconds=6.555)
+        self.test_seconds_precision(seconds=6.5555)
+        self.test_seconds_precision(seconds=6.55555)
+        self.test_seconds_precision(seconds=6.555555)
+        self.test_seconds_precision(seconds=6.5555555)
+        self.test_seconds_precision(seconds=6.55555555)
+        self.test_seconds_precision(seconds=6.555555555)
 
 def test_suite():
-    suite = [
-        unittest.makeSuite(Test__UTC),
-        unittest.makeSuite(pyTimeStampTests),
-        unittest.makeSuite(TimeStampTests),
-    ]
-
-    try:
-        from persistent.timestamp import pyTimeStamp
-        from persistent.timestamp import TimeStamp
-    except ImportError: # pragma: no cover
-        pass
-    else:
-        if pyTimeStamp != TimeStamp:
-            # We have both implementations available
-            suite.append(unittest.makeSuite(PyAndCComparisonTests))
-
-    return unittest.TestSuite(suite)
+    return unittest.defaultTestLoader.loadTestsFromName(__name__)
