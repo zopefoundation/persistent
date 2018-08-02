@@ -1372,6 +1372,66 @@ Per_set_sticky(cPersistentObject *self, PyObject* value)
     return 0;
 }
 
+static PyObject*
+repr_helper(PyObject *o, char* format)
+{
+    /* Returns a new reference, or NULL on error */
+    PyObject *exc_t;
+    PyObject *exc_v;
+    PyObject *exc_tb;
+    PyObject *result;
+
+    if (o)
+    {
+        result = PyUnicode_FromFormat(format, o);
+        if (!result && PyErr_Occurred() && PyErr_ExceptionMatches(PyExc_Exception))
+        {
+            PyErr_Fetch(&exc_t, &exc_v, &exc_tb);
+            PyErr_NormalizeException(&exc_t, &exc_v, &exc_tb);
+            PyErr_Clear();
+
+            result = PyUnicode_FromFormat(format, exc_v);
+            Py_DECREF(exc_t);
+            Py_DECREF(exc_v);
+            Py_DECREF(exc_tb);
+        }
+    }
+    else
+    {
+        result = PyUnicode_FromString("");
+    }
+
+    return result;
+
+}
+
+static PyObject*
+Per_repr(cPersistentObject *self)
+{
+    PyObject *oid_str = NULL;
+    PyObject *jar_str = NULL;
+    PyObject *result = NULL;
+
+
+    oid_str = repr_helper(self->oid, " oid %R");
+    if (!oid_str)
+        goto cleanup;
+
+    jar_str = repr_helper(self->jar, " in %R");
+    if (!jar_str)
+        goto cleanup;
+
+    result = PyUnicode_FromFormat("<%s object at %p%S%S>",
+                                  Py_TYPE(self)->tp_name, self,
+                                  oid_str, jar_str);
+
+cleanup:
+    Py_XDECREF(oid_str);
+    Py_XDECREF(jar_str);
+
+    return result;
+}
+
 static PyGetSetDef Per_getsets[] = {
   {"_p_changed", (getter)Per_get_changed, (setter)Per_set_changed},
   {"_p_jar", (getter)Per_get_jar, (setter)Per_set_jar},
@@ -1454,7 +1514,7 @@ static PyTypeObject Pertype = {
   0,                                /* tp_getattr */
   0,                                /* tp_setattr */
   0,                                /* tp_compare */
-  0,                                /* tp_repr */
+  (reprfunc)Per_repr,               /* tp_repr */
   0,                                /* tp_as_number */
   0,                                /* tp_as_sequence */
   0,                                /* tp_as_mapping */

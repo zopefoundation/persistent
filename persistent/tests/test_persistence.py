@@ -1789,6 +1789,27 @@ class _Persistent_Base(object):
             "<persistent.Persistent object at 0xdeadbeef oid Exception('oid repr failed')"
             " in Exception('jar repr failed')>")
 
+    def test_repr_no_oid_repr_jar_raises_baseexception(self):
+        p = self._makeOne()
+
+        class Jar(object):
+            def __repr__(self):
+                raise BaseException('jar repr failed')
+
+        p._p_jar = Jar()
+        with self.assertRaisesRegex(BaseException, 'jar repr failed'):
+            repr(p)
+
+    def test_repr_oid_raises_baseexception_no_jar(self):
+        p = self._makeOne()
+
+        class BadOID(bytes):
+            def __repr__(self):
+                raise BaseException("oid repr failed")
+        p._p_oid = BadOID(b'12345678')
+
+        with self.assertRaisesRegex(BaseException, 'oid repr failed'):
+            repr(p)
 
     def test_repr_oid_and_jar(self):
         p = self._makeOne()
