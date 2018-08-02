@@ -11,23 +11,29 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
-import os
-import unittest
 
 import platform
 import sys
+import unittest
 
+import persistent
 from persistent._compat import copy_reg
 
-py_impl = getattr(platform, 'python_implementation', lambda: None)
-_is_pypy3 = py_impl() == 'PyPy' and sys.version_info[0] > 2
-_is_jython = py_impl() == 'Jython'
 
-#pylint: disable=R0904,W0212,E1101
+_is_pypy3 = platform.python_implementation() == 'PyPy' and sys.version_info[0] > 2
+_is_jython = platform.python_implementation() == 'Jython'
+
+# pylint:disable=R0904,W0212,E1101
 # pylint:disable=attribute-defined-outside-init,too-many-lines
-# pylint:disable=blacklisted-name
+# pylint:disable=blacklisted-name,useless-object-inheritance
 # Hundreds of unused jar and OID vars make this useless
 # pylint:disable=unused-variable
+
+def skipIfNoCExtension(o):
+    return unittest.skipIf(
+        persistent._cPersistence is None,
+        "The C extension is not available")(o)
+
 
 class _Persistent_Base(object):
 
@@ -1615,7 +1621,7 @@ class _Persistent_Base(object):
             def __setattr__(self, name, value):
                 raise AssertionError("Should not be called")
         inst = subclass()
-        self.assertEqual(object.__getattribute__(inst,'_v_setattr_called'), False)
+        self.assertEqual(object.__getattribute__(inst, '_v_setattr_called'), False)
 
     def test_can_set__p_attrs_if_subclass_denies_setattr(self):
         # ZODB defines a PersistentBroken subclass that only lets us
@@ -1801,47 +1807,39 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
         inst._Persistent__flags = None
         inst._p_accessed()
 
-_add_to_suite = [PyPersistentTests]
 
-if not os.environ.get('PURE_PYTHON'):
-    try:
-        from persistent import cPersistence
-    except ImportError: # pragma: no cover
-        pass
-    else:
-        class CPersistentTests(unittest.TestCase, _Persistent_Base):
+@skipIfNoCExtension
+class CPersistentTests(unittest.TestCase, _Persistent_Base):
 
-            def _getTargetClass(self):
-                from persistent.cPersistence import Persistent
-                return Persistent
+    def _getTargetClass(self):
+        from persistent.cPersistence import Persistent
+        return Persistent
 
-            def _checkMRU(self, jar, value):
-                pass # Figure this out later
+    def _checkMRU(self, jar, value):
+        pass # Figure this out later
 
-            def _clearMRU(self, jar):
-                pass # Figure this out later
+    def _clearMRU(self, jar):
+        pass # Figure this out later
 
-            def _makeCache(self, jar):
-                from persistent.cPickleCache import PickleCache
-                return PickleCache(jar)
+    def _makeCache(self, jar):
+        from persistent.cPickleCache import PickleCache
+        return PickleCache(jar)
 
-        _add_to_suite.append(CPersistentTests)
 
-        class Test_simple_new(unittest.TestCase):
+@skipIfNoCExtension
+class Test_simple_new(unittest.TestCase):
 
-            def _callFUT(self, x):
-                from persistent.cPersistence import simple_new
-                return simple_new(x)
+    def _callFUT(self, x):
+        from persistent.cPersistence import simple_new
+        return simple_new(x)
 
-            def test_w_non_type(self):
-                self.assertRaises(TypeError, self._callFUT, '')
+    def test_w_non_type(self):
+        self.assertRaises(TypeError, self._callFUT, '')
 
-            def test_w_type(self):
-                TO_CREATE = [type, list, tuple, object, dict]
-                for typ in TO_CREATE:
-                    self.assertTrue(isinstance(self._callFUT(typ), typ))
-
-        _add_to_suite.append(Test_simple_new)
+    def test_w_type(self):
+        TO_CREATE = [type, list, tuple, object, dict]
+        for typ in TO_CREATE:
+            self.assertTrue(isinstance(self._callFUT(typ), typ))
 
 def test_suite():
-    return unittest.TestSuite([unittest.makeSuite(x) for x in _add_to_suite])
+    return unittest.defaultTestLoader.loadTestsFromName(__name__)
