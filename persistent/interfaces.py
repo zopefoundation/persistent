@@ -166,6 +166,14 @@ class IPersistent(Interface):
     these objects are invalidated, they immediately reload their state
     from their data manager, and are then in the saved state.
 
+    reprs
+
+    By default, persistent objects include the reprs of their
+    _p_oid and _p_jar, if any, in their repr. If a subclass implements
+    the optional method ``_p_repr``, it will be called and its results returned
+    instead of the default repr; if this method raises an exception, that
+    exception will be caught and its repr included in the default repr.
+
     """
 
     _p_jar = Attribute(
@@ -314,10 +322,10 @@ class IPersistent(Interface):
 
     def _p_getattr(name):
         """Test whether the base class must handle the name
-   
+
         The method unghostifies the object, if necessary.
         The method records the object access, if necessary.
- 
+
         This method should be called by subclass __getattribute__
         implementations before doing anything else. If the method
         returns True, then __getattribute__ implementations must delegate
@@ -471,7 +479,7 @@ class IPickleCache(Interface):
         """ Perform an incremental garbage collection sweep.
 
         o Reduce number of non-ghosts to 'cache_size', if possible.
-        
+
         o Ghostify in LRU order.
 
         o Skip dirty or sticky objects.
@@ -505,7 +513,7 @@ class IPickleCache(Interface):
 
         If the object's '_p_jar' is not None, raise.
 
-        If 'oid' is already in the cache, raise. 
+        If 'oid' is already in the cache, raise.
         """
 
     def reify(to_reify):
@@ -536,7 +544,7 @@ class IPickleCache(Interface):
         o Any OID corresponding to a p-class will cause the corresponding
             p-class to be removed from the cache.
 
-        o For all other OIDs, ghostify the corrsponding object and 
+        o For all other OIDs, ghostify the corrsponding object and
             remove it from the ring.
         """
 

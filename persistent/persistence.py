@@ -558,6 +558,14 @@ class Persistent(object):
             return cache.get(oid) is self
 
     def __repr__(self):
+        p_repr_str = ''
+        p_repr = getattr(type(self), '_p_repr', None)
+        if p_repr is not None:
+            try:
+                return p_repr(self)
+            except Exception as e:
+                p_repr_str = ' _p_repr %r' % (e,)
+
         oid = _OGA(self, '_Persistent__oid')
         jar = _OGA(self, '_Persistent__jar')
 
@@ -576,9 +584,9 @@ class Persistent(object):
             except Exception as e:
                 jar_str = ' in %r' % (e,)
 
-        return '<%s.%s object at 0x%x%s%s>' % (
+        return '<%s.%s object at 0x%x%s%s%s>' % (
             type(self).__module__, type(self).__name__, id(self),
-            oid_str, jar_str
+            oid_str, jar_str, p_repr_str
         )
 
 

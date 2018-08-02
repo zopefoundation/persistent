@@ -1,9 +1,10 @@
-Using :mod:`persistent` in your application
-===========================================
+=============================================
+ Using :mod:`persistent` in your application
+=============================================
 
 
 Inheriting from :class:`persistent.Persistent`
-----------------------------------------------
+==============================================
 
 The basic mechanism for making your application's objects persistent
 is mix-in interitance.  Instances whose classes derive from
@@ -14,7 +15,7 @@ they have been changed.
 
 
 Relationship to a Data Manager and its Cache
---------------------------------------------
+============================================
 
 Except immediately after their creation, persistent objects are normally
 associated with a :term:`data manager` (also referred to as a :term:`jar`).
@@ -63,7 +64,7 @@ The examples below use a stub data manager class, and its stub cache class:
 
 
 Persistent objects without a Data Manager
------------------------------------------
+=========================================
 
 Before aersistent instance has been associtated with a a data manager (
 i.e., its ``_p_jar`` is still ``None``).
@@ -166,7 +167,7 @@ Try all sorts of different ways to change the object's state:
 
 
 Associating an Object with a Data Manager
------------------------------------------
+=========================================
 
 Once associated with a data manager, a persistent object's behavior changes:
 
@@ -219,7 +220,7 @@ control the state as described below, or use a
 :class:`~.PersistentList` or :class:`~.PersistentMapping`.
 
 Explicitly controlling ``_p_state``
------------------------------------
+===================================
 
 Persistent objects expose three methods for moving an object into and out
 of the "ghost" state::  :meth:`persistent.Persistent._p_activate`,
@@ -328,7 +329,7 @@ which is exactly the same as calling ``_p_activate``:
 
 
 The pickling protocol
----------------------
+=====================
 
 Because persistent objects need to control how they are pickled and
 unpickled, the :class:`persistent.Persistent` base class overrides
@@ -382,7 +383,7 @@ The ``_p_serial`` attribute is not affected by calling setstate.
 
 
 Estimated Object Size
----------------------
+=====================
 
 We can store a size estimation in ``_p_estimated_size``. Its default is 0.
 The size estimation can be used by a cache associated with the data manager
@@ -412,7 +413,7 @@ Of course, the estimated size must not be negative.
 
 
 Overriding the attribute protocol
----------------------------------
+=================================
 
 Subclasses which override the attribute-management methods provided by
 :class:`persistent.Persistent`, but must obey some constraints:
@@ -448,3 +449,24 @@ Subclasses which override the attribute-management methods provided by
 :meth:`__getattr__`
   For the ``__getattr__`` method, the behavior is like that for regular Python
   classes and for earlier versions of ZODB 3.
+
+
+Implementing ``_p_repr``
+========================
+
+Subclasses can implement ``_p_repr`` to provide a custom
+representation. If this method raises an exception, the default
+representation will be used. The benefit of implementing ``_p_repr``
+instead of overriding ``__repr__`` is that it provides safer handling
+for objects that can't be activated because their persistent data is
+missing or their jar is closed.
+
+.. doctest::
+
+   >>> class P(Persistent):
+   ...    def _p_repr(self):
+   ...        return "Custom repr"
+
+   >>> p = P()
+   >>> print(repr(p))
+   Custom repr

@@ -4,6 +4,12 @@
 4.3.1 (unreleased)
 ------------------
 
+- Change the default representation of ``Persistent`` objects to
+  include the representation of their OID and jar, if set. Also add
+  the ability for subclasses to implement ``_p_repr()`` instead of
+  overriding ``__repr__`` for better exception handling. See `issue 11
+  <https://github.com/zopefoundation/persistent/issues/11>`_.
+
 - Reach and maintain 100% test coverage.
 
 - Simplify ``__init__.py``, including removal of an attempted legacy

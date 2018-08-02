@@ -1373,28 +1373,40 @@ Per_set_sticky(cPersistentObject *self, PyObject* value)
 }
 
 static PyObject*
-repr_helper(PyObject *o, char* format)
+repr_format_exception(char* format)
 {
-    /* Returns a new reference, or NULL on error */
+    /* If an exception we should catch occurred, return a new
+       string of its repr. Otherwise, return NULL. */
     PyObject *exc_t;
     PyObject *exc_v;
     PyObject *exc_tb;
+    PyObject *result = NULL;
+
+    if (PyErr_Occurred() && PyErr_ExceptionMatches(PyExc_Exception))
+    {
+        PyErr_Fetch(&exc_t, &exc_v, &exc_tb);
+        PyErr_NormalizeException(&exc_t, &exc_v, &exc_tb);
+        PyErr_Clear();
+
+        result = PyUnicode_FromFormat(format, exc_v);
+        Py_DECREF(exc_t);
+        Py_DECREF(exc_v);
+        Py_DECREF(exc_tb);
+    }
+    return result;
+}
+
+static PyObject*
+repr_helper(PyObject *o, char* format)
+{
+    /* Returns a new reference, or NULL on error */
     PyObject *result;
 
     if (o)
     {
         result = PyUnicode_FromFormat(format, o);
-        if (!result && PyErr_Occurred() && PyErr_ExceptionMatches(PyExc_Exception))
-        {
-            PyErr_Fetch(&exc_t, &exc_v, &exc_tb);
-            PyErr_NormalizeException(&exc_t, &exc_v, &exc_tb);
-            PyErr_Clear();
-
-            result = PyUnicode_FromFormat(format, exc_v);
-            Py_DECREF(exc_t);
-            Py_DECREF(exc_v);
-            Py_DECREF(exc_tb);
-        }
+        if (!result)
+            result = repr_format_exception(format);
     }
     else
     {
@@ -1408,10 +1420,31 @@ repr_helper(PyObject *o, char* format)
 static PyObject*
 Per_repr(cPersistentObject *self)
 {
+    PyObject *prepr = NULL;
+    PyObject *prepr_exc_str = NULL;
+
     PyObject *oid_str = NULL;
     PyObject *jar_str = NULL;
     PyObject *result = NULL;
 
+    prepr = PyObject_GetAttrString((PyObject*)Py_TYPE(self), "_p_repr");
+    if (prepr)
+    {
+        result = PyObject_CallFunctionObjArgs(prepr, self, NULL);
+        if (result)
+            goto cleanup;
+        else
+        {
+            prepr_exc_str = repr_format_exception(" _p_repr %R");
+            if (!prepr_exc_str)
+                goto cleanup;
+        }
+    }
+    else
+    {
+        PyErr_Clear();
+        prepr_exc_str = PyUnicode_FromString("");
+    }
 
     oid_str = repr_helper(self->oid, " oid %R");
     if (!oid_str)
@@ -1421,11 +1454,13 @@ Per_repr(cPersistentObject *self)
     if (!jar_str)
         goto cleanup;
 
-    result = PyUnicode_FromFormat("<%s object at %p%S%S>",
+    result = PyUnicode_FromFormat("<%s object at %p%S%S%S>",
                                   Py_TYPE(self)->tp_name, self,
-                                  oid_str, jar_str);
+                                  oid_str, jar_str, prepr_exc_str);
 
 cleanup:
+    Py_XDECREF(prepr);
+    Py_XDECREF(prepr_exc_str);
     Py_XDECREF(oid_str);
     Py_XDECREF(jar_str);
 

@@ -1700,6 +1700,7 @@ class _Persistent_Base(object):
     def _normalize_repr(self, r):
         # Pure-python vs C
         r = r.replace('persistent.persistence.Persistent', 'persistent.Persistent')
+        r = r.replace("persistent.tests.test_persistence.", '')
         # addresses
         r = re.sub(r'0x[0-9a-fA-F]*', '0xdeadbeef', r)
         # Python 3.7 removed the trailing , in exception reprs
@@ -1822,9 +1823,61 @@ class _Persistent_Base(object):
         p._p_jar = Jar()
 
         result = self._normalized_repr(p)
-        self.assertEqual(result,
-                         "<persistent.Persistent object at 0xdeadbeef oid b'12345678' in <SomeJar>>")
+        self.assertEqual(
+            result,
+            "<persistent.Persistent object at 0xdeadbeef oid b'12345678' in <SomeJar>>")
 
+    def test__p_repr(self):
+        class P(self._getTargetClass()):
+            def _p_repr(self):
+                return "Override"
+        p = P()
+        self.assertEqual("Override", repr(p))
+
+    def test__p_repr_exception(self):
+        class P(self._getTargetClass()):
+            def _p_repr(self):
+                raise Exception("_p_repr failed")
+        p = P()
+        result = self._normalized_repr(p)
+        self.assertEqual(
+            result,
+            "<P object at 0xdeadbeef"
+            " _p_repr Exception('_p_repr failed')>")
+
+        p._p_oid = b'12345678'
+        result = self._normalized_repr(p)
+        self.assertEqual(
+            result,
+            "<P object at 0xdeadbeef oid b'12345678'"
+            " _p_repr Exception('_p_repr failed')>")
+
+        class Jar(object):
+            def __repr__(self):
+                return '<SomeJar>'
+
+        p._p_jar = Jar()
+        result = self._normalized_repr(p)
+        self.assertEqual(
+            result,
+            "<P object at 0xdeadbeef oid b'12345678'"
+            " in <SomeJar> _p_repr Exception('_p_repr failed')>")
+
+    def test__p_repr_in_instance_ignored(self):
+        class P(self._getTargetClass()):
+            pass
+        p = P()
+        p._p_repr = lambda: "Instance"
+        result = self._normalized_repr(p)
+        self.assertEqual(result, '<P object at 0xdeadbeef>')
+
+    def test__p_repr_baseexception(self):
+        class P(self._getTargetClass()):
+            def _p_repr(self):
+                raise BaseException("_p_repr failed")
+        p = P()
+        with self.assertRaisesRegex(BaseException, '_p_repr failed'):
+            repr(p)
 
 class PyPersistentTests(unittest.TestCase, _Persistent_Base):
 
