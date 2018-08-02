@@ -13,6 +13,7 @@
 ##############################################################################
 
 import platform
+import re
 import sys
 import unittest
 
@@ -1670,7 +1671,7 @@ class _Persistent_Base(object):
         self.assertEqual(candidate._p_state, UPTODATE)
         cache.new_ghost(KEY, candidate)
 
-        self.assertTrue(cache.get(KEY) is candidate)
+        self.assertIs(cache.get(KEY), candidate)
         self.assertEqual(candidate._p_oid, KEY)
         self.assertEqual(candidate._p_state, GHOST)
         self.assertEqual(candidate.set_by_new, 1)
@@ -1691,10 +1692,117 @@ class _Persistent_Base(object):
         self.assertEqual(candidate._p_state, UPTODATE)
         cache.new_ghost(KEY, candidate)
 
-        self.assertTrue(cache.get(KEY) is candidate)
+        self.assertIs(cache.get(KEY), candidate)
         self.assertEqual(candidate._p_oid, KEY)
         self.assertEqual(candidate._p_state, GHOST)
         self.assertEqual(candidate.set_by_new, 1)
+
+    def _normalize_repr(self, r):
+        # Pure-python vs C
+        r = r.replace('persistent.persistence.Persistent', 'persistent.Persistent')
+        # addresses
+        r = re.sub(r'0x[0-9a-fA-F]*', '0xdeadbeef', r)
+        # Python 3.7 removed the trailing , in exception reprs
+        r = r.replace("',)", "')")
+        # Python 2 doesn't have a leading b prefix for byte literals
+        r = r.replace("oid '", "oid b'")
+        return r
+
+    def _normalized_repr(self, o):
+        return self._normalize_repr(repr(o))
+
+    def test_repr_no_oid_no_jar(self):
+        p = self._makeOne()
+        result = self._normalized_repr(p)
+        self.assertEqual(result, '<persistent.Persistent object at 0xdeadbeef>')
+
+    def test_repr_no_oid_in_jar(self):
+        p = self._makeOne()
+
+        class Jar(object):
+            def __repr__(self):
+                return '<SomeJar>'
+
+        p._p_jar = Jar()
+
+        result = self._normalized_repr(p)
+        self.assertEqual(
+            result,
+            "<persistent.Persistent object at 0xdeadbeef in <SomeJar>>")
+
+    def test_repr_oid_no_jar(self):
+        p = self._makeOne()
+        p._p_oid = b'12345678'
+
+        result = self._normalized_repr(p)
+        self.assertEqual(
+            result,
+            "<persistent.Persistent object at 0xdeadbeef oid b'12345678'>")
+
+    def test_repr_no_oid_repr_jar_raises_exception(self):
+        p = self._makeOne()
+
+        class Jar(object):
+            def __repr__(self):
+                raise Exception('jar repr failed')
+
+        p._p_jar = Jar()
+
+        result = self._normalized_repr(p)
+        self.assertEqual(
+            result,
+            "<persistent.Persistent object at 0xdeadbeef in Exception('jar repr failed')>")
+
+
+    def test_repr_oid_raises_exception_no_jar(self):
+        p = self._makeOne()
+
+        class BadOID(bytes):
+            def __repr__(self):
+                raise Exception("oid repr failed")
+        p._p_oid = BadOID(b'12345678')
+
+        result = self._normalized_repr(p)
+        self.assertEqual(
+            result,
+            "<persistent.Persistent object at 0xdeadbeef oid Exception('oid repr failed')>")
+
+
+    def test_repr_oid_and_jar_raise_exception(self):
+        p = self._makeOne()
+
+        class BadOID(bytes):
+            def __repr__(self):
+                raise Exception("oid repr failed")
+        p._p_oid = BadOID(b'12345678')
+
+        class Jar(object):
+            def __repr__(self):
+                raise Exception('jar repr failed')
+
+        p._p_jar = Jar()
+
+
+        result = self._normalized_repr(p)
+        self.assertEqual(
+            result,
+            "<persistent.Persistent object at 0xdeadbeef oid Exception('oid repr failed')"
+            " in Exception('jar repr failed')>")
+
+
+    def test_repr_oid_and_jar(self):
+        p = self._makeOne()
+        p._p_oid = b'12345678'
+
+        class Jar(object):
+            def __repr__(self):
+                return '<SomeJar>'
+
+        p._p_jar = Jar()
+
+        result = self._normalized_repr(p)
+        self.assertEqual(result,
+                         "<persistent.Persistent object at 0xdeadbeef oid b'12345678' in <SomeJar>>")
 
 
 class PyPersistentTests(unittest.TestCase, _Persistent_Base):

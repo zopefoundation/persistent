@@ -11,7 +11,7 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
-import sys
+
 
 from zope.interface import implementer
 
@@ -20,14 +20,13 @@ from persistent.interfaces import GHOST
 from persistent.interfaces import UPTODATE
 from persistent.interfaces import CHANGED
 from persistent.interfaces import STICKY
-from persistent.interfaces import OID_TYPE
+
 from persistent.interfaces import SERIAL_TYPE
 from persistent.timestamp import TimeStamp
 from persistent.timestamp import _ZERO
 from persistent._compat import copy_reg
 from persistent._compat import intern
 
-from . import ring
 
 _INITIAL_SERIAL = _ZERO
 
@@ -557,6 +556,31 @@ class Persistent(object):
         cache = getattr(jar, '_cache', None)
         if cache is not None:
             return cache.get(oid) is self
+
+    def __repr__(self):
+        oid = _OGA(self, '_Persistent__oid')
+        jar = _OGA(self, '_Persistent__jar')
+
+        oid_str = ''
+        jar_str = ''
+
+        if oid is not None:
+            try:
+                oid_str = ' oid %r' % (oid,)
+            except Exception as e:
+                oid_str = ' oid %r' % (e,)
+
+        if jar is not None:
+            try:
+                jar_str = ' in %r' % (jar,)
+            except Exception as e:
+                jar_str = ' in %r' % (e,)
+
+        return '<%s.%s object at 0x%x%s%s>' % (
+            type(self).__module__, type(self).__name__, id(self),
+            oid_str, jar_str
+        )
+
 
 def _estimated_size_in_24_bits(value):
     if value > 1073741696:
