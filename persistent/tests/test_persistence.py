@@ -11,23 +11,30 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
-import os
-import unittest
 
 import platform
+import re
 import sys
+import unittest
 
+import persistent
 from persistent._compat import copy_reg
 
-py_impl = getattr(platform, 'python_implementation', lambda: None)
-_is_pypy3 = py_impl() == 'PyPy' and sys.version_info[0] > 2
-_is_jython = py_impl() == 'Jython'
 
-#pylint: disable=R0904,W0212,E1101
+_is_pypy3 = platform.python_implementation() == 'PyPy' and sys.version_info[0] > 2
+_is_jython = platform.python_implementation() == 'Jython'
+
+# pylint:disable=R0904,W0212,E1101
 # pylint:disable=attribute-defined-outside-init,too-many-lines
-# pylint:disable=blacklisted-name
+# pylint:disable=blacklisted-name,useless-object-inheritance
 # Hundreds of unused jar and OID vars make this useless
 # pylint:disable=unused-variable
+
+def skipIfNoCExtension(o):
+    return unittest.skipIf(
+        persistent._cPersistence is None,
+        "The C extension is not available")(o)
+
 
 class _Persistent_Base(object):
 
@@ -1615,7 +1622,7 @@ class _Persistent_Base(object):
             def __setattr__(self, name, value):
                 raise AssertionError("Should not be called")
         inst = subclass()
-        self.assertEqual(object.__getattribute__(inst,'_v_setattr_called'), False)
+        self.assertEqual(object.__getattribute__(inst, '_v_setattr_called'), False)
 
     def test_can_set__p_attrs_if_subclass_denies_setattr(self):
         # ZODB defines a PersistentBroken subclass that only lets us
@@ -1664,7 +1671,7 @@ class _Persistent_Base(object):
         self.assertEqual(candidate._p_state, UPTODATE)
         cache.new_ghost(KEY, candidate)
 
-        self.assertTrue(cache.get(KEY) is candidate)
+        self.assertIs(cache.get(KEY), candidate)
         self.assertEqual(candidate._p_oid, KEY)
         self.assertEqual(candidate._p_state, GHOST)
         self.assertEqual(candidate.set_by_new, 1)
@@ -1685,11 +1692,192 @@ class _Persistent_Base(object):
         self.assertEqual(candidate._p_state, UPTODATE)
         cache.new_ghost(KEY, candidate)
 
-        self.assertTrue(cache.get(KEY) is candidate)
+        self.assertIs(cache.get(KEY), candidate)
         self.assertEqual(candidate._p_oid, KEY)
         self.assertEqual(candidate._p_state, GHOST)
         self.assertEqual(candidate.set_by_new, 1)
 
+    def _normalize_repr(self, r):
+        # Pure-python vs C
+        r = r.replace('persistent.persistence.Persistent', 'persistent.Persistent')
+        r = r.replace("persistent.tests.test_persistence.", '')
+        # addresses
+        r = re.sub(r'0x[0-9a-fA-F]*', '0xdeadbeef', r)
+        # Python 3.7 removed the trailing , in exception reprs
+        r = r.replace("',)", "')")
+        # Python 2 doesn't have a leading b prefix for byte literals
+        r = r.replace("oid '", "oid b'")
+        return r
+
+    def _normalized_repr(self, o):
+        return self._normalize_repr(repr(o))
+
+    def test_repr_no_oid_no_jar(self):
+        p = self._makeOne()
+        result = self._normalized_repr(p)
+        self.assertEqual(result, '<persistent.Persistent object at 0xdeadbeef>')
+
+    def test_repr_no_oid_in_jar(self):
+        p = self._makeOne()
+
+        class Jar(object):
+            def __repr__(self):
+                return '<SomeJar>'
+
+        p._p_jar = Jar()
+
+        result = self._normalized_repr(p)
+        self.assertEqual(
+            result,
+            "<persistent.Persistent object at 0xdeadbeef in <SomeJar>>")
+
+    def test_repr_oid_no_jar(self):
+        p = self._makeOne()
+        p._p_oid = b'12345678'
+
+        result = self._normalized_repr(p)
+        self.assertEqual(
+            result,
+            "<persistent.Persistent object at 0xdeadbeef oid b'12345678'>")
+
+    def test_repr_no_oid_repr_jar_raises_exception(self):
+        p = self._makeOne()
+
+        class Jar(object):
+            def __repr__(self):
+                raise Exception('jar repr failed')
+
+        p._p_jar = Jar()
+
+        result = self._normalized_repr(p)
+        self.assertEqual(
+            result,
+            "<persistent.Persistent object at 0xdeadbeef in Exception('jar repr failed')>")
+
+
+    def test_repr_oid_raises_exception_no_jar(self):
+        p = self._makeOne()
+
+        class BadOID(bytes):
+            def __repr__(self):
+                raise Exception("oid repr failed")
+        p._p_oid = BadOID(b'12345678')
+
+        result = self._normalized_repr(p)
+        self.assertEqual(
+            result,
+            "<persistent.Persistent object at 0xdeadbeef oid Exception('oid repr failed')>")
+
+
+    def test_repr_oid_and_jar_raise_exception(self):
+        p = self._makeOne()
+
+        class BadOID(bytes):
+            def __repr__(self):
+                raise Exception("oid repr failed")
+        p._p_oid = BadOID(b'12345678')
+
+        class Jar(object):
+            def __repr__(self):
+                raise Exception('jar repr failed')
+
+        p._p_jar = Jar()
+
+
+        result = self._normalized_repr(p)
+        self.assertEqual(
+            result,
+            "<persistent.Persistent object at 0xdeadbeef oid Exception('oid repr failed')"
+            " in Exception('jar repr failed')>")
+
+    def test_repr_no_oid_repr_jar_raises_baseexception(self):
+        p = self._makeOne()
+
+        class Jar(object):
+            def __repr__(self):
+                raise BaseException('jar repr failed')
+
+        p._p_jar = Jar()
+        with self.assertRaisesRegex(BaseException, 'jar repr failed'):
+            repr(p)
+
+    def test_repr_oid_raises_baseexception_no_jar(self):
+        p = self._makeOne()
+
+        class BadOID(bytes):
+            def __repr__(self):
+                raise BaseException("oid repr failed")
+        p._p_oid = BadOID(b'12345678')
+
+        with self.assertRaisesRegex(BaseException, 'oid repr failed'):
+            repr(p)
+
+    def test_repr_oid_and_jar(self):
+        p = self._makeOne()
+        p._p_oid = b'12345678'
+
+        class Jar(object):
+            def __repr__(self):
+                return '<SomeJar>'
+
+        p._p_jar = Jar()
+
+        result = self._normalized_repr(p)
+        self.assertEqual(
+            result,
+            "<persistent.Persistent object at 0xdeadbeef oid b'12345678' in <SomeJar>>")
+
+    def test__p_repr(self):
+        class P(self._getTargetClass()):
+            def _p_repr(self):
+                return "Override"
+        p = P()
+        self.assertEqual("Override", repr(p))
+
+    def test__p_repr_exception(self):
+        class P(self._getTargetClass()):
+            def _p_repr(self):
+                raise Exception("_p_repr failed")
+        p = P()
+        result = self._normalized_repr(p)
+        self.assertEqual(
+            result,
+            "<P object at 0xdeadbeef"
+            " _p_repr Exception('_p_repr failed')>")
+
+        p._p_oid = b'12345678'
+        result = self._normalized_repr(p)
+        self.assertEqual(
+            result,
+            "<P object at 0xdeadbeef oid b'12345678'"
+            " _p_repr Exception('_p_repr failed')>")
+
+        class Jar(object):
+            def __repr__(self):
+                return '<SomeJar>'
+
+        p._p_jar = Jar()
+        result = self._normalized_repr(p)
+        self.assertEqual(
+            result,
+            "<P object at 0xdeadbeef oid b'12345678'"
+            " in <SomeJar> _p_repr Exception('_p_repr failed')>")
+
+    def test__p_repr_in_instance_ignored(self):
+        class P(self._getTargetClass()):
+            pass
+        p = P()
+        p._p_repr = lambda: "Instance"
+        result = self._normalized_repr(p)
+        self.assertEqual(result, '<P object at 0xdeadbeef>')
+
+    def test__p_repr_baseexception(self):
+        class P(self._getTargetClass()):
+            def _p_repr(self):
+                raise BaseException("_p_repr failed")
+        p = P()
+        with self.assertRaisesRegex(BaseException, '_p_repr failed'):
+            repr(p)
 
 class PyPersistentTests(unittest.TestCase, _Persistent_Base):
 
@@ -1801,47 +1989,39 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
         inst._Persistent__flags = None
         inst._p_accessed()
 
-_add_to_suite = [PyPersistentTests]
 
-if not os.environ.get('PURE_PYTHON'):
-    try:
-        from persistent import cPersistence
-    except ImportError: # pragma: no cover
-        pass
-    else:
-        class CPersistentTests(unittest.TestCase, _Persistent_Base):
+@skipIfNoCExtension
+class CPersistentTests(unittest.TestCase, _Persistent_Base):
 
-            def _getTargetClass(self):
-                from persistent.cPersistence import Persistent
-                return Persistent
+    def _getTargetClass(self):
+        from persistent.cPersistence import Persistent
+        return Persistent
 
-            def _checkMRU(self, jar, value):
-                pass # Figure this out later
+    def _checkMRU(self, jar, value):
+        pass # Figure this out later
 
-            def _clearMRU(self, jar):
-                pass # Figure this out later
+    def _clearMRU(self, jar):
+        pass # Figure this out later
 
-            def _makeCache(self, jar):
-                from persistent.cPickleCache import PickleCache
-                return PickleCache(jar)
+    def _makeCache(self, jar):
+        from persistent.cPickleCache import PickleCache
+        return PickleCache(jar)
 
-        _add_to_suite.append(CPersistentTests)
 
-        class Test_simple_new(unittest.TestCase):
+@skipIfNoCExtension
+class Test_simple_new(unittest.TestCase):
 
-            def _callFUT(self, x):
-                from persistent.cPersistence import simple_new
-                return simple_new(x)
+    def _callFUT(self, x):
+        from persistent.cPersistence import simple_new
+        return simple_new(x)
 
-            def test_w_non_type(self):
-                self.assertRaises(TypeError, self._callFUT, '')
+    def test_w_non_type(self):
+        self.assertRaises(TypeError, self._callFUT, '')
 
-            def test_w_type(self):
-                TO_CREATE = [type, list, tuple, object, dict]
-                for typ in TO_CREATE:
-                    self.assertTrue(isinstance(self._callFUT(typ), typ))
-
-        _add_to_suite.append(Test_simple_new)
+    def test_w_type(self):
+        TO_CREATE = [type, list, tuple, object, dict]
+        for typ in TO_CREATE:
+            self.assertTrue(isinstance(self._callFUT(typ), typ))
 
 def test_suite():
-    return unittest.TestSuite([unittest.makeSuite(x) for x in _add_to_suite])
+    return unittest.defaultTestLoader.loadTestsFromName(__name__)
