@@ -4,6 +4,11 @@
 4.3.1 (unreleased)
 ------------------
 
+- Use unsigned constants when doing arithmetic on C timestamps,
+  possibly avoiding some overflow issues with some compilers or
+  compiler settings. See `issue 86
+  <https://github.com/zopefoundation/persistent/issues/86>`_.
+
 - Change the default representation of ``Persistent`` objects to
   include the representation of their OID and jar, if set. Also add
   the ability for subclasses to implement ``_p_repr()`` instead of

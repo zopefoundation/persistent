@@ -185,8 +185,8 @@ TimeStamp_unpack(TimeStamp *self, TimeStampParts *p)
 {
     unsigned long v;
 
-    v = (self->data[0] * 16777216 + self->data[1] * 65536
-       + self->data[2] * 256 + self->data[3]);
+    v = (self->data[0] * 0x1000000 + self->data[1] * 0x10000
+       + self->data[2] * 0x100 + self->data[3]);
     p->y = v / 535680 + 1900;
     p->m = (v % 535680) / 44640 + 1;
     p->d = (v % 44640) / 1440 + 1;
@@ -198,8 +198,8 @@ TimeStamp_sec(TimeStamp *self)
 {
     unsigned int v;
 
-    v = (self->data[4] * 16777216 + self->data[5] * 65536
-     + self->data[6] * 256 + self->data[7]);
+    v = (self->data[4] * 0x1000000 + self->data[5] * 0x10000
+     + self->data[6] * 0x100 + self->data[7]);
     return SCONV * v;
 }
 
@@ -446,16 +446,16 @@ TimeStamp_FromDate(int year, int month, int day, int hour, int min,
     ts = (TimeStamp *)PyObject_New(TimeStamp, &TimeStamp_type);
     v = (((year - 1900) * 12 + month - 1) * 31 + day - 1);
     v = (v * 24 + hour) * 60 + min;
-    ts->data[0] = v / 16777216;
-    ts->data[1] = (v % 16777216) / 65536;
-    ts->data[2] = (v % 65536) / 256;
-    ts->data[3] = v % 256;
+    ts->data[0] = v / 0x1000000;
+    ts->data[1] = (v % 0x1000000) / 0x10000;
+    ts->data[2] = (v % 0x10000) / 0x100;
+    ts->data[3] = v % 0x100;
     sec /= SCONV;
     v = (unsigned int)sec;
-    ts->data[4] = v / 16777216;
-    ts->data[5] = (v % 16777216) / 65536;
-    ts->data[6] = (v % 65536) / 256;
-    ts->data[7] = v % 256;
+    ts->data[4] = v / 0x1000000;
+    ts->data[5] = (v % 0x1000000) / 0x10000;
+    ts->data[6] = (v % 0x10000) / 0x100;
+    ts->data[7] = v % 0x100;
 
     return (PyObject *)ts;
 }
