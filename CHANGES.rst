@@ -37,6 +37,15 @@
 - Remove some internal compatibility shims that are no longer
   necessary. See `PR 82 <https://github.com/zopefoundation/persistent/pull/82>`_.
 
+- Make the return value of ``TimeStamp.second()`` consistent across C
+  and Python implementations when the ``TimeStamp`` was created from 6
+  arguments with floating point seconds. Also make it match across
+  trips through ``TimeStamp.raw()``. Previously, the C version could
+  initially have erroneous rounding and too much false precision,
+  while the Python version could have too much precision. The raw/repr
+  values have not changed. See `issue 41
+  <https://github.com/zopefoundation/persistent/issues/41>`_.
+
 4.3.0 (2018-07-30)
 ------------------
 

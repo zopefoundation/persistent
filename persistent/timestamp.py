@@ -53,6 +53,7 @@ class _UTC(datetime.tzinfo):
         return dt
 
 def _makeUTC(y, mo, d, h, mi, s):
+    s = round(s, 6) # microsecond precision, to match the C implementation
     usec, sec = math.modf(s)
     sec = int(sec)
     usec = int(usec * 1e6)
@@ -75,7 +76,7 @@ def _parseRaw(octets):
     day = a // (60 * 24) % 31 + 1
     month = a // (60 * 24 * 31) % 12 + 1
     year = a // (60 * 24 * 31 * 12) + 1900
-    second = round(b * _SCONV, 6) #microsecond precision
+    second = b * _SCONV
     return (year, month, day, hour, minute, second)
 
 
@@ -83,6 +84,7 @@ class pyTimeStamp(object):
     __slots__ = ('_raw', '_elements')
 
     def __init__(self, *args):
+        self._elements = None
         if len(args) == 1:
             raw = args[0]
             if not isinstance(raw, _RAWTYPE):
@@ -90,13 +92,17 @@ class pyTimeStamp(object):
             if len(raw) != 8:
                 raise TypeError('Raw must be 8 octets')
             self._raw = raw
-            self._elements = _parseRaw(raw)
         elif len(args) == 6:
             self._raw = _makeRaw(*args)
-            self._elements = args
+            # Note that we don't preserve the incoming arguments in self._elements,
+            # we derive them from the raw value. This is because the incoming
+            # seconds value could have more precision than would survive
+            # in the raw data, so we must be consistent.
         else:
             raise TypeError('Pass either a single 8-octet arg '
                             'or 5 integers and a float')
+
+        self._elements = _parseRaw(self._raw)
 
     def raw(self):
         return self._raw
