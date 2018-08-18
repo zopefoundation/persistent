@@ -39,7 +39,7 @@ static char TimeStampModule_doc[] =
 #define TS_MINUTES_PER_YEAR (TS_MINUTES_PER_MONTH * TS_MONTHS_PER_YEAR)
 
 #define TS_PACK_UNSIGNED_INTO_BYTES(v, bytes) do { \
-    *(bytes) = v / 0x1000000;			   \
+    *(bytes) = v / 0x1000000;                      \
     *(bytes + 1) = (v % 0x1000000) / 0x10000;      \
     *(bytes + 2) = (v % 0x10000) / 0x100;          \
     *(bytes + 3) = v % 0x100;                      \
@@ -92,8 +92,6 @@ days_in_month(int year, int month)
 {
     return month_len[leap(year)][month];
 }
-
-
 
 static double
 TimeStamp_yad(int y)
