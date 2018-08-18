@@ -31,9 +31,9 @@ static char TimeStampModule_doc[] =
    number of seconds between 0 and 59 is *divided* by this number, we get
    a number between 0 (for 0), 71582786 (for 1) and 4223384393 (for 59),
    all of which can be represented in a 32-bit unsigned integer, suitable
-   for packing into 4 bytes using `TS_PACK_UNSIGNED_INTO_BYTES`.
+   for packing into 4 bytes using `TS_PACK_UINT32_INTO_BYTES`.
    To get (close to) the original seconds back, use
-   `TS_UNPACK_UNSIGNED_FROM_BYTES` and *multiply* by this number.
+   `TS_UNPACK_UINT32_FROM_BYTES` and *multiply* by this number.
  */
 #define TS_SECOND_BYTES_BIAS ((double)60) / ((double)(0x10000)) / ((double)(0x10000))
 #define TS_BASE_YEAR 1900
@@ -51,11 +51,11 @@ static char TimeStampModule_doc[] =
  * than 2^31 (i.e., it doesn't fit in 32 bits), the results will
  * be invalid (the first byte will be 0.)
  *
- * The inverse is `TS_UNPACK_UNSIGNED_FROM_BYTES`. This is a
+ * The inverse is `TS_UNPACK_UINT32_FROM_BYTES`. This is a
  * lossy operation and may lose some lower-order precision.
  *
  */
-#define TS_PACK_UNSIGNED_INTO_BYTES(v, bytes) do { \
+#define TS_PACK_UINT32_INTO_BYTES(v, bytes) do { \
     *(bytes) = v / 0x1000000;                      \
     *(bytes + 1) = (v % 0x1000000) / 0x10000;      \
     *(bytes + 2) = (v % 0x10000) / 0x100;          \
@@ -64,14 +64,14 @@ static char TimeStampModule_doc[] =
 
 /**
  * Given a sequence of four unsigned chars beginning at *bytes*
- * as produced by `TS_PACK_UNSIGNED_INTO_BYTES`, return the
+ * as produced by `TS_PACK_UINT32_INTO_BYTES`, return the
  * original unsigned int.
  *
  * Remember this is a lossy operation, and the value you get back
  * may not exactly match the original value. If the original value
  * was greater than 2^31 it will definitely not match.
  */
-#define TS_UNPACK_UNSIGNED_FROM_BYTES(bytes) (*(bytes) * 0x1000000 + *(bytes + 1) * 0x10000 + *(bytes + 2) * 0x100 + *(bytes + 3))
+#define TS_UNPACK_UINT32_FROM_BYTES(bytes) (*(bytes) * 0x1000000 + *(bytes + 1) * 0x10000 + *(bytes + 2) * 0x100 + *(bytes + 3))
 
 typedef struct
 {
@@ -84,7 +84,7 @@ typedef struct
       the number of microseconds.
 
       Both are normalized into those four bytes the same way with
-      TS_[UN]PACK_UNSIGNED_INTO|FROM_BYTES.
+      TS_[UN]PACK_UINT32_INTO|FROM_BYTES.
     */
 
     unsigned char data[8];
@@ -241,7 +241,7 @@ TimeStamp_unpack(TimeStamp *self, TimeStampParts *p)
 {
     unsigned int minutes_since_base;
 
-    minutes_since_base = TS_UNPACK_UNSIGNED_FROM_BYTES(self->data);
+    minutes_since_base = TS_UNPACK_UINT32_FROM_BYTES(self->data);
     p->y = minutes_since_base / TS_MINUTES_PER_YEAR + TS_BASE_YEAR;
     p->m = (minutes_since_base % TS_MINUTES_PER_YEAR) / TS_MINUTES_PER_MONTH + 1;
     p->d = (minutes_since_base % TS_MINUTES_PER_MONTH) / TS_MINUTES_PER_DAY + 1;
@@ -253,7 +253,7 @@ TimeStamp_sec(TimeStamp *self)
 {
     unsigned int v;
 
-    v = TS_UNPACK_UNSIGNED_FROM_BYTES(self->data +4);
+    v = TS_UNPACK_UINT32_FROM_BYTES(self->data +4);
     return TS_SECOND_BYTES_BIAS * v;
 }
 
@@ -512,11 +512,11 @@ TimeStamp_FromDate(int year, int month, int day, int hour, int min,
     hours_since_base = days_since_base * 24 + hour;
     minutes_since_base = hours_since_base * 60 + min;
 
-    TS_PACK_UNSIGNED_INTO_BYTES(minutes_since_base, ts->data);
+    TS_PACK_UINT32_INTO_BYTES(minutes_since_base, ts->data);
 
     sec /= TS_SECOND_BYTES_BIAS;
     v = (unsigned int)sec;
-    TS_PACK_UNSIGNED_INTO_BYTES(v, ts->data + 4);
+    TS_PACK_UINT32_INTO_BYTES(v, ts->data + 4);
     return (PyObject *)ts;
 }
 
