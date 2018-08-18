@@ -27,9 +27,40 @@ static char TimeStampModule_doc[] =
 "$Id$\n";
 
 
+
+#define SCONV ((double)60) / ((double)(0x10000)) / ((double)(0x10000))
+#define TS_BASE_YEAR 1900
+#define TS_MINUTES_PER_DAY 1440
+/* We pretend there are always 31 days in a month; this has us using
+   372 days in a year in some calculations */
+#define TS_DAYS_PER_MONTH 31
+#define TS_MONTHS_PER_YEAR 12
+#define TS_MINUTES_PER_MONTH (TS_DAYS_PER_MONTH * TS_MINUTES_PER_DAY)
+#define TS_MINUTES_PER_YEAR (TS_MINUTES_PER_MONTH * TS_MONTHS_PER_YEAR)
+
+#define TS_PACK_UNSIGNED_INTO_BYTES(v, bytes) do { \
+    *(bytes) = v / 0x1000000;			   \
+    *(bytes + 1) = (v % 0x1000000) / 0x10000;      \
+    *(bytes + 2) = (v % 0x10000) / 0x100;          \
+    *(bytes + 3) = v % 0x100;                      \
+} while (0)
+
+#define TS_UNPACK_UNSIGNED_FROM_BYTES(bytes) (*(bytes) * 0x1000000 + *(bytes + 1) * 0x10000 + *(bytes + 2) * 0x100 + *(bytes + 3))
+
 typedef struct
 {
     PyObject_HEAD
+    /*
+      The first four bytes of data store the year, month, day, hour, and
+      minute as the number of minutes since Jan 1 00:00.
+
+      The final four bytes store the seconds since 00:00 as
+      the number of microseconds.
+
+      Both are normalized into those four bytes the same way with
+      TS_[UN]PACK_UNSIGNED_INTO|FROM_BYTES.
+    */
+
     unsigned char data[8];
 } TimeStamp;
 
@@ -49,8 +80,6 @@ static short joff[2][12] =
 
 static double gmoff=0;
 
-/* TODO:  May be better (faster) to store in a file static. */
-#define SCONV ((double)60) / ((double)(1<<16)) / ((double)(1<<16))
 
 static int
 leap(int year)
@@ -64,12 +93,14 @@ days_in_month(int year, int month)
     return month_len[leap(year)][month];
 }
 
+
+
 static double
 TimeStamp_yad(int y)
 {
     double d, s;
 
-    y -= 1900;
+    y -= TS_BASE_YEAR;
 
     d = (y - 1) * 365;
     if (y > 0) {
@@ -101,7 +132,7 @@ TimeStamp_init_gmoff(void)
         return -1;
     }
 
-    gmoff = TimeStamp_abst(t->tm_year+1900, t->tm_mon, t->tm_mday - 1,
+    gmoff = TimeStamp_abst(t->tm_year + TS_BASE_YEAR, t->tm_mon, t->tm_mday - 1,
                t->tm_hour * 60 + t->tm_min, t->tm_sec);
 
     return 0;
@@ -180,17 +211,17 @@ typedef struct
     int mi;
 } TimeStampParts;
 
+
 static void
 TimeStamp_unpack(TimeStamp *self, TimeStampParts *p)
 {
-    unsigned long v;
+    unsigned int minutes_since_base;
 
-    v = (self->data[0] * 0x1000000 + self->data[1] * 0x10000
-       + self->data[2] * 0x100 + self->data[3]);
-    p->y = v / 535680 + 1900;
-    p->m = (v % 535680) / 44640 + 1;
-    p->d = (v % 44640) / 1440 + 1;
-    p->mi = v % 1440;
+    minutes_since_base = TS_UNPACK_UNSIGNED_FROM_BYTES(self->data);
+    p->y = minutes_since_base / TS_MINUTES_PER_YEAR + TS_BASE_YEAR;
+    p->m = (minutes_since_base % TS_MINUTES_PER_YEAR) / TS_MINUTES_PER_MONTH + 1;
+    p->d = (minutes_since_base % TS_MINUTES_PER_MONTH) / TS_MINUTES_PER_DAY + 1;
+    p->mi = minutes_since_base % TS_MINUTES_PER_DAY;
 }
 
 static double
@@ -198,8 +229,7 @@ TimeStamp_sec(TimeStamp *self)
 {
     unsigned int v;
 
-    v = (self->data[4] * 0x1000000 + self->data[5] * 0x10000
-     + self->data[6] * 0x100 + self->data[7]);
+    v = TS_UNPACK_UNSIGNED_FROM_BYTES(self->data +4);
     return SCONV * v;
 }
 
@@ -423,13 +453,19 @@ PyObject *
 TimeStamp_FromDate(int year, int month, int day, int hour, int min,
            double sec)
 {
+
     TimeStamp *ts = NULL;
     int d;
+    unsigned int years_since_base;
+    unsigned int months_since_base;
+    unsigned int days_since_base;
+    unsigned int hours_since_base;
+    unsigned int minutes_since_base;
     unsigned int v;
 
-    if (year < 1900)
+    if (year < TS_BASE_YEAR)
         return PyErr_Format(PyExc_ValueError,
-                    "year must be greater than 1900: %d", year);
+                    "year must be greater than %d: %d", TS_BASE_YEAR, year);
     CHECK_RANGE(month, 1, 12);
     d = days_in_month(year, month - 1);
     if (day < 1 || day > d)
@@ -444,19 +480,19 @@ TimeStamp_FromDate(int year, int month, int day, int hour, int min,
                 "second must be between 0 and 59: %f", sec);
     */
     ts = (TimeStamp *)PyObject_New(TimeStamp, &TimeStamp_type);
-    v = (((year - 1900) * 12 + month - 1) * 31 + day - 1);
-    v = (v * 24 + hour) * 60 + min;
-    ts->data[0] = v / 0x1000000;
-    ts->data[1] = (v % 0x1000000) / 0x10000;
-    ts->data[2] = (v % 0x10000) / 0x100;
-    ts->data[3] = v % 0x100;
+    /* months come in 1-based, hours and minutes come in 0-based */
+    /* The base time is Jan 1, 00:00 of TS_BASE_YEAR */
+    years_since_base = year - TS_BASE_YEAR;
+    months_since_base = years_since_base * TS_MONTHS_PER_YEAR + (month - 1);
+    days_since_base = months_since_base * TS_DAYS_PER_MONTH + (day - 1);
+    hours_since_base = days_since_base * 24 + hour;
+    minutes_since_base = hours_since_base * 60 + min;
+
+    TS_PACK_UNSIGNED_INTO_BYTES(minutes_since_base, ts->data);
+
     sec /= SCONV;
     v = (unsigned int)sec;
-    ts->data[4] = v / 0x1000000;
-    ts->data[5] = (v % 0x1000000) / 0x10000;
-    ts->data[6] = (v % 0x10000) / 0x100;
-    ts->data[7] = v % 0x100;
-
+    TS_PACK_UNSIGNED_INTO_BYTES(v, ts->data + 4);
     return (PyObject *)ts;
 }
 
