@@ -27,8 +27,15 @@ static char TimeStampModule_doc[] =
 "$Id$\n";
 
 
-
-#define SCONV ((double)60) / ((double)(0x10000)) / ((double)(0x10000))
+/* A magic constant having the value 0.000000013969839. When an
+   number of seconds between 0 and 59 is *divided* by this number, we get
+   a number between 0 (for 0), 71582786 (for 1) and 4223384393 (for 59),
+   all of which can be represented in a 32-bit unsigned integer, suitable
+   for packing into 4 bytes using `TS_PACK_UNSIGNED_INTO_BYTES`.
+   To get (close to) the original seconds back, use
+   `TS_UNPACK_UNSIGNED_FROM_BYTES` and *multiply* by this number.
+ */
+#define TS_SECOND_BYTES_BIAS ((double)60) / ((double)(0x10000)) / ((double)(0x10000))
 #define TS_BASE_YEAR 1900
 #define TS_MINUTES_PER_DAY 1440
 /* We pretend there are always 31 days in a month; this has us using
@@ -38,6 +45,16 @@ static char TimeStampModule_doc[] =
 #define TS_MINUTES_PER_MONTH (TS_DAYS_PER_MONTH * TS_MINUTES_PER_DAY)
 #define TS_MINUTES_PER_YEAR (TS_MINUTES_PER_MONTH * TS_MONTHS_PER_YEAR)
 
+/**
+ * Given an unsigned int *v*, pack it into the four
+ * unsigned char bytes beginning at *bytes*. If *v* is larger
+ * than 2^31 (i.e., it doesn't fit in 32 bits), the results will
+ * be invalid (the first byte will be 0.)
+ *
+ * The inverse is `TS_UNPACK_UNSIGNED_FROM_BYTES`. This is a
+ * lossy operation and may lose some lower-order precision.
+ *
+ */
 #define TS_PACK_UNSIGNED_INTO_BYTES(v, bytes) do { \
     *(bytes) = v / 0x1000000;                      \
     *(bytes + 1) = (v % 0x1000000) / 0x10000;      \
@@ -45,6 +62,15 @@ static char TimeStampModule_doc[] =
     *(bytes + 3) = v % 0x100;                      \
 } while (0)
 
+/**
+ * Given a sequence of four unsigned chars beginning at *bytes*
+ * as produced by `TS_PACK_UNSIGNED_INTO_BYTES`, return the
+ * original unsigned int.
+ *
+ * Remember this is a lossy operation, and the value you get back
+ * may not exactly match the original value. If the original value
+ * was greater than 2^31 it will definitely not match.
+ */
 #define TS_UNPACK_UNSIGNED_FROM_BYTES(bytes) (*(bytes) * 0x1000000 + *(bytes + 1) * 0x10000 + *(bytes + 2) * 0x100 + *(bytes + 3))
 
 typedef struct
@@ -228,7 +254,7 @@ TimeStamp_sec(TimeStamp *self)
     unsigned int v;
 
     v = TS_UNPACK_UNSIGNED_FROM_BYTES(self->data +4);
-    return SCONV * v;
+    return TS_SECOND_BYTES_BIAS * v;
 }
 
 static PyObject *
@@ -488,7 +514,7 @@ TimeStamp_FromDate(int year, int month, int day, int hour, int min,
 
     TS_PACK_UNSIGNED_INTO_BYTES(minutes_since_base, ts->data);
 
-    sec /= SCONV;
+    sec /= TS_SECOND_BYTES_BIAS;
     v = (unsigned int)sec;
     TS_PACK_UNSIGNED_INTO_BYTES(v, ts->data + 4);
     return (PyObject *)ts;
