@@ -1,7 +1,7 @@
 ``persistent`` Changelog
 ========================
 
-4.4.1 (unreleased)
+4.4.1 (2018-08-23)
 ------------------
 
 - Fix installation of source packages on PyPy. See `issue 88
