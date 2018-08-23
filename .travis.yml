@@ -60,6 +60,8 @@ install:
     - pip install -U -e .[test]
 script:
     - python --version
+    # make sure we can build a wheel
+    - python setup.py bdist_wheel
     # coverage makes PyPy run about 3x slower, but the tests only take
     # .4s to begin with (the whole process takes about 1.5), so that's
     # still only 4.5s, which is maneagable.
