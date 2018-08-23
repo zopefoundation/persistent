@@ -39,7 +39,10 @@ is_jython = 'java' in sys.platform
 # anti-optimizations (the C extension compatibility layer is known-slow,
 # and defeats JIT opportunities).
 if is_pypy or is_jython:
-    ext_modules = headers = []
+    # Note that all the lists we pass to setuptools must be distinct
+    # objects, or bad things happen. See https://github.com/zopefoundation/persistent/issues/88
+    ext_modules = []
+    headers = []
 else:
     ext_modules = [
         Extension(

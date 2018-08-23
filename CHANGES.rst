@@ -4,7 +4,8 @@
 4.4.1 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Fix installation of source packages on PyPy. See `issue 88
+  <https://github.com/zopefoundation/persistent/issues/88>`_.
 
 
 4.4.0 (2018-08-22)
