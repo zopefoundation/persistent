@@ -33,12 +33,15 @@ import manuel.doctest
 import manuel.ignore
 import manuel.testing
 
-def test_suite():
-    here = os.path.dirname(__file__)
-    while not os.path.exists(os.path.join(here, 'setup.py')):
-        here = os.path.join(here, '..')
 
-    here = os.path.abspath(here)
+def test_suite():
+    here = os.path.dirname(os.path.abspath(__file__))
+    while not os.path.exists(os.path.join(here, 'setup.py')):
+        prev, here = here, os.path.dirname(here)
+        if here == prev:
+            # Let's avoid infinite loops at root
+            raise AssertionError('could not find my setup.py')
+
     docs = os.path.join(here, 'docs', 'api')
 
     files_to_test = (
