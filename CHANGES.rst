@@ -1,7 +1,7 @@
 ``persistent`` Changelog
 ========================
 
-4.4.2 (unreleased)
+4.4.2 (2018-08-28)
 ------------------
 
 - Explicitly use unsigned constants for packing and unpacking C
