@@ -35,7 +35,7 @@ static char TimeStampModule_doc[] =
    To get (close to) the original seconds back, use
    `TS_UNPACK_UINT32_FROM_BYTES` and *multiply* by this number.
  */
-#define TS_SECOND_BYTES_BIAS ((double)60) / ((double)(0x10000)) / ((double)(0x10000))
+#define TS_SECOND_BYTES_BIAS ((double)((double)60) / ((double)(0x10000)) / ((double)(0x10000)))
 #define TS_BASE_YEAR 1900
 #define TS_MINUTES_PER_DAY 1440
 /* We pretend there are always 31 days in a month; this has us using
@@ -44,6 +44,15 @@ static char TimeStampModule_doc[] =
 #define TS_MONTHS_PER_YEAR 12
 #define TS_MINUTES_PER_MONTH (TS_DAYS_PER_MONTH * TS_MINUTES_PER_DAY)
 #define TS_MINUTES_PER_YEAR (TS_MINUTES_PER_MONTH * TS_MONTHS_PER_YEAR)
+
+/* The U suffixes matter on these constants to be sure
+   the compiler generates the appropriate instructions when
+   optimizations are enabled. On x86_64 GCC, if -fno-wrapv is given
+   and -O is used, the compiler might choose to treat these as 32 bit
+   signed quantities otherwise, producing incorrect results on
+   some corner cases. See
+   https://github.com/zopefoundation/persistent/issues/86
+*/
 
 /**
  * Given an unsigned int *v*, pack it into the four
@@ -56,10 +65,10 @@ static char TimeStampModule_doc[] =
  *
  */
 #define TS_PACK_UINT32_INTO_BYTES(v, bytes) do { \
-    *(bytes) = v / 0x1000000;                      \
-    *(bytes + 1) = (v % 0x1000000) / 0x10000;      \
-    *(bytes + 2) = (v % 0x10000) / 0x100;          \
-    *(bytes + 3) = v % 0x100;                      \
+    *(bytes) = v / 0x1000000U;                   \
+    *(bytes + 1) = (v % 0x1000000U) / 0x10000U;  \
+    *(bytes + 2) = (v % 0x10000U) / 0x100U;      \
+    *(bytes + 3) = v % 0x100U;                   \
 } while (0)
 
 /**
@@ -71,7 +80,7 @@ static char TimeStampModule_doc[] =
  * may not exactly match the original value. If the original value
  * was greater than 2^31 it will definitely not match.
  */
-#define TS_UNPACK_UINT32_FROM_BYTES(bytes) (*(bytes) * 0x1000000 + *(bytes + 1) * 0x10000 + *(bytes + 2) * 0x100 + *(bytes + 3))
+#define TS_UNPACK_UINT32_FROM_BYTES(bytes) (*(bytes) * 0x1000000U + *(bytes + 1) * 0x10000U + *(bytes + 2) * 0x100U + *(bytes + 3))
 
 typedef struct
 {

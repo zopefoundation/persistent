@@ -4,7 +4,10 @@
 4.4.2 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Explicitly use unsigned constants for packing and unpacking C
+  timestamps, fixing an arithmetic issue for GCC when optimizations
+  are enabled and ``-fwrapv`` is *not* enabled. See `issue 86
+  <https://github.com/zopefoundation/persistent/issues/86>`_.
 
 
 4.4.1 (2018-08-23)
