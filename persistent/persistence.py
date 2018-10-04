@@ -574,7 +574,16 @@ class Persistent(object):
 
         if oid is not None:
             try:
-                oid_str = ' oid %r' % (oid,)
+                if isinstance(oid, bytes):
+                    # Python < 3.2
+                    if hasattr(oid, 'encode'):
+                        oid = ''.join(('0x', oid.encode('hex'), ))
+                    # Python >= 3.2
+                    else:
+                        oid = hex(int.from_bytes(oid, byteorder='big'))
+                    oid_str = ' oid %s' % (oid, )
+                else:
+                    oid_str = ' oid %r' % (oid, )
             except Exception as e:
                 oid_str = ' oid %r' % (e,)
 

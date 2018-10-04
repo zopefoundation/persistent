@@ -1423,6 +1423,8 @@ Per_repr(cPersistentObject *self)
     PyObject *prepr = NULL;
     PyObject *prepr_exc_str = NULL;
 
+    PyObject *bytes_hex(PyObject *bytes);
+
     PyObject *oid_str = NULL;
     PyObject *jar_str = NULL;
     PyObject *result = NULL;
@@ -1446,7 +1448,7 @@ Per_repr(cPersistentObject *self)
         prepr_exc_str = PyUnicode_FromString("");
     }
 
-    oid_str = repr_helper(self->oid, " oid %R");
+    oid_str = repr_helper(bytes_hex(self->oid), " oid 0x%s");
     if (!oid_str)
         goto cleanup;
 

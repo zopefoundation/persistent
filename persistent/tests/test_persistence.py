@@ -1702,11 +1702,11 @@ class _Persistent_Base(object):
         r = r.replace('persistent.persistence.Persistent', 'persistent.Persistent')
         r = r.replace("persistent.tests.test_persistence.", '')
         # addresses
-        r = re.sub(r'0x[0-9a-fA-F]*', '0xdeadbeef', r)
+        r = re.sub(r'at 0x[0-9a-fA-F]*', 'at 0xdeadbeef', r)
         # Python 3.7 removed the trailing , in exception reprs
         r = r.replace("',)", "')")
         # Python 2 doesn't have a leading b prefix for byte literals
-        r = r.replace("oid '", "oid b'")
+        # r = r.replace("oid '", "oid b'")
         return r
 
     def _normalized_repr(self, o):
@@ -1738,7 +1738,7 @@ class _Persistent_Base(object):
         result = self._normalized_repr(p)
         self.assertEqual(
             result,
-            "<persistent.Persistent object at 0xdeadbeef oid b'12345678'>")
+            "<persistent.Persistent object at 0xdeadbeef oid 0x3132333435363738>")
 
     def test_repr_no_oid_repr_jar_raises_exception(self):
         p = self._makeOne()
@@ -1758,7 +1758,7 @@ class _Persistent_Base(object):
     def test_repr_oid_raises_exception_no_jar(self):
         p = self._makeOne()
 
-        class BadOID(bytes):
+        class BadOID(int):
             def __repr__(self):
                 raise Exception("oid repr failed")
         p._p_oid = BadOID(b'12345678')
@@ -1772,7 +1772,7 @@ class _Persistent_Base(object):
     def test_repr_oid_and_jar_raise_exception(self):
         p = self._makeOne()
 
-        class BadOID(bytes):
+        class BadOID(int):
             def __repr__(self):
                 raise Exception("oid repr failed")
         p._p_oid = BadOID(b'12345678')
@@ -1804,7 +1804,7 @@ class _Persistent_Base(object):
     def test_repr_oid_raises_baseexception_no_jar(self):
         p = self._makeOne()
 
-        class BadOID(bytes):
+        class BadOID(int):
             def __repr__(self):
                 raise BaseException("oid repr failed")
         p._p_oid = BadOID(b'12345678')
@@ -1825,7 +1825,22 @@ class _Persistent_Base(object):
         result = self._normalized_repr(p)
         self.assertEqual(
             result,
-            "<persistent.Persistent object at 0xdeadbeef oid b'12345678' in <SomeJar>>")
+            "<persistent.Persistent object at 0xdeadbeef oid 0x3132333435363738 in <SomeJar>>")
+
+    def test_repr_oid_and_jar_with_nonbytes_oid(self):
+        p = self._makeOne()
+        p._p_oid = 12345678
+
+        class Jar(object):
+            def __repr__(self):
+                return '<SomeJar>'
+
+        p._p_jar = Jar()
+
+        result = self._normalized_repr(p)
+        self.assertEqual(
+            result,
+            "<persistent.Persistent object at 0xdeadbeef oid 12345678 in <SomeJar>>")
 
     def test__p_repr(self):
         class P(self._getTargetClass()):
@@ -1849,7 +1864,7 @@ class _Persistent_Base(object):
         result = self._normalized_repr(p)
         self.assertEqual(
             result,
-            "<P object at 0xdeadbeef oid b'12345678'"
+            "<P object at 0xdeadbeef oid 0x3132333435363738"
             " _p_repr Exception('_p_repr failed')>")
 
         class Jar(object):
@@ -1860,7 +1875,7 @@ class _Persistent_Base(object):
         result = self._normalized_repr(p)
         self.assertEqual(
             result,
-            "<P object at 0xdeadbeef oid b'12345678'"
+            "<P object at 0xdeadbeef oid 0x3132333435363738"
             " in <SomeJar> _p_repr Exception('_p_repr failed')>")
 
     def test__p_repr_in_instance_ignored(self):
