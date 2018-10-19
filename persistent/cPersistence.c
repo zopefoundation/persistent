@@ -1423,6 +1423,8 @@ Per_repr(cPersistentObject *self)
     PyObject *prepr = NULL;
     PyObject *prepr_exc_str = NULL;
 
+    PyObject *module = NULL;
+    PyObject *name = NULL;
     PyObject *oid_str = NULL;
     PyObject *jar_str = NULL;
     PyObject *result = NULL;
@@ -1454,15 +1456,27 @@ Per_repr(cPersistentObject *self)
     if (!jar_str)
         goto cleanup;
 
-    result = PyUnicode_FromFormat("<%s object at %p%S%S%S>",
-                                  Py_TYPE(self)->tp_name, self,
-                                  oid_str, jar_str, prepr_exc_str);
+    module = PyObject_GetAttrString((PyObject*)Py_TYPE(self), "__module__");
+    name = PyObject_GetAttrString((PyObject*)Py_TYPE(self), "__name__");
+
+    if (!module || !name) {
+        result = PyUnicode_FromFormat("<%s object at %p%S%S%S>",
+                                      Py_TYPE(self)->tp_name, self,
+                                      oid_str, jar_str, prepr_exc_str);
+    }
+    else {
+        result = PyUnicode_FromFormat("<%S.%S object at %p%S%S%S>",
+                                      module, name, self,
+                                      oid_str, jar_str, prepr_exc_str);
+    }
 
 cleanup:
     Py_XDECREF(prepr);
     Py_XDECREF(prepr_exc_str);
     Py_XDECREF(oid_str);
     Py_XDECREF(jar_str);
+    Py_XDECREF(name);
+    Py_XDECREF(module);
 
     return result;
 }

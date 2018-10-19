@@ -585,7 +585,9 @@ class Persistent(object):
                 jar_str = ' in %r' % (e,)
 
         return '<%s.%s object at 0x%x%s%s%s>' % (
-            type(self).__module__, type(self).__name__, id(self),
+            # Match the C name for this exact class
+            type(self).__module__ if type(self) is not Persistent else 'persistent',
+            type(self).__name__, id(self),
             oid_str, jar_str, p_repr_str
         )
 

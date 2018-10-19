@@ -1698,9 +1698,6 @@ class _Persistent_Base(object):
         self.assertEqual(candidate.set_by_new, 1)
 
     def _normalize_repr(self, r):
-        # Pure-python vs C
-        r = r.replace('persistent.persistence.Persistent', 'persistent.Persistent')
-        r = r.replace("persistent.tests.test_persistence.", '')
         # addresses
         r = re.sub(r'0x[0-9a-fA-F]*', '0xdeadbeef', r)
         # Python 3.7 removed the trailing , in exception reprs
@@ -1842,14 +1839,14 @@ class _Persistent_Base(object):
         result = self._normalized_repr(p)
         self.assertEqual(
             result,
-            "<P object at 0xdeadbeef"
+            "<persistent.tests.test_persistence.P object at 0xdeadbeef"
             " _p_repr Exception('_p_repr failed')>")
 
         p._p_oid = b'12345678'
         result = self._normalized_repr(p)
         self.assertEqual(
             result,
-            "<P object at 0xdeadbeef oid b'12345678'"
+            "<persistent.tests.test_persistence.P object at 0xdeadbeef oid b'12345678'"
             " _p_repr Exception('_p_repr failed')>")
 
         class Jar(object):
@@ -1860,7 +1857,7 @@ class _Persistent_Base(object):
         result = self._normalized_repr(p)
         self.assertEqual(
             result,
-            "<P object at 0xdeadbeef oid b'12345678'"
+            "<persistent.tests.test_persistence.P object at 0xdeadbeef oid b'12345678'"
             " in <SomeJar> _p_repr Exception('_p_repr failed')>")
 
     def test__p_repr_in_instance_ignored(self):
@@ -1869,7 +1866,8 @@ class _Persistent_Base(object):
         p = P()
         p._p_repr = lambda: "Instance"
         result = self._normalized_repr(p)
-        self.assertEqual(result, '<P object at 0xdeadbeef>')
+        self.assertEqual(result,
+                         '<persistent.tests.test_persistence.P object at 0xdeadbeef>')
 
     def test__p_repr_baseexception(self):
         class P(self._getTargetClass()):

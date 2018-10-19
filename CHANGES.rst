@@ -4,7 +4,10 @@
 4.4.3 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Fix the repr of the persistent objects to include the module name
+  when using the C extension. This matches the pure-Python behaviour
+  and the behaviour prior to 4.4.0. See `issue 92
+  <https://github.com/zopefoundation/persistent/issues/92>`_.
 
 
 4.4.2 (2018-08-28)
