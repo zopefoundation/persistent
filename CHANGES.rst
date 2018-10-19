@@ -9,6 +9,10 @@
   and the behaviour prior to 4.4.0. See `issue 92
   <https://github.com/zopefoundation/persistent/issues/92>`_.
 
+- Change the repr of persistent objects to format the OID as in
+  integer in hexadecimal notation if it is an 8-byte byte string, as
+  ZODB does. This eliminates some issues in doctests. See `issue 95
+  <https://github.com/zopefoundation/persistent/pull/95>`_.
 
 4.4.2 (2018-08-28)
 ------------------

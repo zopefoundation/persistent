@@ -1429,6 +1429,9 @@ Per_repr(cPersistentObject *self)
     PyObject *jar_str = NULL;
     PyObject *result = NULL;
 
+    unsigned char* oid_bytes;
+    unsigned long long oid_value;
+
     prepr = PyObject_GetAttrString((PyObject*)Py_TYPE(self), "_p_repr");
     if (prepr)
     {
@@ -1448,9 +1451,24 @@ Per_repr(cPersistentObject *self)
         prepr_exc_str = PyUnicode_FromString("");
     }
 
-    oid_str = repr_helper(self->oid, " oid %R");
-    if (!oid_str)
-        goto cleanup;
+    if (self->oid && PyBytes_Check(self->oid) && PyBytes_GET_SIZE(self->oid) == 8) {
+        oid_bytes = (unsigned char*)PyBytes_AS_STRING(self->oid);
+        oid_value = ((unsigned long long)oid_bytes[0] << 56)
+            | ((unsigned long long)oid_bytes[1] << 48)
+            | ((unsigned long long)oid_bytes[2] << 40)
+            | ((unsigned long long)oid_bytes[3] << 32)
+            | ((unsigned long long)oid_bytes[4] << 24)
+            | ((unsigned long long)oid_bytes[5] << 16)
+            | ((unsigned long long)oid_bytes[6] << 8)
+            | ((unsigned long long)oid_bytes[7]);
+        oid_str = PyUnicode_FromFormat(" oid 0x%x", oid_value);
+    }
+
+    if (!oid_str) {
+        oid_str = repr_helper(self->oid, " oid %R");
+        if (!oid_str)
+            goto cleanup;
+    }
 
     jar_str = repr_helper(self->jar, " in %R");
     if (!jar_str)
