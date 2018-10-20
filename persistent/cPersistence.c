@@ -16,7 +16,6 @@ static char cPersistence_doc_string[] =
   "\n"
   "$Id$\n";
 
-#include <stdint.h>
 #include "cPersistence.h"
 #include "structmember.h"
 
@@ -24,6 +23,16 @@ struct ccobject_head_struct
 {
     CACHE_HEAD
 };
+
+/*
+  The compiler on Windows used for Python 2.7 doesn't include
+  stdint.h.
+*/
+#if !defined(PY3K) && defined(_WIN32)
+typedef unsigned long long uint64_t;
+#else
+#include <stdint.h>
+#endif
 
 /* These two objects are initialized when the module is loaded */
 static PyObject *TimeStamp, *py_simple_new;
