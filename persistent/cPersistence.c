@@ -1460,6 +1460,11 @@ Per_repr(cPersistentObject *self)
     name = PyObject_GetAttrString((PyObject*)Py_TYPE(self), "__name__");
 
     if (!module || !name) {
+        /*
+          Some error retrieving __module__ or __name__. Ignore it, use the
+          C data.
+        */
+        PyErr_Clear();
         result = PyUnicode_FromFormat("<%s object at %p%S%S%S>",
                                       Py_TYPE(self)->tp_name, self,
                                       oid_str, jar_str, prepr_exc_str);
