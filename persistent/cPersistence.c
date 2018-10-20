@@ -16,6 +16,7 @@ static char cPersistence_doc_string[] =
   "\n"
   "$Id$\n";
 
+#include <stdint.h>
 #include "cPersistence.h"
 #include "structmember.h"
 
@@ -1430,7 +1431,8 @@ Per_repr(cPersistentObject *self)
     PyObject *result = NULL;
 
     unsigned char* oid_bytes;
-    unsigned long long oid_value;
+    char buf[20];
+    uint64_t oid_value;
 
     prepr = PyObject_GetAttrString((PyObject*)Py_TYPE(self), "_p_repr");
     if (prepr)
@@ -1453,15 +1455,21 @@ Per_repr(cPersistentObject *self)
 
     if (self->oid && PyBytes_Check(self->oid) && PyBytes_GET_SIZE(self->oid) == 8) {
         oid_bytes = (unsigned char*)PyBytes_AS_STRING(self->oid);
-        oid_value = ((unsigned long long)oid_bytes[0] << 56)
-            | ((unsigned long long)oid_bytes[1] << 48)
-            | ((unsigned long long)oid_bytes[2] << 40)
-            | ((unsigned long long)oid_bytes[3] << 32)
-            | ((unsigned long long)oid_bytes[4] << 24)
-            | ((unsigned long long)oid_bytes[5] << 16)
-            | ((unsigned long long)oid_bytes[6] << 8)
-            | ((unsigned long long)oid_bytes[7]);
-        oid_str = PyUnicode_FromFormat(" oid 0x%x", oid_value);
+        oid_value = ((uint64_t)oid_bytes[0] << 56)
+            | ((uint64_t)oid_bytes[1] << 48)
+            | ((uint64_t)oid_bytes[2] << 40)
+            | ((uint64_t)oid_bytes[3] << 32)
+            | ((uint64_t)oid_bytes[4] << 24)
+            | ((uint64_t)oid_bytes[5] << 16)
+            | ((uint64_t)oid_bytes[6] << 8)
+            | ((uint64_t)oid_bytes[7]);
+        /*
+          Python's PyUnicode_FromFormat doesn't understand the ll
+          length modifier for %x, so to format a 64-bit value we need to
+          use stdio.
+        */
+        snprintf(buf, sizeof(buf) - 1, "%llx", oid_value);
+        oid_str = PyUnicode_FromFormat(" oid 0x%s", buf);
     }
 
     if (!oid_str) {

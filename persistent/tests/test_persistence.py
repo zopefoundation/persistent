@@ -1740,6 +1740,21 @@ class _Persistent_Base(object):
             result,
             "<persistent.Persistent object at 0xdeadbeef oid " + self._HEX_OID + ">")
 
+    def test_64bit_oid(self):
+        import struct
+        p = self._makeOne()
+        oid_value = 2 << 62
+        self.assertEqual(oid_value.bit_length(), 64)
+        oid = struct.pack(">Q", oid_value)
+        self.assertEqual(oid, b'\x80\x00\x00\x00\x00\x00\x00\x00')
+
+        p._p_oid = oid
+        result = self._normalized_repr(p)
+        self.assertEqual(
+            result,
+            '<persistent.Persistent object at 0xdeadbeef oid 0x8000000000000000>'
+        )
+
     def test_repr_no_oid_repr_jar_raises_exception(self):
         p = self._makeOne()
 
