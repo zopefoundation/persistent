@@ -1,3 +1,5 @@
+prune terryfy
+
 include *.txt
 include *.rst
 include *.sh
@@ -14,6 +16,7 @@ global-exclude coverage.xml
 
 prune docs/_build
 prune persistent/__pycache__
+
 
 include .coveragerc
 include .travis.yml

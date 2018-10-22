@@ -109,7 +109,9 @@ setup(name='persistent',
       url="https://github.com/zopefoundation/persistent/",
       license="ZPL 2.1",
       platforms=["any"],
-      packages=find_packages(),
+      # Make sure we don't get 'terryfy' included in wheels
+      # created on macOS CI
+      packages=find_packages(include=("persistent",)),
       include_package_data=True,
       zip_safe=False,
       ext_modules=ext_modules,
