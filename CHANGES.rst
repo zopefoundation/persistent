@@ -1,7 +1,7 @@
 ``persistent`` Changelog
 ========================
 
-4.4.3 (unreleased)
+4.4.3 (2018-10-22)
 ------------------
 
 - Fix the repr of the persistent objects to include the module name
