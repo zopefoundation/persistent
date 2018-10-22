@@ -24,6 +24,16 @@ struct ccobject_head_struct
     CACHE_HEAD
 };
 
+/*
+  The compiler on Windows used for Python 2.7 doesn't include
+  stdint.h.
+*/
+#if !defined(PY3K) && defined(_WIN32)
+typedef unsigned long long uint64_t;
+#else
+#include <stdint.h>
+#endif
+
 /* These two objects are initialized when the module is loaded */
 static PyObject *TimeStamp, *py_simple_new;
 
@@ -1423,9 +1433,15 @@ Per_repr(cPersistentObject *self)
     PyObject *prepr = NULL;
     PyObject *prepr_exc_str = NULL;
 
+    PyObject *module = NULL;
+    PyObject *name = NULL;
     PyObject *oid_str = NULL;
     PyObject *jar_str = NULL;
     PyObject *result = NULL;
+
+    unsigned char* oid_bytes;
+    char buf[20];
+    uint64_t oid_value;
 
     prepr = PyObject_GetAttrString((PyObject*)Py_TYPE(self), "_p_repr");
     if (prepr)
@@ -1446,23 +1462,61 @@ Per_repr(cPersistentObject *self)
         prepr_exc_str = PyUnicode_FromString("");
     }
 
-    oid_str = repr_helper(self->oid, " oid %R");
-    if (!oid_str)
-        goto cleanup;
+    if (self->oid && PyBytes_Check(self->oid) && PyBytes_GET_SIZE(self->oid) == 8) {
+        oid_bytes = (unsigned char*)PyBytes_AS_STRING(self->oid);
+        oid_value = ((uint64_t)oid_bytes[0] << 56)
+            | ((uint64_t)oid_bytes[1] << 48)
+            | ((uint64_t)oid_bytes[2] << 40)
+            | ((uint64_t)oid_bytes[3] << 32)
+            | ((uint64_t)oid_bytes[4] << 24)
+            | ((uint64_t)oid_bytes[5] << 16)
+            | ((uint64_t)oid_bytes[6] << 8)
+            | ((uint64_t)oid_bytes[7]);
+        /*
+          Python's PyUnicode_FromFormat doesn't understand the ll
+          length modifier for %x, so to format a 64-bit value we need to
+          use stdio.
+        */
+        snprintf(buf, sizeof(buf) - 1, "%llx", oid_value);
+        oid_str = PyUnicode_FromFormat(" oid 0x%s", buf);
+    }
+
+    if (!oid_str) {
+        oid_str = repr_helper(self->oid, " oid %R");
+        if (!oid_str)
+            goto cleanup;
+    }
 
     jar_str = repr_helper(self->jar, " in %R");
     if (!jar_str)
         goto cleanup;
 
-    result = PyUnicode_FromFormat("<%s object at %p%S%S%S>",
-                                  Py_TYPE(self)->tp_name, self,
-                                  oid_str, jar_str, prepr_exc_str);
+    module = PyObject_GetAttrString((PyObject*)Py_TYPE(self), "__module__");
+    name = PyObject_GetAttrString((PyObject*)Py_TYPE(self), "__name__");
+
+    if (!module || !name) {
+        /*
+          Some error retrieving __module__ or __name__. Ignore it, use the
+          C data.
+        */
+        PyErr_Clear();
+        result = PyUnicode_FromFormat("<%s object at %p%S%S%S>",
+                                      Py_TYPE(self)->tp_name, self,
+                                      oid_str, jar_str, prepr_exc_str);
+    }
+    else {
+        result = PyUnicode_FromFormat("<%S.%S object at %p%S%S%S>",
+                                      module, name, self,
+                                      oid_str, jar_str, prepr_exc_str);
+    }
 
 cleanup:
     Py_XDECREF(prepr);
     Py_XDECREF(prepr_exc_str);
     Py_XDECREF(oid_str);
     Py_XDECREF(jar_str);
+    Py_XDECREF(name);
+    Py_XDECREF(module);
 
     return result;
 }

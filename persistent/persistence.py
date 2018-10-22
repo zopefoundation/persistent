@@ -11,7 +11,7 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
-
+import struct
 
 from zope.interface import implementer
 
@@ -51,6 +51,11 @@ SPECIAL_NAMES = ('__class__',
 # the standard names plus the slot names, allowing for just one
 # check in __getattribute__
 _SPECIAL_NAMES = set(SPECIAL_NAMES)
+
+# Represent 8-byte OIDs as hex integer, just like
+# ZODB does.
+_OID_STRUCT = struct.Struct('>Q')
+_OID_UNPACK = _OID_STRUCT.unpack
 
 @implementer(IPersistent)
 class Persistent(object):
@@ -574,7 +579,10 @@ class Persistent(object):
 
         if oid is not None:
             try:
-                oid_str = ' oid %r' % (oid,)
+                if isinstance(oid, bytes) and len(oid) == 8:
+                    oid_str = ' oid 0x%x' % (_OID_UNPACK(oid)[0],)
+                else:
+                    oid_str = ' oid %r' % (oid,)
             except Exception as e:
                 oid_str = ' oid %r' % (e,)
 
@@ -585,7 +593,9 @@ class Persistent(object):
                 jar_str = ' in %r' % (e,)
 
         return '<%s.%s object at 0x%x%s%s%s>' % (
-            type(self).__module__, type(self).__name__, id(self),
+            # Match the C name for this exact class
+            type(self).__module__ if type(self) is not Persistent else 'persistent',
+            type(self).__name__, id(self),
             oid_str, jar_str, p_repr_str
         )
 
