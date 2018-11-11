@@ -193,9 +193,23 @@ scan_gc_items(ccobject *self, int target, Py_ssize_t target_bytes)
     */
     insert_after(&before_original_home, self->ring_home.r_prev);
     here = self->ring_home.r_next;   /* least recently used object */
+	/* All objects should be deactivated when the objects count parameter
+	 * (target) is zero and the size limit parameter in bytes(target_bytes)
+	 * is also zero.
+	 *
+	 * Otherwise the objects should be collect while one of the following
+	 * conditions are True:
+	 *  - the ghost count is bigger than the number of objects limit(target).
+	 *  - the estimated size in bytes is bigger than the size limit in
+	 *    bytes(target_bytes).
+	 */
     while (here != &before_original_home &&
-            (self->non_ghost_count > target
-            || (target_bytes && self->total_estimated_size > target_bytes)
+            (
+             (!target && !target_bytes) ||
+             (
+              (target && self->non_ghost_count > target) ||
+              (target_bytes && self->total_estimated_size > target_bytes)
+             )
             )
           )
     {

@@ -940,6 +940,94 @@ class PickleCacheTests(unittest.TestCase):
             gc.collect()
         self.assertEqual(len(cache), 1)
 
+    @with_deterministic_gc
+    def test_cache_garbage_collection_bytes_also_deactivates_object_with_cache_size_0(self,
+                                                                    force_collect=_is_pypy or _is_jython):
+
+        from persistent import PickleCache, Persistent
+
+        def makePersistent(oid):
+           persist = Persistent()
+           persist._p_oid = oid
+           persist._p_jar = dummy_connection
+           return persist
+
+        class DummyConnection(object):
+          def register(self, obj):
+            pass
+
+        dummy_connection = DummyConnection()
+
+        cache = PickleCache(dummy_connection, 1000)
+        dummy_connection._cache = cache
+        oids = []
+        for i in range(100):
+            oid = self._numbered_oid(i)
+            oids.append(oid)
+            o = cache[oid] = makePersistent(oid=oid)
+            cache.update_object_size_estimation(oid, 64)
+            o._p_estimated_size = 64
+        self.assertEqual(cache.cache_non_ghost_count, 100)
+
+        # A GC at this point does nothing
+        cache.incrgc()
+        self.assertEqual(cache.cache_non_ghost_count, 100)
+        self.assertEqual(len(cache), 100)
+
+        # Now if we set a byte target:
+
+        cache.cache_size_bytes = 400
+        cache.cache_size = 0
+
+        # verify the change worked as expected
+        self.assertEqual(cache.cache_size_bytes, 400)
+        # verify our entrance assumption is fulfilled
+        #self.assertEqual(cache.cache_size, 0)
+        self.assertTrue(cache.total_estimated_size > 1)
+        # A gc shrinks the bytes
+        cache.incrgc()
+
+        self.assertTrue(cache.total_estimated_size < 400)
+        self.assertTrue(cache.total_estimated_size > 300)
+
+    @with_deterministic_gc
+    def test_cache_garbage_collection_should_deactivates_all_objects(self,
+                                        force_collect=_is_pypy or _is_jython):
+
+        from persistent import PickleCache, Persistent
+
+        def makePersistent(oid):
+           persist = Persistent()
+           persist._p_oid = oid
+           persist._p_jar = dummy_connection
+           return persist
+
+        class DummyConnection(object):
+          def register(self, obj):
+            pass
+
+        dummy_connection = DummyConnection()
+
+        cache = PickleCache(dummy_connection, 1000)
+        dummy_connection._cache = cache
+        oids = []
+        for i in range(100):
+            oid = self._numbered_oid(i)
+            oids.append(oid)
+            o = cache[oid] = makePersistent(oid=oid)
+            cache.update_object_size_estimation(oid, 64)
+            o._p_estimated_size = 64
+        self.assertEqual(cache.cache_non_ghost_count, 100)
+
+        self.assertEqual(cache.cache_non_ghost_count, 100)
+        self.assertEqual(len(cache), 100)
+
+        cache.cache_size_bytes = 10
+        cache.cache_size = 10
+
+        cache.full_sweep()
+        self.assertEqual(cache.cache_non_ghost_count, 0)
+
     def test_invalidate_persistent_class_calls_p_invalidate(self):
         KEY = b'pclass'
         class pclass(object):

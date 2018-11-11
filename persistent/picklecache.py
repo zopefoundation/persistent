@@ -332,7 +332,10 @@ class PickleCache(object):
         i = -1
         to_eject = []
         for value in self.ring:
-            if self.non_ghost_count <= target and (self.total_estimated_size <= target_size_bytes or not target_size_bytes):
+            if ((target or target_size_bytes) and
+               (not target or self.non_ghost_count <= target) and
+               (self.total_estimated_size <= target_size_bytes or
+                not target_size_bytes)):
                 break
             i += 1
             if value._p_state == UPTODATE:
