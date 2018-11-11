@@ -23,7 +23,7 @@ Glossary
      that data to be loaded, which is referred to as :term:`activation`.
 
    volatile attribute
-     Attributes of a persistent object which are *not* caputured as part
+     Attributes of a persistent object which are *not* captured as part
      of its :term:`pickled data`.  These attributes thus disappear during
      :term:`deactivation` or :term:`invalidation`.
 

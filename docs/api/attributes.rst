@@ -109,7 +109,7 @@ which activates the object:
    >>> o._p_changed
    False
 
-It works for missing attribes too:
+It works for missing attributes too:
 
 .. doctest::
 
@@ -182,7 +182,7 @@ We'll modify an attribute
    >>> o.y
    2
 
-which reactivates it, and markes it as modified, because our
+which reactivates it, and marks it as modified, because our
 implementation marked it as modified:
 
 .. doctest::
