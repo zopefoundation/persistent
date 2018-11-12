@@ -439,12 +439,6 @@ class IPickleCache(Interface):
         o Return 'default' if not found.
         """
 
-    def mru(oid):
-        """ Move the element corresonding to 'oid' to the head.
-
-        o Raise KeyError if no element is found.
-        """
-
     def __len__():
         """ -> the number of OIDs in the cache.
         """
@@ -516,23 +510,6 @@ class IPickleCache(Interface):
         If 'oid' is already in the cache, raise.
         """
 
-    def reify(to_reify):
-        """ Reify the indicated objects.
-
-        o If 'to_reify' is a string, treat it as an OID.
-
-        o Otherwise, iterate over it as a sequence of OIDs.
-
-        o For each OID, if present in 'data' and in GHOST state:
-
-            o Call '_p_activate' on the object.
-
-            o Add it to the ring.
-
-        o If any OID is present but not in GHOST state, skip it.
-
-        o Raise KeyErrory if any OID is not present.
-        """
 
     def invalidate(to_invalidate):
         """ Invalidate the indicated objects.
@@ -566,3 +543,33 @@ class IPickleCache(Interface):
                                         'ringlen?')
     cache_data = Attribute("Property:  copy of our 'data' dict")
     cache_klass_count = Attribute("Property: len of 'persistent_classes'")
+
+
+class IExtendedPickleCache(IPickleCache):
+    """
+    Extra operations for a pickle cache.
+    """
+
+    def reify(to_reify):
+        """ Reify the indicated objects.
+
+        o If 'to_reify' is a string, treat it as an OID.
+
+        o Otherwise, iterate over it as a sequence of OIDs.
+
+        o For each OID, if present in 'data' and in GHOST state:
+
+            o Call '_p_activate' on the object.
+
+            o Add it to the ring.
+
+        o If any OID is present but not in GHOST state, skip it.
+
+        o Raise KeyErrory if any OID is not present.
+        """
+
+    def mru(oid):
+        """ Move the element corresonding to 'oid' to the head.
+
+        o Raise KeyError if no element is found.
+        """
