@@ -18,7 +18,7 @@ import weakref
 from zope.interface import implementer
 
 from persistent.interfaces import GHOST
-from persistent.interfaces import IPickleCache
+from persistent.interfaces import IExtendedPickleCache
 from persistent.interfaces import OID_TYPE
 from persistent.interfaces import UPTODATE
 from persistent.persistence import Persistent
@@ -53,7 +53,7 @@ def _sweeping_ring(f):
 
 from .ring import Ring
 
-@implementer(IPickleCache)
+@implementer(IExtendedPickleCache)
 class PickleCache(object):
 
     total_estimated_size = 0
@@ -126,16 +126,17 @@ class PickleCache(object):
                 # Raise the same type of exception as the C impl with the same
                 # message.
                 raise ValueError('A different object already has the same oid')
-        # Match the C impl: it requires a jar
-        jar = getattr(value, '_p_jar', None)
-        if jar is None and not isinstance(value, type):
+        # Match the C impl: it requires a jar. Let this raise AttributeError
+        # if no jar is found.
+        jar = getattr(value, '_p_jar')
+        if jar is None:
             raise ValueError("Cached object jar missing")
         # It also requires that it cannot be cached more than one place
         existing_cache = getattr(jar, '_cache', None)
         if (existing_cache is not None
             and existing_cache is not self
             and existing_cache.data.get(oid) is not None):
-            raise ValueError("Object already in another cache")
+            raise ValueError("Cache values may only be in one cache.")
 
         if isinstance(value, type): # ZODB.persistentclass.PersistentMetaClass
             self.persistent_classes[oid] = value
@@ -301,7 +302,10 @@ class PickleCache(object):
 
             self.total_estimated_size += new_est_size_in_bytes
 
-    cache_drain_resistance = property(lambda self: self.drain_resistance)
+    cache_drain_resistance = property(
+        lambda self: self.drain_resistance,
+        lambda self, nv: setattr(self, 'drain_resistance', nv)
+    )
     cache_non_ghost_count = property(lambda self: self.non_ghost_count)
     cache_data = property(lambda self: dict(self.data.items()))
     cache_klass_count = property(lambda self: len(self.persistent_classes))

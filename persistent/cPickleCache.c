@@ -727,7 +727,7 @@ cc_new_ghost(ccobject *self, PyObject *args)
     Py_DECREF(tmp);
     if (tmp != Py_None)
     {
-        PyErr_SetString(PyExc_AssertionError,
+        PyErr_SetString(PyExc_ValueError,
                         "New ghost object must not have an oid");
         return NULL;
     }
@@ -739,7 +739,7 @@ cc_new_ghost(ccobject *self, PyObject *args)
     Py_DECREF(tmp);
     if (tmp != Py_None)
     {
-        PyErr_SetString(PyExc_AssertionError,
+        PyErr_SetString(PyExc_ValueError,
                         "New ghost object must not have a jar");
         return NULL;
     }
@@ -748,7 +748,7 @@ cc_new_ghost(ccobject *self, PyObject *args)
     if (tmp)
     {
         Py_DECREF(tmp);
-        PyErr_SetString(PyExc_AssertionError,
+        PyErr_SetString(PyExc_ValueError,
                         "The given oid is already in the cache");
         return NULL;
     }

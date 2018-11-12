@@ -30,6 +30,7 @@ __all__ = [
 ]
 from persistent._compat import PURE_PYTHON
 from persistent.interfaces import IPersistent
+from persistent.interfaces import IPickleCache
 
 import persistent.timestamp as TimeStamp
 
@@ -48,6 +49,7 @@ else:
     # Note that the Python version already does this.
     from zope.interface import classImplements
     classImplements(_cPersistence.Persistent, IPersistent)
+    classImplements(_cPickleCache.PickleCache, IPickleCache)
 
 
 _persistence = pyPersistence if PURE_PYTHON or _cPersistence is None else _cPersistence

@@ -1,10 +1,20 @@
 ``persistent`` Changelog
 ========================
 
-4.4.4 (unreleased)
+4.5.0 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Fully test the C implementation of the PickleCache, and fix
+  discrepancies between it and the Python implementation:
+
+  - The C implementation now raises ``ValueError`` instead of
+    ``AssertionError`` for certain types of bad inputs.
+  - The Python implementation uses the C wording for error messages.
+  - The C implementation properly implements ``IPickleCache``; methods
+    unique to the Python implementation were moved to
+    ``IExtendedPickleCache``.
+  - The Python implementation raises ``AttributeError`` if a
+    persistent class doesn't have a ``p_jar`` attribute.
 
 
 4.4.3 (2018-10-22)
