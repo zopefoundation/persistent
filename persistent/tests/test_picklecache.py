@@ -1103,6 +1103,7 @@ class PythonPickleCacheTests(PickleCacheTests):
         self.assertEqual(cache.total_estimated_size, 64*100)
 
         cache.incrgc()
+        gc.collect() # banish the ghosts who are no longer in the ring
         self.assertEqual(cache.total_estimated_size, 64*6)
         self.assertEqual(cache.cache_non_ghost_count, 6)
         self.assertEqual(len(cache), 6)
