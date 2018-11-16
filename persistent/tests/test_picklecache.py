@@ -1136,7 +1136,7 @@ class CPickleCacheTests(PickleCacheTests):
 
         class DummyConnection(object):
           def register(self, obj):
-            pass
+            return
 
         dummy_connection = DummyConnection()
 
