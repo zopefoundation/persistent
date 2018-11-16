@@ -1139,6 +1139,7 @@ class CPickleCacheTests(PickleCacheTests):
             pass
 
         dummy_connection = DummyConnection()
+        dummy_connection.register(1) # for coveralls
 
         def makePersistent(oid):
            persist = self._getDummyPersistentClass()()
