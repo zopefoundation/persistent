@@ -1100,11 +1100,11 @@ class PythonPickleCacheTests(PickleCacheTests):
             del o # leave it only in the cache
 
         self.assertEqual(cache.cache_non_ghost_count, 100)
-        self.assertEqual(cache.total_estimated_size, 64*100)
+        self.assertEqual(cache.total_estimated_size, 64 * 100)
 
         cache.incrgc()
         gc.collect() # banish the ghosts who are no longer in the ring
-        self.assertEqual(cache.total_estimated_size, 64*6)
+        self.assertEqual(cache.total_estimated_size, 64 * 6)
         self.assertEqual(cache.cache_non_ghost_count, 6)
         self.assertEqual(len(cache), 6)
 
@@ -1163,10 +1163,10 @@ class CPickleCacheTests(PickleCacheTests):
             del o # leave it only in the cache
 
         self.assertEqual(cache.cache_non_ghost_count, 100)
-        self.assertEqual(cache.total_estimated_size, 64*100)
+        self.assertEqual(cache.total_estimated_size, 64 * 100)
 
         cache.incrgc()
-        self.assertEqual(cache.total_estimated_size, 64*6)
+        self.assertEqual(cache.total_estimated_size, 64 * 6)
         self.assertEqual(cache.cache_non_ghost_count, 6)
         self.assertEqual(len(cache), 6)
 
