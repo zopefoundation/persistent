@@ -22,7 +22,6 @@ from persistent._compat import copy_reg
 
 
 _is_pypy3 = platform.python_implementation() == 'PyPy' and sys.version_info[0] > 2
-_is_jython = platform.python_implementation() == 'Jython'
 
 # pylint:disable=R0904,W0212,E1101
 # pylint:disable=attribute-defined-outside-init,too-many-lines
@@ -985,7 +984,7 @@ class _Persistent_Base(object):
         self.assertEqual(inst.baz, 'bam')
         self.assertEqual(inst.qux, 'spam')
 
-    if not _is_pypy3 and not _is_jython:
+    if not _is_pypy3:
         def test___setstate___interns_dict_keys(self):
             class Derived(self._getTargetClass()):
                 pass

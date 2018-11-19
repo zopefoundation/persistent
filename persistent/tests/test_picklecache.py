@@ -12,9 +12,7 @@
 #
 ##############################################################################
 import gc
-import os
 import platform
-import sys
 import unittest
 
 from persistent.interfaces import UPTODATE
@@ -22,7 +20,6 @@ from persistent.interfaces import UPTODATE
 # pylint:disable=protected-access,too-many-lines,too-many-public-methods
 
 _is_pypy = platform.python_implementation() == 'PyPy'
-_is_jython = 'java' in sys.platform
 
 _marker = object()
 
@@ -32,22 +29,12 @@ def skipIfNoCExtension(o):
         persistent._cPickleCache is None,
         "The C extension is not available")(o)
 
-
-if _is_jython: # pragma: no cover
-    def with_deterministic_gc(f):
-        def test(self):
-            # pylint:disable=no-member
-            old_flags = gc.getMonitorGlobal()
-            gc.setMonitorGlobal(True)
-            try:
-                f(self, force_collect=True)
-            finally:
-                gc.setMonitorGlobal(old_flags)
-        return test
-else:
-    def with_deterministic_gc(f):
-        return f
-
+def skipIfPurePython(o):
+    import persistent._compat
+    return unittest.skipIf(
+        persistent._compat.PURE_PYTHON,
+        "Cannot mix and match implementations"
+    )(o)
 
 class PickleCacheTests(unittest.TestCase):
 
@@ -657,14 +644,6 @@ class PickleCacheTests(unittest.TestCase):
 
         self.assertTrue(pclass.invalidated)
 
-    def test_ring_impl(self):
-        from .. import ring
-
-        expected = (ring._CFFIRing
-                    if _is_pypy or ring._CFFIRing is not None or os.environ.get('USING_CFFI')
-                    else ring._DequeRing)
-        self.assertIs(ring.Ring, expected)
-
 
 class PythonPickleCacheTests(PickleCacheTests):
     # Tests that depend on the implementation details of the
@@ -1007,9 +986,8 @@ class PythonPickleCacheTests(PickleCacheTests):
         self.assertTrue(items[0][1] is candidate)
         self.assertEqual(candidate._p_state, UPTODATE)
 
-    @with_deterministic_gc
     def test_cache_garbage_collection_bytes_also_deactivates_object(self,
-                                                                    force_collect=_is_pypy or _is_jython):
+                                                                    force_collect=_is_pypy):
 
         class MyPersistent(self._getDummyPersistentClass()):
             def _p_deactivate(self):
@@ -1070,9 +1048,7 @@ class PythonPickleCacheTests(PickleCacheTests):
         candidate._p_jar = None
         self.assertRaises(KeyError, cache.new_ghost, key, candidate)
 
-    @with_deterministic_gc
-    def test_cache_garbage_collection_bytes_with_cache_size_0(
-      self, force_collect=_is_pypy or _is_jython):
+    def test_cache_garbage_collection_bytes_with_cache_size_0(self):
 
         class MyPersistent(self._getDummyPersistentClass()):
             def _p_deactivate(self):
@@ -1116,6 +1092,7 @@ class PythonPickleCacheTests(PickleCacheTests):
 
 
 @skipIfNoCExtension
+@skipIfPurePython
 class CPickleCacheTests(PickleCacheTests):
 
     def _getTargetClass(self):

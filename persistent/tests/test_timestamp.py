@@ -232,12 +232,6 @@ class PyAndCComparisonTests(unittest.TestCase):
         from persistent.timestamp import pyTimeStamp
         return pyTimeStamp(*args, **kwargs)
 
-    @property
-    def _is_jython(self):
-        import platform
-        py_impl = getattr(platform, 'python_implementation', lambda: None)
-        return py_impl() == 'Jython'
-
     def _make_C_and_Py(self, *args, **kwargs):
         return self._makeC(*args, **kwargs), self._makePy(*args, **kwargs)
 
@@ -300,18 +294,7 @@ class PyAndCComparisonTests(unittest.TestCase):
             MUT.c_long = c_int64
             # call __hash__ directly to avoid interpreter truncation
             # in hash() on 32-bit platforms
-            if not self._is_jython:
-                self.assertEqual(py.__hash__(), bit_64_hash)
-            else: # pragma: no cover
-                # Jython 2.7's ctypes module doesn't properly
-                # implement the 'value' attribute by truncating.
-                # (It does for native calls, but not visibly to Python).
-                # Therefore we get back the full python long. The actual
-                # hash() calls are correct, though, because the JVM uses
-                # 32-bit ints for its hashCode methods.
-                self.assertEqual(
-                    py.__hash__(),
-                    384009219096809580920179179233996861765753210540033)
+            self.assertEqual(py.__hash__(), bit_64_hash)
         finally:
             MUT._MAXINT = orig_maxint
             if orig_c_long is not None:
@@ -320,7 +303,7 @@ class PyAndCComparisonTests(unittest.TestCase):
                 del MUT.c_long
 
         # These are *usually* aliases, but aren't required
-        # to be (and aren't under Jython 2.7).
+        # to be
         expected_hash = bit_32_hash if is_32_bit_hash else bit_64_hash
         self.assertEqual(py.__hash__(), expected_hash)
 
@@ -328,9 +311,9 @@ class PyAndCComparisonTests(unittest.TestCase):
         # The simple constants make it easier to diagnose
         # a difference in algorithms
         import persistent.timestamp as MUT
-        # We get 32-bit hash values on 32-bit platforms, or on the JVM
+        # We get 32-bit hash values on 32-bit platforms,
         # OR on Windows (whether compiled in 64 or 32-bit mode)
-        is_32_bit = MUT._MAXINT == (2**31 - 1) or self._is_jython or sys.platform == 'win32'
+        is_32_bit = MUT._MAXINT == (2**31 - 1) or sys.platform == 'win32'
 
         c, py = self._make_C_and_Py(b'\x00\x00\x00\x00\x00\x00\x00\x00')
         self.assertEqual(hash(c), 8)

@@ -15,7 +15,7 @@ import unittest
 
 from .. import ring
 
-#pylint: disable=R0904,W0212,E1101
+# pylint:disable=protected-access
 
 class DummyPersistent(object):
     _p_oid = None
@@ -34,11 +34,11 @@ class DummyPersistent(object):
     def __repr__(self): # pragma: no cover
         return "<Dummy %r>" % self._p_oid
 
-class _Ring_Base(object):
+
+class CFFIRingTests(unittest.TestCase):
 
     def _getTargetClass(self):
-        """Return the type of the ring to test"""
-        raise NotImplementedError()
+        return ring._CFFIRing
 
     def _makeOne(self):
         return self._getTargetClass()()
@@ -137,21 +137,3 @@ class _Ring_Base(object):
         r.delete_all([(0, p1), (2, p3)])
         self.assertEqual([p2], list(r))
         self.assertEqual(1, len(r))
-
-class DequeRingTests(unittest.TestCase, _Ring_Base):
-
-    def _getTargetClass(self):
-        return ring._DequeRing
-
-_add_to_suite = [DequeRingTests]
-
-if ring._CFFIRing:
-    class CFFIRingTests(unittest.TestCase, _Ring_Base):
-
-        def _getTargetClass(self):
-            return ring._CFFIRing
-
-    _add_to_suite.append(CFFIRingTests)
-
-def test_suite():
-    return unittest.TestSuite([unittest.makeSuite(x) for x in _add_to_suite])

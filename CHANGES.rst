@@ -16,9 +16,17 @@
   - The Python implementation raises ``AttributeError`` if a
     persistent class doesn't have a ``p_jar`` attribute.
 
+  See `issue 102
+  <https://github.com/zopefoundation/persistent/issues/102>`_.
+
 - Allow sweeping cache without ``cache_size``. ``cache_size_bytes``
   works with ``cache_size=0``, no need to set ``cache_size`` to a
   large value.
+
+- Require ``CFFI`` on CPython for pure-Python operation. This drops
+  support for Jython (which was untested). See `issue 77
+  <https://github.com/zopefoundation/persistent/issues/77>`_.
+
 
 4.4.3 (2018-10-22)
 ------------------
