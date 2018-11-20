@@ -1070,6 +1070,50 @@ class PythonPickleCacheTests(PickleCacheTests):
         candidate._p_jar = None
         self.assertRaises(KeyError, cache.new_ghost, key, candidate)
 
+    @with_deterministic_gc
+    def test_cache_garbage_collection_bytes_with_cache_size_0(
+      self, force_collect=_is_pypy or _is_jython):
+
+        class MyPersistent(self._getDummyPersistentClass()):
+            def _p_deactivate(self):
+                # mimic what the real persistent object does to update
+                # the cache size; if we don't get deactivated by
+                # sweeping, the cache size won't shrink so this also
+                # validates that _p_deactivate gets called when
+                # ejecting an object.
+                cache.update_object_size_estimation(self._p_oid, -1)
+
+        cache = self._makeOne()
+        cache.cache_size = 0
+        cache.cache_size_bytes = 400
+        oids = []
+        for i in range(100):
+            oid = self._numbered_oid(i)
+            oids.append(oid)
+            o = cache[oid] = self._makePersist(oid=oid,
+                                               kind=MyPersistent,
+                                               state=UPTODATE)
+            # must start 0, ZODB sets it AFTER updating the size
+            o._Persistent__size = 0
+            cache.update_object_size_estimation(oid, 1)
+            o._Persistent__size = 1
+            del o # leave it only in the cache
+
+        self.assertEqual(cache.cache_non_ghost_count, 100)
+        self.assertEqual(cache.total_estimated_size, 64 * 100)
+
+        cache.incrgc()
+        gc.collect() # banish the ghosts who are no longer in the ring
+        self.assertEqual(cache.total_estimated_size, 64 * 6)
+        self.assertEqual(cache.cache_non_ghost_count, 6)
+        self.assertEqual(len(cache), 6)
+
+        cache.full_sweep()
+        gc.collect() # banish the ghosts who are no longer in the ring
+        self.assertEqual(cache.total_estimated_size, 0)
+        self.assertEqual(cache.cache_non_ghost_count, 0)
+        self.assertEqual(len(cache), 0)
+
 
 @skipIfNoCExtension
 class CPickleCacheTests(PickleCacheTests):
@@ -1088,6 +1132,49 @@ class CPickleCacheTests(PickleCacheTests):
         cache = super(CPickleCacheTests, self).test___setitem___persistent_class()
         self.assertEqual(_len(cache.items()), 1)
 
+    def test_cache_garbage_collection_bytes_with_cache_size_0(self):
+
+        class DummyConnection(object):
+          def register(self, obj):
+            pass
+
+        dummy_connection = DummyConnection()
+        dummy_connection.register(1) # for coveralls
+
+        def makePersistent(oid):
+           persist = self._getDummyPersistentClass()()
+           persist._p_oid = oid
+           persist._p_jar = dummy_connection
+           return persist
+
+        cache = self._getTargetClass()(dummy_connection)
+        dummy_connection._cache = cache
+
+        cache.cache_size = 0
+        cache.cache_size_bytes = 400
+
+        oids = []
+        for i in range(100):
+            oid = self._numbered_oid(i)
+            oids.append(oid)
+            o = cache[oid] = makePersistent(oid)
+            cache.update_object_size_estimation(oid, 1)
+            o._p_estimated_size = 1
+            del o # leave it only in the cache
+
+        self.assertEqual(cache.cache_non_ghost_count, 100)
+        self.assertEqual(cache.total_estimated_size, 64 * 100)
+
+        cache.incrgc()
+        self.assertEqual(cache.total_estimated_size, 64 * 6)
+        self.assertEqual(cache.cache_non_ghost_count, 6)
+        self.assertEqual(len(cache), 6)
+
+        cache.full_sweep()
+        gc.collect() # banish the ghosts who are no longer in the ring
+        self.assertEqual(cache.total_estimated_size, 0)
+        self.assertEqual(cache.cache_non_ghost_count, 0)
+        self.assertEqual(len(cache), 0)
 
 
 class DummyPersistent(object):

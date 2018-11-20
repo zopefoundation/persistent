@@ -16,6 +16,9 @@
   - The Python implementation raises ``AttributeError`` if a
     persistent class doesn't have a ``p_jar`` attribute.
 
+- Allow sweeping cache without ``cache_size``. ``cache_size_bytes``
+  works with ``cache_size=0``, no need to set ``cache_size`` to a
+  large value.
 
 4.4.3 (2018-10-22)
 ------------------
