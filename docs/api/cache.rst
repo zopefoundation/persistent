@@ -20,7 +20,7 @@ really provide the right interface given that:
    The current cache implementation is intimately tied up with the
    persistence implementation and has internal access to the persistence
    state.  The cache implementation can update the persistence state for
-   newly created and initialized objects directly.
+   newly created and uninitialized objects directly.
 
    The future persistence and cache implementations will be far more
    decoupled. The persistence implementation will only manage object
