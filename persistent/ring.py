@@ -13,10 +13,12 @@
 #
 ##############################################################################
 
-#pylint: disable=W0212,E0211,W0622,E0213,W0221,E0239
+# pylint:disable=inherit-non-class,no-self-argument,redefined-builtin,c-extension-no-member
 
 from zope.interface import Interface
 from zope.interface import implementer
+
+from persistent import _ring
 
 class IRing(Interface):
     """Conceptually, a doubly-linked list for efficiently keeping track of least-
@@ -28,13 +30,13 @@ class IRing(Interface):
     explaining assumptions and performance requirements.
     """
 
-    def __len__():
+    def __len__(): # pylint:disable=no-method-argument
         """Return the number of persistent objects stored in the ring.
 
         Should be constant time.
         """
 
-    def __contains__(object):
+    def __contains__(object): # pylint:disable=unexpected-special-method-signature
         """Answer whether the given persistent object is found in the ring.
 
         Must not rely on object equality or object hashing, but only
@@ -83,7 +85,7 @@ class IRing(Interface):
         Should be at least linear time (not quadratic).
         """
 
-    def __iter__():
+    def __iter__(): # pylint:disable=no-method-argument
         """Iterate over each persistent object in the ring, in the order of least
         recently used to most recently used.
 
@@ -91,127 +93,72 @@ class IRing(Interface):
         undefined consequences.
         """
 
-from collections import deque
+
+ffi = _ring.ffi
+_FFI_RING = _ring.lib
+
+_OGA = object.__getattribute__
+_OSA = object.__setattr__
+
 
 @implementer(IRing)
-class _DequeRing(object):
-    """A ring backed by the :class:`collections.deque` class.
+class _CFFIRing(object):
+    """A ring backed by a C implementation. All operations are constant time.
 
-    Operations are a mix of constant and linear time.
-
-    It is available on all platforms.
+    It is only available on platforms with ``cffi`` installed.
     """
 
-    __slots__ = ('ring', 'ring_oids')
+    __slots__ = ('ring_home', 'ring_to_obj')
 
     def __init__(self):
+        node = self.ring_home = ffi.new("CPersistentRing*")
+        node.r_next = node
+        node.r_prev = node
 
-        self.ring = deque()
-        self.ring_oids = set()
+        # In order for the CFFI objects to stay alive, we must keep
+        # a strong reference to them, otherwise they get freed. We must
+        # also keep strong references to the objects so they can be deactivated
+        self.ring_to_obj = dict()
 
     def __len__(self):
-        return len(self.ring)
+        return len(self.ring_to_obj)
 
     def __contains__(self, pobj):
-        return pobj._p_oid in self.ring_oids
+        return getattr(pobj, '_Persistent__ring', self) in self.ring_to_obj
 
     def add(self, pobj):
-        self.ring.append(pobj)
-        self.ring_oids.add(pobj._p_oid)
+        node = ffi.new("CPersistentRing*")
+        _FFI_RING.ring_add(self.ring_home, node)
+        self.ring_to_obj[node] = pobj
+        _OSA(pobj, '_Persistent__ring', node)
 
     def delete(self, pobj):
-        # Note that we do not use self.ring.remove() because that
-        # uses equality semantics and we don't want to call the persistent
-        # object's __eq__ method (which might wake it up just after we
-        # tried to ghost it)
-        for i, o in enumerate(self.ring):
-            if o is pobj:
-                del self.ring[i]
-                self.ring_oids.discard(pobj._p_oid)
-                return 1
+        its_node = getattr(pobj, '_Persistent__ring', None)
+        our_obj = self.ring_to_obj.pop(its_node, None)
+        if its_node is not None and our_obj is not None and its_node.r_next:
+            _FFI_RING.ring_del(its_node)
+            return 1
+        return None
 
     def move_to_head(self, pobj):
-        self.delete(pobj)
-        self.add(pobj)
+        node = _OGA(pobj, '_Persistent__ring')
+        _FFI_RING.ring_move_to_head(self.ring_home, node)
 
     def delete_all(self, indexes_and_values):
-        for ix, value in reversed(indexes_and_values):
-            del self.ring[ix]
-            self.ring_oids.discard(value._p_oid)
+        for _, value in indexes_and_values:
+            self.delete(value)
+
+    def iteritems(self):
+        head = self.ring_home
+        here = head.r_next
+        while here != head:
+            yield here
+            here = here.r_next
 
     def __iter__(self):
-        return iter(self.ring)
-
-
-try:
-    from persistent import _ring
-except ImportError: # pragma: no cover
-    _CFFIRing = None
-else:
-    ffi = _ring.ffi
-    _FFI_RING = _ring.lib
-
-    _OGA = object.__getattribute__
-    _OSA = object.__setattr__
-
-    #pylint: disable=E1101
-    @implementer(IRing)
-    class _CFFIRing(object):
-        """A ring backed by a C implementation. All operations are constant time.
-
-        It is only available on platforms with ``cffi`` installed.
-        """
-
-        __slots__ = ('ring_home', 'ring_to_obj')
-
-        def __init__(self):
-            node = self.ring_home = ffi.new("CPersistentRing*")
-            node.r_next = node
-            node.r_prev = node
-
-            # In order for the CFFI objects to stay alive, we must keep
-            # a strong reference to them, otherwise they get freed. We must
-            # also keep strong references to the objects so they can be deactivated
-            self.ring_to_obj = dict()
-
-        def __len__(self):
-            return len(self.ring_to_obj)
-
-        def __contains__(self, pobj):
-            return getattr(pobj, '_Persistent__ring', self) in self.ring_to_obj
-
-        def add(self, pobj):
-            node = ffi.new("CPersistentRing*")
-            _FFI_RING.ring_add(self.ring_home, node)
-            self.ring_to_obj[node] = pobj
-            _OSA(pobj, '_Persistent__ring', node)
-
-        def delete(self, pobj):
-            its_node = getattr(pobj, '_Persistent__ring', None)
-            our_obj = self.ring_to_obj.pop(its_node, None)
-            if its_node is not None and our_obj is not None and its_node.r_next:
-                _FFI_RING.ring_del(its_node)
-                return 1
-
-        def move_to_head(self, pobj):
-            node = _OGA(pobj, '_Persistent__ring')
-            _FFI_RING.ring_move_to_head(self.ring_home, node)
-
-        def delete_all(self, indexes_and_values):
-            for _, value in indexes_and_values:
-                self.delete(value)
-
-        def iteritems(self):
-            head = self.ring_home
-            here = head.r_next
-            while here != head:
-                yield here
-                here = here.r_next
-
-        def __iter__(self):
-            ring_to_obj = self.ring_to_obj
-            for node in self.iteritems():
-                yield ring_to_obj[node]
+        ring_to_obj = self.ring_to_obj
+        for node in self.iteritems():
+            yield ring_to_obj[node]
 
 # Export the best available implementation
-Ring = _CFFIRing if _CFFIRing else _DequeRing
+Ring = _CFFIRing

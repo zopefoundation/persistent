@@ -20,7 +20,7 @@ from setuptools import Extension
 from setuptools import find_packages
 from setuptools import setup
 
-version = '4.4.4.dev0'
+version = '4.5.0.dev0'
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -33,12 +33,12 @@ def _read_file(filename):
 README = (_read_file('README.rst') + '\n\n' + _read_file('CHANGES.rst'))
 
 is_pypy = platform.python_implementation() == 'PyPy'
-is_jython = 'java' in sys.platform
 
-# Jython cannot build the C optimizations, while on PyPy they are
+# On PyPy the C optimizations are
 # anti-optimizations (the C extension compatibility layer is known-slow,
-# and defeats JIT opportunities).
-if is_pypy or is_jython:
+# and defeats JIT opportunities); PyPy 6.0 can compile them, but the
+# tests fail and they actually crash the VM.
+if is_pypy:
     # Note that all the lists we pass to setuptools must be distinct
     # objects, or bad things happen. See https://github.com/zopefoundation/persistent/issues/88
     ext_modules = []
@@ -120,7 +120,6 @@ setup(name='persistent',
       extras_require={
           'test': [
               'zope.testrunner',
-              "cffi ; platform_python_implementation == 'CPython'",
               'manuel',
           ],
           'testing': (),
@@ -131,6 +130,10 @@ setup(name='persistent',
       },
       install_requires=[
           'zope.interface',
+          "cffi ; platform_python_implementation == 'CPython'",
+      ],
+      setup_requires=[
+          "cffi ; platform_python_implementation == 'CPython'",
       ],
       entry_points={},
 )
