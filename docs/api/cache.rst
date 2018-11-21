@@ -20,14 +20,14 @@ really provide the right interface given that:
    The current cache implementation is intimately tied up with the
    persistence implementation and has internal access to the persistence
    state.  The cache implementation can update the persistence state for
-   newly created and ininitialized objects directly.
+   newly created and uninitialized objects directly.
 
    The future persistence and cache implementations will be far more
    decoupled. The persistence implementation will only manage object
-   state and generate object-usage events.  The cache implemnentation(s)
-   will be rersponsible for managing persistence-related (meta-)state,
+   state and generate object-usage events.  The cache implementation(s)
+   will be responsible for managing persistence-related (meta-)state,
    such as _p_state, _p_changed, _p_oid, etc.  So in that future
-   implemention, the cache will be more central to managing object
+   implementation, the cache will be more central to managing object
    persistence information.
 
 Caches have a :meth:`new_ghost` method that:

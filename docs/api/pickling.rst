@@ -82,7 +82,7 @@ ignores any slots which map onto the "persistent" namespace (prefixed with
    >>> from persistent.tests.cucumbers import SubSlotted
    >>> x = SubSlotted('x', 'y', 'z')
 
-Note that we haven't yet assiged a value to the ``s4`` attribute:
+Note that we haven't yet assigned a value to the ``s4`` attribute:
 
 .. doctest::
 

@@ -7,7 +7,7 @@ Inheriting from :class:`persistent.Persistent`
 ==============================================
 
 The basic mechanism for making your application's objects persistent
-is mix-in interitance.  Instances whose classes derive from
+is mix-in inheritance.  Instances whose classes derive from
 :class:`persistent.Persistent` are automatically capable of being
 created as :term:`ghost` instances, being associated with a database
 connection (called the :term:`jar`), and notifying the connection when
@@ -59,14 +59,14 @@ The examples below use a stub data manager class, and its stub cache class:
    ...         ob.__setstate__({'x': 42})
 
 .. note::
-   Notic that the ``DM`` class always sets the ``x`` attribute to the value
+   Notice that the ``DM`` class always sets the ``x`` attribute to the value
    ``42`` when activating an object.
 
 
 Persistent objects without a Data Manager
 =========================================
 
-Before aersistent instance has been associtated with a a data manager (
+Before persistent instance has been associated with a a data manager (
 i.e., its ``_p_jar`` is still ``None``).
 
 The examples below use a class, ``P``, defined as:
@@ -102,7 +102,7 @@ will always be ``False``.
    >>> p._p_changed
    False
 
-The :attr:`_p_state` attribute is an integaer, representing which of the
+The :attr:`_p_state` attribute is an integer, representing which of the
 "persistent lifecycle" states the object is in.  Until the object is assigned
 a :term:`jar`, this attribute will always be ``0`` (the ``UPTODATE``
 constant):
@@ -437,9 +437,9 @@ Subclasses which override the attribute-management methods provided by
   derived implementation must assume that the attribute value has been set by
   the base class.
 
-:meth:`__detattr__`
-  When overriding ``__detattr__``, the derived class implementation
-  **must** first call :meth:`persistent.IPersistent._p_detattr`, passing the
+:meth:`__delattr__`
+  When overriding ``__delattr__``, the derived class implementation
+  **must** first call :meth:`persistent.IPersistent._p_delattr`, passing the
   name being accessed.  This method ensures that the object is
   activated, if needed, and handles the "special" attributes which do not
   require activation (``_p_*``).  If ``_p_delattr`` returns ``True``, the
