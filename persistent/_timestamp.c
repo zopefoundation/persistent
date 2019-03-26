@@ -12,6 +12,7 @@
 
  ****************************************************************************/
 
+#define PY_SSIZE_T_CLEAN
 #include "Python.h"
 #include "bytesobject.h"
 #include <time.h>
@@ -533,7 +534,8 @@ PyObject *
 TimeStamp_TimeStamp(PyObject *obj, PyObject *args)
 {
     char *buf = NULL;
-    int len = 0, y, mo, d, h = 0, m = 0;
+    Py_ssize_t len = 0;
+    int y, mo, d, h = 0, m = 0;
     double sec = 0;
 
 #ifdef PY3K
