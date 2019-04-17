@@ -16,6 +16,7 @@ static char cPersistence_doc_string[] =
   "\n"
   "$Id$\n";
 
+#define PY_SSIZE_T_CLEAN
 #include "cPersistence.h"
 #include "structmember.h"
 
@@ -1268,9 +1269,9 @@ Per_get_mtime(cPersistentObject *self)
     }
 
 #ifdef PY3K
-    t = PyObject_CallFunction(TimeStamp, "y#", self->serial, 8);
+    t = PyObject_CallFunction(TimeStamp, "y#", self->serial, (Py_ssize_t)8);
 #else
-    t = PyObject_CallFunction(TimeStamp, "s#", self->serial, 8);
+    t = PyObject_CallFunction(TimeStamp, "s#", self->serial, (Py_ssize_t)8);
 #endif
     if (!t)
     {
