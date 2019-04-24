@@ -30,6 +30,10 @@
 - Fix DeprecationWarning about ``PY_SSIZE_T_CLEAN``.
   See `issue 108 <https://github.com/zopefoundation/persistent/issues/108>`_.
 
+- Drop support for Python 3.4.
+
+- Add support for Python 3.8a3.
+
 
 4.4.3 (2018-10-22)
 ------------------
