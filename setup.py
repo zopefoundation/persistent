@@ -14,7 +14,6 @@
 
 import os
 import platform
-import sys
 
 from setuptools import Extension
 from setuptools import find_packages
@@ -40,7 +39,8 @@ is_pypy = platform.python_implementation() == 'PyPy'
 # tests fail and they actually crash the VM.
 if is_pypy:
     # Note that all the lists we pass to setuptools must be distinct
-    # objects, or bad things happen. See https://github.com/zopefoundation/persistent/issues/88
+    # objects, or bad things happen.
+    # See https://github.com/zopefoundation/persistent/issues/88
     ext_modules = []
     headers = []
 else:
@@ -135,5 +135,4 @@ setup(name='persistent',
       setup_requires=[
           "cffi ; platform_python_implementation == 'CPython'",
       ],
-      entry_points={},
-)
+      entry_points={})
