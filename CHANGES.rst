@@ -26,6 +26,9 @@
 - Require ``CFFI`` on CPython for pure-Python operation. This drops
   support for Jython (which was untested). See `issue 77
   <https://github.com/zopefoundation/persistent/issues/77>`_.
+  
+- Fix deprecation warnings. See `issue 108
+ <https://github.com/zopefoundation/persistent/issues/108>`_.
 
 
 4.4.3 (2018-10-22)
