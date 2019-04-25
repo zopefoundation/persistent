@@ -28,12 +28,16 @@ struct ccobject_head_struct
 /*
   The compiler on Windows used for Python 2.7 doesn't include
   stdint.h.
+  The compiler on Windows used for Python 3.5 doesn't define
+  PRIx64 in its copy of stdint.h.
 */
 #if !defined(PY3K) && defined(_WIN32)
 typedef unsigned long long uint64_t;
-#define PRIx64 "llx"
 #else
-#include <stdint.h>
+#  include <stdint.h>
+#endif
+#ifndef PRIx64 && defined(_WIN32)
+#  define PRIx64 "llx"
 #endif
 
 /* These two objects are initialized when the module is loaded */
