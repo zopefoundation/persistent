@@ -19,7 +19,7 @@ from setuptools import Extension
 from setuptools import find_packages
 from setuptools import setup
 
-version = '4.5.0.dev0'
+version = '4.5.0'
 
 here = os.path.abspath(os.path.dirname(__file__))
 

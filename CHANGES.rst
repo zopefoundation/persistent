@@ -1,7 +1,7 @@
 ``persistent`` Changelog
 ========================
 
-4.5.0 (unreleased)
+4.5.0 (2019-05-09)
 ------------------
 
 - Fully test the C implementation of the PickleCache, and fix
