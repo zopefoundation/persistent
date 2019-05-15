@@ -31,8 +31,10 @@ struct ccobject_head_struct
 */
 #if !defined(PY3K) && defined(_WIN32)
 typedef unsigned long long uint64_t;
+#  define PRIx64 "llx"
 #else
-#include <stdint.h>
+#  include <stdint.h>
+#  include <inttypes.h>
 #endif
 
 /* These two objects are initialized when the module is loaded */
@@ -1478,7 +1480,7 @@ Per_repr(cPersistentObject *self)
           length modifier for %x, so to format a 64-bit value we need to
           use stdio.
         */
-        snprintf(buf, sizeof(buf) - 1, "%llx", oid_value);
+        snprintf(buf, sizeof(buf) - 1, "%" PRIx64, oid_value);
         oid_str = PyUnicode_FromFormat(" oid 0x%s", buf);
     }
 

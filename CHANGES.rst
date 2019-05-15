@@ -1,7 +1,13 @@
 ``persistent`` Changelog
 ========================
 
-4.5.0 (unreleased)
+4.5.1 (unreleased)
+------------------
+
+- Add support for Python 3.8a3.
+
+
+4.5.0 (2019-05-09)
 ------------------
 
 - Fully test the C implementation of the PickleCache, and fix
@@ -32,8 +38,6 @@
 
 - Drop support for Python 3.4.
 
-- Add support for Python 3.8a3.
-
 
 4.4.3 (2018-10-22)
 ------------------
@@ -47,6 +51,7 @@
   integer in hexadecimal notation if it is an 8-byte byte string, as
   ZODB does. This eliminates some issues in doctests. See `issue 95
   <https://github.com/zopefoundation/persistent/pull/95>`_.
+
 
 4.4.2 (2018-08-28)
 ------------------
@@ -114,6 +119,7 @@
   values have not changed. See `issue 41
   <https://github.com/zopefoundation/persistent/issues/41>`_.
 
+
 4.3.0 (2018-07-30)
 ------------------
 
@@ -128,6 +134,7 @@
   and *not* set ``tp_base`` to ``cPersistenceCAPI->pertype`` and still
   be eligible for the pickle cache; that is no longer the case. See
   `issue 69 <https://github.com/zopefoundation/persistent/issues/69>`_.
+
 
 4.2.4.2 (2017-04-23)
 --------------------
@@ -183,11 +190,13 @@
   https://github.com/zopefoundation/persistent/wiki/Notes_on_state_new_and_slots
   if you're curious.)
 
+
 4.2.1 (2016-05-26)
 ------------------
 
 - Fix the hashcode of C ``TimeStamp`` objects on 64-bit Python 3 on
   Windows.
+
 
 4.2.0 (2016-05-05)
 ------------------
@@ -202,10 +211,12 @@
 
 - Drop support for Python 2.6 and 3.2.
 
+
 4.1.1 (2015-06-02)
 ------------------
 
 - Fix manifest and re-upload to fix stray files included in 4.1.0.
+
 
 4.1.0 (2015-05-19)
 ------------------
@@ -215,6 +226,7 @@
   Python version can now run the complete ZODB and ZEO test suites.
 
 - Fix the hashcode of the Python ``TimeStamp`` on 32-bit platforms.
+
 
 4.0.9 (2015-04-08)
 ------------------
@@ -230,6 +242,7 @@
 - Add support for PyPy3.
 
 - 100% branch coverage.
+
 
 4.0.8 (2014-03-20)
 ------------------
@@ -248,6 +261,7 @@
 - Make it possible to delete ``_p_jar`` / ``_p_oid`` of a pure-Python
   ``Persistent`` object which has been removed from the jar's cache
   (fixes aborting a ZODB Connection that has added objects). (PR #7)
+
 
 4.0.7 (2014-02-20)
 ------------------
@@ -286,6 +300,7 @@
 
 - C extenstions now build under Python 3.2, passing the same tests as
   the pure-Python reference implementation.
+
 
 4.0.3 (2012-11-19)
 ------------------
