@@ -46,10 +46,10 @@ The examples below use a stub data manager class, and its stub cache class:
    ...         self._mru = []
    ...     def mru(self, oid):
    ...         self._mru.append(oid)
-   >>> from zope.interface import implements
+   >>> from zope.interface import implementer
    >>> from persistent.interfaces import IPersistentDataManager
-   >>> class DM(object):
-   ...     implements(IPersistentDataManager)
+   >>> @implementer(IPersistentDataManager)
+   ... class DM(object):
    ...     def __init__(self):
    ...         self._cache = Cache()
    ...         self.registered = 0
@@ -117,7 +117,7 @@ it has not yet been assigned, its value is ``None``:
 
 .. doctest::
 
-   >>> print p._p_jar
+   >>> print(p._p_jar)
    None
 
 The :attr:`_p_oid` attribute is the :term:`object id`, a unique value
@@ -126,7 +126,7 @@ has not yet been associated with its :term:`jar`, its value is ``None``:
 
 .. doctest::
 
-   >>> print p._p_oid
+   >>> print(p._p_oid)
    None
 
 Without a data manager, modifying a persistent object has no effect on
@@ -376,10 +376,10 @@ The ``_p_serial`` attribute is not affected by calling setstate.
 
 .. doctest::
 
-   >>> p._p_serial = "00000012"
+   >>> p._p_serial = b"00000012"
    >>> p.__setstate__(p.__getstate__())
    >>> p._p_serial
-   '00000012'
+   b'00000012'
 
 
 Estimated Object Size
