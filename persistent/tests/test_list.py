@@ -303,6 +303,15 @@ class TestPList(unittest.TestCase):
         self.assertEqual(inst, [1])
         self.assertTrue(inst._p_changed)
 
+    def test_clear(self):
+        inst = self._makeOne([1])
+        if not hasattr(inst, 'clear'):
+            raise unittest.SkipTest("PersistentList has no clear() method")
+        self.assertFalse(inst._p_changed)
+        inst.clear()
+        self.assertEqual(inst, [])
+        self.assertTrue(inst._p_changed)
+
     def test_insert(self):
         inst = self._makeOne()
         self.assertFalse(inst._p_changed)

@@ -14,6 +14,8 @@
 
 - Update documentation to Python 3.
 
+- Fixed ``PersistentList``s not marked as changed after calling ``clear``.
+
 
 4.5.0 (2019-05-09)
 ------------------

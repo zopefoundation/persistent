@@ -72,6 +72,13 @@ class PersistentList(UserList, persistent.Persistent):
         self.__super_append(item)
         self._p_changed = 1
 
+    if not PYTHON2:
+        __super_clear = UserList.clear
+
+        def clear(self):
+            self.__super_clear()
+            self._p_changed = 1
+
     def insert(self, i, item):
         self.__super_insert(i, item)
         self._p_changed = 1
