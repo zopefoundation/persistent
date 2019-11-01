@@ -4,7 +4,7 @@
 4.5.1 (unreleased)
 ------------------
 
-- Add support for Python 3.8a3.
+- Add support for Python 3.8.
 
 - Update documentation to Python 3.
 
