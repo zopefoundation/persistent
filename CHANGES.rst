@@ -1,7 +1,7 @@
 ``persistent`` Changelog
 ========================
 
-4.5.1 (unreleased)
+4.5.1 (2019-11-06)
 ------------------
 
 - Add support for Python 3.8.
