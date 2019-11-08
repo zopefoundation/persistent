@@ -1,98 +1,117 @@
 language: python
-dist: xenial
-matrix:
-    include:
-        - os: linux
-          python: 2.7
-        - name: 2.7-pure
-          os: linux
-          python: 2.7
-          env: PURE_PYTHON=1
-        - os: linux
-          python: 3.5
-        - os: linux
-          python: 3.6
-          # Test for https://github.com/zopefoundation/persistent/issues/86
-          env: CFLAGS="-fno-wrapv"
-        - os: linux
-          python: pypy
-        - os: linux
-          python: pypy3
-        - os: linux
-          python: 3.7
-        - name: 3.7-pure
-          os: linux
-          python: 3.7
-          env: PURE_PYTHON=1
-        - os: linux
-          python: 3.8
-        - name: docs
-          os: linux
-          python: 3.6
-          install:
-            - pip install -U -e .[docs]
-          script:
-            - sphinx-build -b html -d docs/_build/doctrees docs docs/_build/html
-            - sphinx-build -b doctest -d docs/_build/doctrees docs docs/_build/doctest
-          after_success:
-        # It's important to use 'macpython' builds to get the least
-        # restrictive wheel tag. It's also important to avoid
-        # 'homebrew 3' because it floats instead of being a specific version.
-        - os: osx
-          language: generic
-          env: TERRYFY_PYTHON='macpython 2.7'
-        - os: osx
-          language: generic
-          env: TERRYFY_PYTHON='macpython 3.5'
-        - os: osx
-          language: generic
-          env: TERRYFY_PYTHON='macpython 3.6.0'
-        - os: osx
-          language: generic
-          env: TERRYFY_PYTHON='macpython 3.7.0'
-        - services:
-            - docker
-          env: DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64
-          before_install:
-            - if [[ $TRAVIS_TAG ]]; then bash .manylinux.sh; fi
-            - exit 0
-        - services:
-            - docker
-          env:
-            - DOCKER_IMAGE=quay.io/pypa/manylinux1_i686
-            - PRE_CMD=linux32
-          before_install:
-            - if [[ $TRAVIS_TAG ]]; then bash .manylinux.sh; fi
-            - exit 0
-
-before_install:
-    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then git clone https://github.com/MacPython/terryfy; fi
-    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then source terryfy/travis_tools.sh; fi
-    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then get_python_environment $TERRYFY_PYTHON venv; fi
-    - pip install -U pip setuptools cffi wheel coverage coveralls
-install:
-    - pip install -U -e .[test]
-script:
-    - python --version
-    # make sure we can build a wheel
-    - python setup.py bdist_wheel
-    # coverage makes PyPy run about 3x slower, but the tests only take
-    # .4s to begin with (the whole process takes about 1.5), so that's
-    # still only 4.5s, which is maneagable.
-    - coverage run -m zope.testrunner --test-path=. --auto-color --auto-progress
-notifications:
-    email: false
-after_success:
-    - coveralls
-    - echo [distutils]                                  > ~/.pypirc
-    - echo index-servers = pypi                        >> ~/.pypirc
-    - echo [pypi]                                      >> ~/.pypirc
-    - echo username=zope.wheelbuilder                  >> ~/.pypirc
-    - echo password=$PYPIPASSWORD                      >> ~/.pypirc
-    - if [[ $TRAVIS_TAG && "$TRAVIS_OS_NAME" == "osx" ]]; then pip install twine; fi
-    - if [[ $TRAVIS_TAG && "$TRAVIS_OS_NAME" == "osx" ]]; then python setup.py bdist_wheel; fi
-    - if [[ $TRAVIS_TAG && "$TRAVIS_OS_NAME" == "osx" ]]; then twine upload dist/*; fi
 
 env:
-    global:
-        secure: "NTWzDr5p8KRPNt+sniTot7csbzC87rzir/XfLtENE0GpQ49FlKw3lBhsDqAPoD8Ea5lwiHXmC/C/ci1UZhFvVEkAoQ2qJlMRnhqUdRJSrqcitmRt0fT6mLaTd+Lr+DxKlBxpssobrEm2G42V/G1s0Ggym04OqF8T+s6MF5ywgJM="
+  global:
+    - TWINE_USERNAME: zope.wheelbuilder
+    # this sets $PYPIPASSWORD
+    - secure: "NTWzDr5p8KRPNt+sniTot7csbzC87rzir/XfLtENE0GpQ49FlKw3lBhsDqAPoD8Ea5lwiHXmC/C/ci1UZhFvVEkAoQ2qJlMRnhqUdRJSrqcitmRt0fT6mLaTd+Lr+DxKlBxpssobrEm2G42V/G1s0Ggym04OqF8T+s6MF5ywgJM="
+
+python:
+  - 2.7
+  - 3.5
+  - 3.6
+  - 3.7
+  - 3.8
+  - pypy
+  - pypy3
+
+jobs:
+  include:
+
+    # Special Linux builds
+    - name: "Python: 2.7, pure (no C extensions)"
+      python: 2.7
+      env: PURE_PYTHON=1
+
+    # Test for https://github.com/zopefoundation/persistent/issues/86
+    - name: "Python: 3.6, -fno-wrapv"
+      python: 3.6
+      env: CFLAGS="-fno-wrapv"
+
+    - name: "Python: 3.7, pure (no C extensions)"
+      python: 3.7
+      env: PURE_PYTHON=1
+
+    - name: "Documentation"
+      python: 3.6
+      install:
+        - pip install -U -e .[docs]
+      script:
+        - sphinx-build -b html -d docs/_build/doctrees docs docs/_build/html
+        - sphinx-build -b doctest -d docs/_build/doctrees docs docs/_build/doctest
+      after_success:
+
+    # manylinux wheel builds
+    - name: 64-bit manylinux wheels (all Pythons)
+      services: docker
+      env: DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64
+      install: docker pull $DOCKER_IMAGE
+      script: bash .manylinux.sh
+
+    - name: 32-bit manylinux wheels (all Pythons)
+      services: docker
+      env: DOCKER_IMAGE=quay.io/pypa/manylinux1_i686 PRE_CMD=linux32
+      install: docker pull $DOCKER_IMAGE
+      script: bash .manylinux.sh
+
+    # It's important to use 'macpython' builds to get the least
+    # restrictive wheel tag. It's also important to avoid
+    # 'homebrew 3' because it floats instead of being a specific version.
+    - name: Python 2.7 wheels for MacOS
+      os: osx
+      language: generic
+      env: TERRYFY_PYTHON='macpython 2.7'
+    - name: Python 3.5 wheels for MacOS
+      os: osx
+      language: generic
+      env: TERRYFY_PYTHON='macpython 3.5'
+    - name: Python 3.6 wheels for MacOS
+      os: osx
+      language: generic
+      env: TERRYFY_PYTHON='macpython 3.6.0'
+    - name: Python 3.7 wheels for MacOS
+      os: osx
+      language: generic
+      env: TERRYFY_PYTHON='macpython 3.7.0'
+
+before_install:
+  - |
+    if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      git clone https://github.com/MacPython/terryfy
+      source terryfy/travis_tools.sh
+      get_python_environment $TERRYFY_PYTHON venv
+    fi
+
+install:
+  - pip install -U pip setuptools cffi wheel coverage coveralls
+  - pip install -U -e .[test]
+
+script:
+  - python --version
+
+  # make sure we can build a wheel
+  - python setup.py bdist_wheel
+
+  # coverage makes PyPy run about 3x slower, but the tests only take
+  # .4s to begin with (the whole process takes about 1.5), so that's
+  # still only 4.5s, which is maneagable.
+  - coverage run -m zope.testrunner --test-path=. --auto-color --auto-progress
+
+after_success:
+  - coveralls
+  - |
+    if [[ $TRAVIS_TAG && "$TRAVIS_OS_NAME" == "osx" ]]; then
+      pip install twine
+      python setup.py bdist_wheel
+      TWINE_PASSWORD=$PYPIPASSWORD twine upload --skip-existing dist/*
+    fi
+  - |
+    if [[ $TRAVIS_TAG && -n "$DOCKER_IMAGE" ]]; then
+      pip install twine
+      TWINE_PASSWORD=$PYPIPASSWORD twine upload --skip-existing wheelhouse/*
+    fi
+
+notifications:
+  email: false
+
+cache: pip
