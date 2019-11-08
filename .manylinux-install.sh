@@ -9,9 +9,7 @@ for PYBIN in /opt/python/*/bin; do
        [[ "${PYBIN}" == *"cp36"* ]] || \
        [[ "${PYBIN}" == *"cp37"* ]] || \
        [[ "${PYBIN}" == *"cp38"* ]]; then
-        # NB: it's risky to upgrade wheel without upgrading auditwheel,
-        # see https://github.com/pypa/auditwheel/issues/206
-        "${PYBIN}/pip" install -U pip setuptools wheel cffi auditwheel
+        "${PYBIN}/pip" install -U pip setuptools cffi
         "${PYBIN}/pip" install -e /io/
         "${PYBIN}/pip" wheel /io/ -w wheelhouse/
         rm -rf /io/build /io/*.egg-info
