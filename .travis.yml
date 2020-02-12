@@ -15,6 +15,15 @@ python:
   - pypy
   - pypy3
 
+matrix:
+  include:
+    - python: "3.9-dev"
+      env: TOXENV=py39
+      before_install:
+        - /opt/python/3.9-dev/bin/python -m venv py39
+        - cd py39
+        - . bin/activate
+
 jobs:
   include:
 
