@@ -93,8 +93,8 @@ before_install:
     fi
 
 install:
-  - pip install -U pip setuptools cffi wheel coverage coveralls
-  - pip install -U -e .[test]
+  - python -m pip install -U pip setuptools cffi wheel coverage coveralls
+  - python -m pip install -U -e .[test]
 
 script:
   - python --version
@@ -105,10 +105,10 @@ script:
   # coverage makes PyPy run about 3x slower, but the tests only take
   # .4s to begin with (the whole process takes about 1.5), so that's
   # still only 4.5s, which is maneagable.
-  - coverage run -m zope.testrunner --test-path=. --auto-color --auto-progress
+  - python -m coverage run -m zope.testrunner --test-path=. --auto-color --auto-progress
 
 after_success:
-  - coveralls
+  - python -m coveralls
   - |
     if [[ $TRAVIS_TAG && "$TRAVIS_OS_NAME" == "osx" ]]; then
       pip install twine
