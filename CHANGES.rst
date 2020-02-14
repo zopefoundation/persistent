@@ -4,7 +4,7 @@
 4.5.2 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Add preliminary support for Python 3.9a3.
 
 
 4.5.1 (2019-11-06)

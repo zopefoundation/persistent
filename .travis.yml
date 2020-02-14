@@ -12,18 +12,12 @@ python:
   - 3.6
   - 3.7
   - 3.8
+  - 3.9-dev
   - pypy
   - pypy3
 
 jobs:
   include:
-
-    - python: "3.9-dev"
-      env: TOXENV=py39
-      # needed until https://travis-ci.com/icemac/test-travis-dev is green
-      before_install:
-        - /opt/python/3.9-dev/bin/python -m venv py39
-        - . py39/bin/activate
 
     # Special Linux builds
     - name: "Python: 2.7, pure (no C extensions)"
