@@ -4,8 +4,8 @@
 4.5.2 (unreleased)
 ------------------
 
-- Nothing changed yet.
-
+- Fixed ``PersistentList`` to mark itself as changed after calling
+  ``clear``. See `PR 115 <https://github.com/zopefoundation/persistent/pull/115/>`_.
 
 4.5.1 (2019-11-06)
 ------------------
@@ -13,8 +13,6 @@
 - Add support for Python 3.8.
 
 - Update documentation to Python 3.
-
-- Fixed ``PersistentList``s not marked as changed after calling ``clear``.
 
 
 4.5.0 (2019-05-09)
