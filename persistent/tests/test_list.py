@@ -268,12 +268,21 @@ class TestPList(unittest.TestCase):
         self.assertEqual(inst, [1, 2, 3])
         self.assertTrue(inst._p_changed)
 
-    def test_delslice(self):
+    def test_delslice_nonempty(self):
         inst = self._makeOne([1, 2, 3])
         self.assertFalse(inst._p_changed)
         self.assertEqual(inst, [1, 2, 3])
         del inst[:]
+        self.assertEqual(inst, [])
         self.assertTrue(inst._p_changed)
+
+    def test_delslice_empty(self):
+        inst = self._makeOne([])
+        self.assertFalse(inst._p_changed)
+        self.assertEqual(inst, [])
+        del inst[:]
+        self.assertEqual(inst, [])
+        self.assertFalse(inst._p_changed)
 
     def test_iadd(self):
         inst = self._makeOne()
@@ -302,6 +311,20 @@ class TestPList(unittest.TestCase):
         inst.append(1)
         self.assertEqual(inst, [1])
         self.assertTrue(inst._p_changed)
+
+    def test_clear_nonempty(self):
+        inst = self._makeOne([1, 2, 3, 4])
+        self.assertFalse(inst._p_changed)
+        inst.clear()
+        self.assertEqual(inst, [])
+        self.assertTrue(inst._p_changed)
+
+    def test_clear_empty(self):
+        inst = self._makeOne([])
+        self.assertFalse(inst._p_changed)
+        inst.clear()
+        self.assertEqual(inst, [])
+        self.assertFalse(inst._p_changed)
 
     def test_insert(self):
         inst = self._makeOne()

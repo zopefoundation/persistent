@@ -15,16 +15,25 @@
 """Python implementation of persistent list.
 
 $Id$"""
-
+import sys
 import persistent
 from persistent._compat import UserList
 from persistent._compat import PYTHON2
+
+# The slice object you get when you write list[:]
+_SLICE_ALL = slice(None, None, None)
+
 
 class PersistentList(UserList, persistent.Persistent):
     """A persistent wrapper for list objects.
 
     Mutating instances of this class will cause them to be marked
     as changed and automatically persisted.
+
+    .. versionchanged:: 4.5.2
+       Using the `clear` method, or writing ``del inst[:]`` now only
+       results in marking the instance as changed if it actually removed
+       items.
     """
     __super_setitem = UserList.__setitem__
     __super_delitem = UserList.__delitem__
@@ -37,14 +46,23 @@ class PersistentList(UserList, persistent.Persistent):
     __super_reverse = UserList.reverse
     __super_sort = UserList.sort
     __super_extend = UserList.extend
+    __super_clear = (
+        UserList.clear
+        if hasattr(UserList, 'clear')
+        else lambda inst: inst.__delitem__(slice(None, None, None))
+    )
 
     def __setitem__(self, i, item):
         self.__super_setitem(i, item)
         self._p_changed = 1
 
     def __delitem__(self, i):
+        # If they write del list[:] but we're empty,
+        # no need to mark us changed.
+        needs_changed = i != _SLICE_ALL or bool(self)
         self.__super_delitem(i)
-        self._p_changed = 1
+        if needs_changed:
+            self._p_changed = 1
 
     if PYTHON2:  # pragma: no cover
         __super_setslice = UserList.__setslice__
@@ -55,8 +73,19 @@ class PersistentList(UserList, persistent.Persistent):
             self._p_changed = 1
 
         def __delslice__(self, i, j):
+            # On Python 2, the slice dunders, like ``__delslice__``,
+            # are documented as getting ``(0, sys.maxsize)`` as the
+            # arguments for list[:]. Prior to 2.7.10, it was
+            # incorrectly documented as ``(0, sys.maxint)``, but that
+            # usually worked because ``sys.maxsize`` and
+            # ``sys.maxint`` are usually the same. But on 64-bit
+            # Windown, where ``sizeof(int) == sizeof(long) == 4``,
+            # they're different (``sys.maxsize`` is bigger). See
+            # https://bugs.python.org/issue23645
+            needs_changed = i == 0 and j == sys.maxsize and bool(self)
             self.__super_delslice(i, j)
-            self._p_changed = 1
+            if needs_changed:
+                self._p_changed = 1
 
     def __iadd__(self, other):
         L = self.__super_iadd(other)
@@ -71,6 +100,19 @@ class PersistentList(UserList, persistent.Persistent):
     def append(self, item):
         self.__super_append(item)
         self._p_changed = 1
+
+    def clear(self):
+        """
+        Remove all items from the list.
+
+        .. versionchanged:: 4.5.2
+           Now marks the list as changed, and is available
+           on both Python 2 and Python 3.
+        """
+        needs_changed = bool(self)
+        self.__super_clear()
+        if needs_changed:
+            self._p_changed = 1
 
     def insert(self, i, item):
         self.__super_insert(i, item)

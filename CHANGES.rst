@@ -4,8 +4,8 @@
 4.5.2 (unreleased)
 ------------------
 
-- Nothing changed yet.
-
+- Fixed ``PersistentList`` to mark itself as changed after calling
+  ``clear``. See `PR 115 <https://github.com/zopefoundation/persistent/pull/115/>`_.
 
 4.5.1 (2019-11-06)
 ------------------
