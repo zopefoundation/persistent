@@ -13,7 +13,11 @@
 ##############################################################################
 import unittest
 
+<<<<<<< HEAD
 from persistent.tests.utils import TrivialJar
+=======
+from persistent.tests.utils import copy_test
+>>>>>>> Fix slicing and copying of PersistentList and PersistentMapping.
 
 # pylint:disable=blacklisted-name, protected-access
 
@@ -280,6 +284,11 @@ class PersistentMappingTests(unittest.TestCase):
         self.assertIn('data', pm.__dict__)
         # and we are marked as changed.
         self.assertTrue(pm._p_changed)
+
+    def test_copy(self):
+        pm = self._makeOne()
+        pm['key'] = 42
+        copy_test(self, pm)
 
 
 class Test_legacy_PersistentDict(unittest.TestCase):

@@ -16,7 +16,10 @@
 
 import unittest
 
+
 from persistent.tests.utils import TrivialJar
+from persistent.tests.utils import copy_test
+
 
 l0 = []
 l1 = [0]
@@ -347,6 +350,32 @@ class TestPList(unittest.TestCase):
         self.assertEqual(inst, [1, 2])
         self.assertTrue(inst._p_changed)
 
+    def test_getslice_same_class(self):
+        class MyList(self._getTargetClass()):
+            pass
+
+        inst = MyList()
+        inst._p_jar = self._makeJar()
+        # Entire thing, empty.
+        inst2 = inst[:]
+        self.assertIsNot(inst, inst2)
+        self.assertEqual(inst, inst2)
+        self.assertIsInstance(inst2, MyList)
+        # The _p_jar is *not* propagated.
+        self.assertIsNotNone(inst._p_jar)
+        self.assertIsNone(inst2._p_jar)
+
+        # Partial
+        inst.extend((1, 2, 3))
+        inst2 = inst[1:2]
+        self.assertEqual(inst2, [2])
+        self.assertIsInstance(inst2, MyList)
+        self.assertIsNone(inst2._p_jar)
+
+    def test_copy(self):
+        inst = self._makeOne()
+        inst.append(42)
+        copy_test(self, inst)
 
 def test_suite():
     return unittest.defaultTestLoader.loadTestsFromName(__name__)

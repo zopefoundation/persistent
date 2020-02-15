@@ -4,6 +4,13 @@
 4.5.2 (unreleased)
 ------------------
 
+- Fix slicing of ``PersistentList`` to always return instances of the
+  same class. It was broken on Python 3 prior to 3.7.4.
+
+- Fix copying  of ``PersistentList`` and ``PersistentMapping`` using
+  ``copy.copy`` to also copy the underlying data object. This was
+  broken prior to Python 3.7.4.
+
 - Fix ``PersistentList`` to mark itself as changed after calling
   ``clear``. See `PR 115 <https://github.com/zopefoundation/persistent/pull/115/>`_.
 

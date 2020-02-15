@@ -16,6 +16,8 @@
 
 $Id$"""
 
+import sys
+
 import persistent
 from persistent._compat import IterableUserDict
 
@@ -54,6 +56,17 @@ class PersistentMapping(IterableUserDict, persistent.Persistent):
     __super_setdefault = IterableUserDict.setdefault
     __super_pop = IterableUserDict.pop
     __super_popitem = IterableUserDict.popitem
+
+    if sys.version_info[:3] < (3, 7, 4):
+        # See PersistentList.
+        # See https://github.com/python/cpython/commit/3645d29a1dc2102fdb0f5f0c0129ff2295bcd768
+        def __copy__(self):
+            inst = self.__class__.__new__(self.__class__)
+            inst.__dict__.update(self.__dict__)
+            # Create a copy and avoid triggering descriptors
+            data = self.__dict__['data'] if 'data' in self.__dict__ else self.__dict__['_containers']
+            inst.__dict__["data"] = data.copy()
+            return inst
 
     def __delitem__(self, key):
         self.__super_delitem(key)

@@ -71,3 +71,18 @@ class RememberingJar(object):
         # This isn't what setstate() is supposed to do,
         # but it suffices for the tests.
         obj.__setstate__(self.remembered)
+
+
+def copy_test(self, obj):
+    import copy
+    # Test internal copy
+    obj_copy = obj.copy()
+    self.assertIsNot(obj.data, obj_copy.data)
+    self.assertEqual(obj.data, obj_copy.data)
+
+    # Test copy.copy
+    obj.test = [1234]  # Make sure instance vars are also copied.
+    obj_copy = copy.copy(obj)
+    self.assertIsNot(obj.data, obj_copy.data)
+    self.assertEqual(obj.data, obj_copy.data)
+    self.assertIs(obj.test, obj_copy.test)
