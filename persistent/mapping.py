@@ -64,34 +64,68 @@ class PersistentMapping(IterableUserDict, persistent.Persistent):
         self._p_changed = 1
 
     def clear(self):
+        """
+        Remove all data from this dictionary.
+
+        .. versionchanged:: 4.5.2
+           If there was nothing to remove, this object is no
+           longer marked as modified.
+        """
+        # Historically this method always marked ourself as changed,
+        # so if there was a _container it was persisted as data. We want
+        # to preserve that, even if we won't make any modifications otherwise.
+        needs_changed = '_container' in self.__dict__ or bool(self)
+        # Python 2 implements this by directly calling self.data.clear(),
+        # but Python 3 does so by repeatedly calling self.popitem()
         self.__super_clear()
+        if needs_changed:
+            self._p_changed = 1
+            assert self._p_changed
+
+    def update(self, *args, **kwargs):
+        """
+        D.update([E, ]**F) -> None.
+
+        .. versionchanged:: 4.5.2
+           Now accepts arbitrary keyword arguments. In the special case
+           of a keyword argument named ``b`` that is a dictionary,
+           the behaviour will change.
+        """
+        self.__super_update(*args, **kwargs)
         self._p_changed = 1
 
-    def update(self, b):
-        self.__super_update(b)
-        self._p_changed = 1
+    def setdefault(self, key, *args, **kwargs): # pylint:disable=arguments-differ
+        # (Python 3 and Python 2 have very different signatures.)
 
-    def setdefault(self, key, failobj=None):
         # We could inline all of UserDict's implementation into the
         # method here, but I'd rather not depend at all on the
         # implementation in UserDict (simple as it is).
-        if not key in self.data:
+        if key not in self.data:
             self._p_changed = 1
-        return self.__super_setdefault(key, failobj)
+        return self.__super_setdefault(key, *args, **kwargs)
 
-    def pop(self, key, *args):
+    def pop(self, key, *args, **kwargs): # pylint:disable=arguments-differ
+        # (Python 3 and Python 2 have very different signatures.)
         self._p_changed = 1
-        return self.__super_pop(key, *args)
+        return self.__super_pop(key, *args, **kwargs)
 
     def popitem(self):
+        """
+        Remove an item.
+
+        .. versionchanged:: 4.5.2
+           No longer marks this object as modified if it was empty
+           and an exception raised.
+        """
+        result = self.__super_popitem()
         self._p_changed = 1
-        return self.__super_popitem()
+        return result
 
     # Old implementations used _container rather than data.
     # Use a descriptor to provide data when we have _container instead
 
     @default
-    def data(self):
+    def data(self): # pylint:disable=method-hidden
         # We don't want to cause a write on read, so we're careful not to
         # do anything that would cause us to become marked as changed, however,
         # if we're modified, then the saved record will have data, not

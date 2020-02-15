@@ -13,6 +13,8 @@
 ##############################################################################
 import unittest
 
+from persistent.tests.utils import TrivialJar
+
 # pylint:disable=blacklisted-name, protected-access
 
 class Test_default(unittest.TestCase):
@@ -53,8 +55,13 @@ class PersistentMappingTests(unittest.TestCase):
         from persistent.mapping import PersistentMapping
         return PersistentMapping
 
-    def _makeOne(self, *args, **kw):
-        return self._getTargetClass()(*args, **kw)
+    def _makeJar(self):
+        return TrivialJar()
+
+    def _makeOne(self, *args, **kwargs):
+        inst = self._getTargetClass()(*args, **kwargs)
+        inst._p_jar = self._makeJar()
+        return inst
 
     def test_volatile_attributes_not_persisted(self):
         # http://www.zope.org/Collectors/Zope/2052
@@ -66,7 +73,6 @@ class PersistentMappingTests(unittest.TestCase):
         self.assertFalse('_v_baz' in state)
 
     def testTheWorld(self):
-        from persistent._compat import PYTHON2
         # Test constructors
         l0 = {}
         l1 = {0:0}
@@ -83,6 +89,7 @@ class PersistentMappingTests(unittest.TestCase):
 
         class OtherMapping(dict):
             def __init__(self, initmapping):
+                dict.__init__(self)
                 self.__data = initmapping
             def items(self):
                 raise AssertionError("Not called")
@@ -221,6 +228,59 @@ class PersistentMappingTests(unittest.TestCase):
         self.assertEqual(pm.__dict__, {'data': {'a': 1}})
         self.assertEqual(pm.__getstate__(), {'data': {'a': 1}})
 
+    def test_update_keywords(self):
+        # Prior to https://github.com/zopefoundation/persistent/issues/126,
+        # PersistentMapping didn't accept keyword arguments to update as
+        # the builtin dict and the UserDict do.
+        # Here we make sure it does. We use some names that have been
+        # seen to be special in signatures as well to make sure that
+        # we don't interpret them incorrectly.
+        pm = self._makeOne()
+        # Our older implementation was ``def update(self, b)``, so ``b``
+        # is potentially a keyword argument in the wild; the behaviour in that
+        # corner case has changed.
+        pm.update(b={'a': 42})
+        self.assertEqual(pm, {'b': {'a': 42}})
+
+        pm = self._makeOne()
+        # Our previous implementation would explode with a TypeError
+        pm.update(b=42)
+        self.assertEqual(pm, {'b': 42})
+
+        pm = self._makeOne()
+        # ``other`` shows up in a Python 3 signature.
+        pm.update(other=42)
+        self.assertEqual(pm, {'other': 42})
+        pm = self._makeOne()
+        pm.update(other={'a': 42})
+        self.assertEqual(pm, {'other': {'a': 42}})
+
+        pm = self._makeOne()
+        pm.update(a=1, b=2)
+        self.assertEqual(pm, {'a': 1, 'b': 2})
+
+    def test_clear_nonempty(self):
+        pm = self._makeOne({'a': 42})
+        self.assertFalse(pm._p_changed)
+        pm.clear()
+        self.assertTrue(pm._p_changed)
+
+    def test_clear_empty(self):
+        pm = self._makeOne()
+        self.assertFalse(pm._p_changed)
+        pm.clear()
+        self.assertFalse(pm._p_changed)
+
+    def test_clear_empty_legacy_container(self):
+        pm = self._makeOne()
+        pm.__dict__['_container'] = pm.__dict__.pop('data')
+        self.assertFalse(pm._p_changed)
+        pm.clear()
+        # Migration happened
+        self.assertIn('data', pm.__dict__)
+        # and we are marked as changed.
+        self.assertTrue(pm._p_changed)
+
 
 class Test_legacy_PersistentDict(unittest.TestCase):
 
@@ -230,7 +290,7 @@ class Test_legacy_PersistentDict(unittest.TestCase):
 
     def test_PD_is_alias_to_PM(self):
         from persistent.mapping import PersistentMapping
-        self.assertTrue(self._getTargetClass() is PersistentMapping)
+        self.assertIs(self._getTargetClass(), PersistentMapping)
 
 
 def test_suite():

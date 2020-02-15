@@ -4,8 +4,20 @@
 4.5.2 (unreleased)
 ------------------
 
-- Fixed ``PersistentList`` to mark itself as changed after calling
+- Fix ``PersistentList`` to mark itself as changed after calling
   ``clear``. See `PR 115 <https://github.com/zopefoundation/persistent/pull/115/>`_.
+
+- Fix ``PersistentMapping.update`` to accept keyword arguments like
+  the native ``UserDict``. Previously, most uses of keyword arguments
+  resulted in ``TypeError``; in the undocumented and extremely
+  unlikely event of a single keyword argument called ``b`` that
+  happens to be a dictionary, the behaviour will change. Also adjust
+  the signatures of ``setdefault`` and ``pop`` to match the native
+  version.
+
+- Fix ``PersistentList.clear``, ``PersistentMapping.clear`` and
+  ``PersistentMapping.popitem`` to no longer mark the object as
+  changed if it was empty.
 
 4.5.1 (2019-11-06)
 ------------------
