@@ -271,7 +271,8 @@ class TestPList(unittest.TestCase):
         self.assertEqual(inst, [1, 2, 3])
         self.assertTrue(inst._p_changed)
 
-    def test_delslice_nonempty(self):
+    def test_delslice_all_nonempty_list(self):
+        # Delete everything from a non-empty list
         inst = self._makeOne([1, 2, 3])
         self.assertFalse(inst._p_changed)
         self.assertEqual(inst, [1, 2, 3])
@@ -279,7 +280,23 @@ class TestPList(unittest.TestCase):
         self.assertEqual(inst, [])
         self.assertTrue(inst._p_changed)
 
-    def test_delslice_empty(self):
+    def test_delslice_sub_nonempty_list(self):
+        # delete a sub-list from a non-empty list
+        inst = self._makeOne([0, 1, 2, 3])
+        self.assertFalse(inst._p_changed)
+        del inst[1:2]
+        self.assertEqual(inst, [0, 2, 3])
+        self.assertTrue(inst._p_changed)
+
+    def test_delslice_empty_nonempty_list(self):
+        # delete an empty sub-list from a non-empty list
+        inst = self._makeOne([0, 1, 2, 3])
+        self.assertFalse(inst._p_changed)
+        del inst[1:1]
+        self.assertEqual(inst, [0, 1, 2, 3])
+        self.assertFalse(inst._p_changed)
+
+    def test_delslice_all_empty_list(self):
         inst = self._makeOne([])
         self.assertFalse(inst._p_changed)
         self.assertEqual(inst, [])
@@ -376,6 +393,7 @@ class TestPList(unittest.TestCase):
         inst = self._makeOne()
         inst.append(42)
         copy_test(self, inst)
+
 
 def test_suite():
     return unittest.defaultTestLoader.loadTestsFromName(__name__)

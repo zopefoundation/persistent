@@ -13,11 +13,9 @@
 ##############################################################################
 import unittest
 
-<<<<<<< HEAD
+
 from persistent.tests.utils import TrivialJar
-=======
 from persistent.tests.utils import copy_test
->>>>>>> Fix slicing and copying of PersistentList and PersistentMapping.
 
 # pylint:disable=blacklisted-name, protected-access
 

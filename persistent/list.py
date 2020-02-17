@@ -31,8 +31,8 @@ class PersistentList(UserList, persistent.Persistent):
     as changed and automatically persisted.
 
     .. versionchanged:: 4.5.2
-       Using the `clear` method, or writing ``del inst[:]`` now only
-       results in marking the instance as changed if it actually removed
+       Using the `clear` method, or deleting a slice (e.g., ``del inst[:]`` or ``del inst[x:x]``)
+       now only results in marking the instance as changed if it actually removed
        items.
     .. versionchanged:: 4.5.2
        The `copy` method is available on Python 2.
@@ -52,7 +52,7 @@ class PersistentList(UserList, persistent.Persistent):
     __super_clear = (
         UserList.clear
         if hasattr(UserList, 'clear')
-        else lambda inst: inst.__delitem__(slice(None, None, None))
+        else lambda inst: inst.__delitem__(_SLICE_ALL)
     )
 
     if (2, 7, 0) < sys.version_info[:3] < (3, 7, 4):
@@ -84,10 +84,11 @@ class PersistentList(UserList, persistent.Persistent):
 
     def __delitem__(self, i):
         # If they write del list[:] but we're empty,
-        # no need to mark us changed.
-        needs_changed = i != _SLICE_ALL or bool(self)
+        # no need to mark us changed. Likewise with
+        # a slice that's empty, like list[1:1].
+        len_before = len(self.data)
         self.__super_delitem(i)
-        if needs_changed:
+        if len(self.data) != len_before:
             self._p_changed = 1
 
     if PYTHON2:  # pragma: no cover
@@ -102,19 +103,11 @@ class PersistentList(UserList, persistent.Persistent):
             self._p_changed = 1
 
         def __delslice__(self, i, j):
-            # On Python 2, the slice dunders, like ``__delslice__``,
-            # are documented as getting ``(0, sys.maxsize)`` as the
-            # arguments for list[:]. Prior to 2.7.10, it was
-            # incorrectly documented as ``(0, sys.maxint)``, but that
-            # usually worked because ``sys.maxsize`` and
-            # ``sys.maxint`` are usually the same. But on 64-bit
-            # Windown, where ``sizeof(int) == sizeof(long) == 4``,
-            # they're different (``sys.maxsize`` is bigger). See
-            # https://bugs.python.org/issue23645
-            needs_changed = i == 0 and j == sys.maxsize and bool(self)
-            self.__super_delslice(i, j)
-            if needs_changed:
-                self._p_changed = 1
+            # In the past we just called super, but we want to apply the
+            # same _p_changed optimization logic that __delitem__ does. Don't
+            # call it as ``self.__delitem__``, though, because user code in subclasses
+            # on Python 2 may not be expecting to get a slice.
+            PersistentList.__delitem__(self, slice(i, j))
 
     def __iadd__(self, other):
         L = self.__super_iadd(other)
