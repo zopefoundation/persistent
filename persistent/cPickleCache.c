@@ -627,30 +627,7 @@ cc_oid_unreferenced(ccobject *self, PyObject *oid)
         to decref an already deleted object.
     */
 
-#if defined(Py_TRACE_REFS) && !defined(Py_LIMITED_API)
-    /* This is called from the deallocation function after the
-        interpreter has untracked the reference.  Track it again.
-	Starting in 3.9, these functions aren't available with the
-	stable (limited) API and are only defined when they do something.
-
-	XXX: Why? Why not simply INCREF it? The CPython documentation
-	explicitly states these functions are for internal use only.
-    */
-    _Py_NewReference(dead_pers_obj);
-    /* Don't increment total refcount as a result of the
-        shenanigans played in this function.  The _Py_NewReference()
-        call above creates artificial references to v.
-
-	This variable was was completely removed in 3.9 unless
-	Py_REF_DEBUG is also defined.
-    */
-#if PY_VERSION_HEX < 0x03090000 || defined(Py_REF_DEBUG)
-    _Py_RefTotal--;
-#endif
-    assert(dead_pers_obj->ob_type);
-#else
     Py_INCREF(dead_pers_obj);
-#endif
     assert(dead_pers_obj->ob_refcnt == 1);
     /* Incremement the refcount again, because delitem is going to
         DECREF it.  If its refcount reached zero again, we'd call back to
@@ -658,9 +635,11 @@ cc_oid_unreferenced(ccobject *self, PyObject *oid)
     */
     Py_INCREF(dead_pers_obj);
 
-    /* TODO:  Should we call _Py_ForgetReference() on error exit? */
     if (PyDict_DelItem(self->data, oid) < 0)
         return;
+    /* Now remove the dead object's reference to self. Note that this could
+       cause self to be dealloced.
+    */
     Py_DECREF((ccobject *)((cPersistentObject *)dead_pers_obj)->cache);
     ((cPersistentObject *)dead_pers_obj)->cache = NULL;
 
@@ -670,10 +649,6 @@ cc_oid_unreferenced(ccobject *self, PyObject *oid)
         the object's dealloc function. If the refcnt reaches zero, it
         will all be invoked recursively.
     */
-#if defined(Py_TRACE_REFS) && !defined(Py_LIMITED_API)
-    /* But we need to undo the temporary resurrection. */
-    _Py_ForgetReference(dead_pers_obj);
-#endif
 }
 
 static PyObject *
