@@ -614,54 +614,61 @@ cc_oid_unreferenced(ccobject *self, PyObject *oid)
         not release the global interpreter lock until this is
         complete. */
 
-    PyObject *v;
+    PyObject *dead_pers_obj;
 
     /* If the cache has been cleared by GC, data will be NULL. */
     if (!self->data)
         return;
 
-    v = PyDict_GetItem(self->data, oid);
-    assert(v);
-    assert(v->ob_refcnt == 0);
+    dead_pers_obj = PyDict_GetItem(self->data, oid);
+    assert(dead_pers_obj);
+    assert(dead_pers_obj->ob_refcnt == 0);
     /* Need to be very hairy here because a dictionary is about
         to decref an already deleted object.
     */
 
-#ifdef Py_TRACE_REFS
+#if defined(Py_TRACE_REFS) && !defined(Py_LIMITED_API)
     /* This is called from the deallocation function after the
         interpreter has untracked the reference.  Track it again.
+	Starting in 3.9, these functions aren't available with the
+	stable (limited) API.
+
+	XXX: Why? Why not simply INCREF it? The CPython documentation
+	explicitly states these functions are for internal use only.
     */
-    _Py_NewReference(v);
+    _Py_NewReference(dead_pers_obj);
     /* Don't increment total refcount as a result of the
         shenanigans played in this function.  The _Py_NewReference()
         call above creates artificial references to v.
     */
     _Py_RefTotal--;
-    assert(v->ob_type);
+    assert(dead_pers_obj->ob_type);
 #else
-    Py_INCREF(v);
+    Py_INCREF(dead_pers_obj);
 #endif
-    assert(v->ob_refcnt == 1);
+    assert(dead_pers_obj->ob_refcnt == 1);
     /* Incremement the refcount again, because delitem is going to
-        DECREF it.  If it's refcount reached zero again, we'd call back to
+        DECREF it.  If its refcount reached zero again, we'd call back to
         the dealloc function that called us.
     */
-    Py_INCREF(v);
+    Py_INCREF(dead_pers_obj);
 
     /* TODO:  Should we call _Py_ForgetReference() on error exit? */
     if (PyDict_DelItem(self->data, oid) < 0)
         return;
-    Py_DECREF((ccobject *)((cPersistentObject *)v)->cache);
-    ((cPersistentObject *)v)->cache = NULL;
+    Py_DECREF((ccobject *)((cPersistentObject *)dead_pers_obj)->cache);
+    ((cPersistentObject *)dead_pers_obj)->cache = NULL;
 
-    assert(v->ob_refcnt == 1);
+    assert(dead_pers_obj->ob_refcnt == 1);
 
-    /* Undo the temporary resurrection.
-        Don't DECREF the object, because this function is called from
+    /* Don't DECREF the object, because this function is called from
         the object's dealloc function. If the refcnt reaches zero, it
         will all be invoked recursively.
     */
-    _Py_ForgetReference(v);
+#if defined(Py_TRACE_REFS) && !defined(Py_LIMITED_API)
+    /* But we need to undo the temporary resurrection. */
+    _Py_ForgetReference(dead_pers_obj);
+#endif
 }
 
 static PyObject *
