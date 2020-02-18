@@ -631,7 +631,7 @@ cc_oid_unreferenced(ccobject *self, PyObject *oid)
     /* This is called from the deallocation function after the
         interpreter has untracked the reference.  Track it again.
 	Starting in 3.9, these functions aren't available with the
-	stable (limited) API.
+	stable (limited) API and are only defined when they do something.
 
 	XXX: Why? Why not simply INCREF it? The CPython documentation
 	explicitly states these functions are for internal use only.
@@ -640,8 +640,13 @@ cc_oid_unreferenced(ccobject *self, PyObject *oid)
     /* Don't increment total refcount as a result of the
         shenanigans played in this function.  The _Py_NewReference()
         call above creates artificial references to v.
+
+	This variable was was completely removed in 3.9 unless
+	Py_REF_DEBUG is also defined.
     */
+#if PY_VERSION_HEX < 0x03090000 || defined(Py_REF_DEBUG)
     _Py_RefTotal--;
+#endif
     assert(dead_pers_obj->ob_type);
 #else
     Py_INCREF(dead_pers_obj);
