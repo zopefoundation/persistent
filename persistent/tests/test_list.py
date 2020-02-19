@@ -16,6 +16,8 @@
 
 import unittest
 
+from persistent.tests.utils import TrivialJar
+
 l0 = []
 l1 = [0]
 l2 = [0, 1]
@@ -30,6 +32,7 @@ class OtherList:
     def __getitem__(self, i):
         return self.__data[i]
 
+
 class TestPList(unittest.TestCase):
 
     def _getTargetClass(self):
@@ -37,10 +40,7 @@ class TestPList(unittest.TestCase):
         return PersistentList
 
     def _makeJar(self):
-        class Jar(object):
-            def register(self, obj):
-                "no-op"
-        return Jar()
+        return TrivialJar()
 
     def _makeOne(self, *args):
         inst = self._getTargetClass()(*args)
