@@ -5,6 +5,11 @@ env:
     - TWINE_USERNAME: zope.wheelbuilder
     # this sets $PYPIPASSWORD
     - secure: "NTWzDr5p8KRPNt+sniTot7csbzC87rzir/XfLtENE0GpQ49FlKw3lBhsDqAPoD8Ea5lwiHXmC/C/ci1UZhFvVEkAoQ2qJlMRnhqUdRJSrqcitmRt0fT6mLaTd+Lr+DxKlBxpssobrEm2G42V/G1s0Ggym04OqF8T+s6MF5ywgJM="
+    # We want to require the C extensions to build and function
+    # everywhere (except where we specifically opt-out, currently just
+    # PyPy, where they build but don't quite work).
+    - PURE_PYTHON: 0
+
 
 python:
   - 2.7
@@ -12,11 +17,15 @@ python:
   - 3.6
   - 3.7
   - 3.8
-  - pypy
-  - pypy3
 
 jobs:
   include:
+    # Don't test C extensions on PyPy.
+    - python: pypy
+      env: PURE_PYTHON=1
+
+    - python: pypy3
+      env: PURE_PYTHON=1
 
     # Special Linux builds
     - name: "Python: 2.7, pure (no C extensions)"

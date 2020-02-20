@@ -37,8 +37,8 @@ typedef unsigned long long uint64_t;
 #  include <inttypes.h>
 #endif
 
-/* These two objects are initialized when the module is loaded */
-static PyObject *TimeStamp, *py_simple_new;
+/* These objects are initialized when the module is loaded */
+static PyObject *py_simple_new;
 
 /* Strings initialized by init_strings() below. */
 static PyObject *py_keys, *py_setstate, *py___dict__, *py_timeTime;
@@ -1257,6 +1257,7 @@ Per_set_serial(cPersistentObject *self, PyObject *v)
 static PyObject *
 Per_get_mtime(cPersistentObject *self)
 {
+    static PyObject* TimeStamp;
     PyObject *t, *v;
 
     if (unghostify(self) < 0)
@@ -1268,6 +1269,18 @@ Per_get_mtime(cPersistentObject *self)
     {
         Py_INCREF(Py_None);
         return Py_None;
+    }
+
+    if (!TimeStamp)
+    {
+        PyObject* ts_module;
+        ts_module = PyImport_ImportModule("persistent._timestamp");
+        if (!ts_module)
+            return NULL;
+        TimeStamp = PyObject_GetAttrString(ts_module, "TimeStamp");
+        if (!TimeStamp)
+          return NULL;
+        Py_DECREF(ts_module);
     }
 
 #ifdef PY3K
@@ -1701,7 +1714,7 @@ static struct PyModuleDef moduledef =
 static PyObject*
 module_init(void)
 {
-    PyObject *module, *ts_module, *capi;
+    PyObject *module, *capi;
     PyObject *copy_reg;
 
     if (init_strings() < 0)
@@ -1777,15 +1790,6 @@ module_init(void)
       return NULL;
     }
 
-    if (!TimeStamp)
-    {
-      ts_module = PyImport_ImportModule("persistent.timestamp");
-      if (!ts_module)
-        return NULL;
-      TimeStamp = PyObject_GetAttrString(ts_module, "TimeStamp");
-      Py_DECREF(ts_module);
-      /* fall through to immediate return on error */
-    }
     return module;
 }
 

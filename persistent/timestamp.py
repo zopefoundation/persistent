@@ -18,7 +18,7 @@ import math
 import struct
 import sys
 
-from persistent._compat import PURE_PYTHON
+from persistent._compat import use_c_impl
 
 _RAWTYPE = bytes
 _MAXINT = sys.maxsize
@@ -79,8 +79,10 @@ def _parseRaw(octets):
     second = b * _TS_SECOND_BYTES_BIAS
     return (year, month, day, hour, minute, second)
 
+TimeStampPy = None
 
-class pyTimeStamp(object):
+@use_c_impl
+class TimeStamp(object):
     __slots__ = ('_raw', '_elements')
 
     def __init__(self, *args):
@@ -210,11 +212,3 @@ class pyTimeStamp(object):
             return self.raw() >= other.raw()
         except AttributeError:
             return NotImplemented
-
-
-try:
-    from persistent._timestamp import TimeStamp as CTimeStamp
-except ImportError: # pragma: no cover
-    CTimeStamp = None
-
-TimeStamp = pyTimeStamp if PURE_PYTHON or CTimeStamp is None else CTimeStamp

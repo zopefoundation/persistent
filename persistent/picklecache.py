@@ -16,17 +16,22 @@ import weakref
 
 
 from zope.interface import implementer
+from zope.interface import classImplements
 
+from persistent._compat import use_c_impl
 from persistent.interfaces import GHOST
+from persistent.interfaces import IPickleCache
 from persistent.interfaces import IExtendedPickleCache
 from persistent.interfaces import OID_TYPE
 from persistent.interfaces import UPTODATE
-from persistent.persistence import Persistent
+from persistent.persistence import PersistentPy
 from persistent.persistence import _estimated_size_in_24_bits
+from persistent.ring import Ring
 
-# Tests may modify this to add additional types
-_CACHEABLE_TYPES = (type, Persistent)
-_SWEEPABLE_TYPES = (Persistent,)
+# We're tightly coupled to the PersistentPy implementation and access
+# its internals.
+# pylint:disable=protected-access
+
 
 # On Jython, we need to explicitly ask it to monitor
 # objects if we want a more deterministic GC
@@ -51,10 +56,20 @@ def _sweeping_ring(f):
             self._is_sweeping_ring = False
     return locked
 
-from .ring import Ring
+# This name will be replaced by the use_c_impl decorator.
+PickleCachePy = None
 
-@implementer(IExtendedPickleCache)
+@use_c_impl
+# We actually implement IExtendedPickleCache, but
+# the C version does not, and our interface declarations are
+# copied over by the decorator. So we make the declaration
+# of IExtendedPickleCache later.
+@implementer(IPickleCache)
 class PickleCache(object):
+
+    # Tests may modify this to add additional types
+    _CACHEABLE_TYPES = (type, PersistentPy)
+    _SWEEPABLE_TYPES = (PersistentPy,)
 
     total_estimated_size = 0
     cache_size_bytes = 0
@@ -107,7 +122,7 @@ class PickleCache(object):
         # the ZODB tests depend on this
 
         # The C impl requires either a type or a Persistent subclass
-        if not isinstance(value, _CACHEABLE_TYPES):
+        if not isinstance(value, self._CACHEABLE_TYPES):
             raise TypeError("Cache values must be persistent objects.")
 
         value_oid = value._p_oid
@@ -117,7 +132,6 @@ class PickleCache(object):
         if value_oid != oid:
             raise ValueError("Cache key does not match oid")
 
-        # XXX
         if oid in self.persistent_classes or oid in self.data:
             # Have to be careful here, a GC might have just run
             # and cleaned up the object
@@ -274,17 +288,19 @@ class PickleCache(object):
     def debug_info(self):
         result = []
         for oid, klass in self.persistent_classes.items():
-            result.append((oid,
-                            len(gc.get_referents(klass)),
-                            type(klass).__name__,
-                            klass._p_state,
-                            ))
+            result.append((
+                oid,
+                len(gc.get_referents(klass)),
+                type(klass).__name__,
+                klass._p_state,
+            ))
         for oid, value in self.data.items():
-            result.append((oid,
-                            len(gc.get_referents(value)),
-                            type(value).__name__,
-                            value._p_state,
-                            ))
+            result.append((
+                oid,
+                len(gc.get_referents(value)),
+                type(value).__name__,
+                value._p_state,
+            ))
         return result
 
     def update_object_size_estimation(self, oid, new_size):
@@ -363,7 +379,7 @@ class PickleCache(object):
                     # Test-cases sneak in non-Persistent objects, sigh, so naturally
                     # they don't cooperate (without this check a bunch of test_picklecache
                     # breaks)
-                    or not isinstance(value, _SWEEPABLE_TYPES)):
+                    or not isinstance(value, self._SWEEPABLE_TYPES)):
                     to_eject.append((i, value))
                     self.non_ghost_count -= 1
 
@@ -378,7 +394,7 @@ class PickleCache(object):
         value = self.data.get(oid)
         if value is not None and value._p_state != GHOST:
             value._p_invalidate()
-            was_in_ring = self.ring.delete(value)
+            self.ring.delete(value)
             self.non_ghost_count -= 1
         elif oid in self.persistent_classes:
             persistent_class = self.persistent_classes.pop(oid)
@@ -389,3 +405,6 @@ class PickleCache(object):
                 persistent_class._p_invalidate()
             except AttributeError:
                 pass
+
+
+classImplements(PickleCachePy, IExtendedPickleCache)

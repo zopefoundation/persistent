@@ -92,3 +92,27 @@ def copy_test(self, obj):
     self.assertEqual(obj.data, obj_copy.data)
 
     return obj_copy
+
+
+def skipIfNoCExtension(o):
+    import unittest
+    from persistent._compat import _should_attempt_c_optimizations
+    from persistent._compat import _c_optimizations_available
+    from persistent._compat import _c_optimizations_ignored
+
+    if _should_attempt_c_optimizations() and not _c_optimizations_available(): # pragma: no cover
+        return unittest.expectedFailure(o)
+    return unittest.skipIf(
+        _c_optimizations_ignored() or not _c_optimizations_available(),
+        "The C extension is not available"
+    )(o)
+
+
+def skipIfPurePython(o):
+    import unittest
+    from persistent._compat import _should_attempt_c_optimizations
+
+    return unittest.skipUnless(
+        _should_attempt_c_optimizations(),
+        "Cannot mix and match implementations"
+    )(o)

@@ -16,25 +16,16 @@ import platform
 import unittest
 
 from persistent.interfaces import UPTODATE
+from persistent.tests.utils import skipIfNoCExtension
+from persistent.tests.utils import skipIfPurePython
 
 # pylint:disable=protected-access,too-many-lines,too-many-public-methods
+# pylint:disable=attribute-defined-outside-init,redefined-outer-name
 
 _is_pypy = platform.python_implementation() == 'PyPy'
 
 _marker = object()
 
-def skipIfNoCExtension(o):
-    import persistent
-    return unittest.skipIf(
-        persistent._cPickleCache is None,
-        "The C extension is not available")(o)
-
-def skipIfPurePython(o):
-    import persistent._compat
-    return unittest.skipIf(
-        persistent._compat.PURE_PYTHON,
-        "Cannot mix and match implementations"
-    )(o)
 
 class PickleCacheTests(unittest.TestCase):
 
@@ -43,18 +34,10 @@ class PickleCacheTests(unittest.TestCase):
                                 'assertRaisesRegex',
                                 unittest.TestCase.assertRaisesRegexp)
 
-
-    def setUp(self):
-        import persistent.picklecache
-        self.orig_types = persistent.picklecache._CACHEABLE_TYPES
-        persistent.picklecache._CACHEABLE_TYPES += (DummyPersistent,)
-
-    def tearDown(self):
-        import persistent.picklecache
-        persistent.picklecache._CACHEABLE_TYPES = self.orig_types
-
     def _getTargetClass(self):
-        from persistent.picklecache import PickleCache
+        from persistent import PickleCachePy as BasePickleCache
+        class PickleCache(BasePickleCache):
+            _CACHEABLE_TYPES = BasePickleCache._CACHEABLE_TYPES + (DummyPersistent,)
         return PickleCache
 
     def _getTargetInterface(self):
@@ -669,13 +652,9 @@ class PythonPickleCacheTests(PickleCacheTests):
 
         p._p_deactivate = bad_deactivate
 
-        import persistent.picklecache
-        sweep_types = persistent.picklecache._SWEEPABLE_TYPES
-        persistent.picklecache._SWEEPABLE_TYPES = DummyPersistent
-        try:
-            self.assertEqual(cache.full_sweep(), 0)
-        finally:
-            persistent.picklecache._SWEEPABLE_TYPES = sweep_types
+        cache._SWEEPABLE_TYPES = DummyPersistent
+        self.assertEqual(cache.full_sweep(), 0)
+        del cache._SWEEPABLE_TYPES
 
         del p._p_deactivate
         self.assertEqual(cache.full_sweep(), 1)
@@ -1096,14 +1075,26 @@ class PythonPickleCacheTests(PickleCacheTests):
 class CPickleCacheTests(PickleCacheTests):
 
     def _getTargetClass(self):
-        from persistent.cPickleCache import PickleCache
-        return PickleCache
+        from persistent._compat import _c_optimizations_available as get_c
+        return get_c()['persistent.picklecache'].PickleCache
 
     def _getDummyPersistentClass(self):
         from persistent import Persistent
         class DummyPersistent(Persistent):
             __slots__ = ()
         return DummyPersistent
+
+    def test_inst_does_not_conform_to_IExtendedPickleCache(self):
+        from persistent.interfaces import IExtendedPickleCache
+        from zope.interface.verify import verifyObject
+        from zope.interface.exceptions import DoesNotImplement
+        from zope.interface.exceptions import BrokenImplementation
+        # We don't claim to implement it.
+        with self.assertRaises(DoesNotImplement):
+            verifyObject(IExtendedPickleCache, self._makeOne())
+        # And we don't even provide everything it asks for.
+        with self.assertRaises(BrokenImplementation):
+            verifyObject(IExtendedPickleCache, self._makeOne(), tentative=True)
 
     def test___setitem___persistent_class(self):
         cache = super(CPickleCacheTests, self).test___setitem___persistent_class()
@@ -1112,17 +1103,17 @@ class CPickleCacheTests(PickleCacheTests):
     def test_cache_garbage_collection_bytes_with_cache_size_0(self):
 
         class DummyConnection(object):
-          def register(self, obj):
-            pass
+            def register(self, obj):
+                pass
 
         dummy_connection = DummyConnection()
         dummy_connection.register(1) # for coveralls
 
         def makePersistent(oid):
-           persist = self._getDummyPersistentClass()()
-           persist._p_oid = oid
-           persist._p_jar = dummy_connection
-           return persist
+            persist = self._getDummyPersistentClass()()
+            persist._p_oid = oid
+            persist._p_jar = dummy_connection
+            return persist
 
         cache = self._getTargetClass()(dummy_connection)
         dummy_connection._cache = cache

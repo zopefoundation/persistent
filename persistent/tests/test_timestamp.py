@@ -14,10 +14,11 @@
 import unittest
 import sys
 
+from persistent.tests.utils import skipIfNoCExtension
+
 MAX_32_BITS = 2 ** 31 - 1
 MAX_64_BITS = 2 ** 63 - 1
 
-import persistent.timestamp
 
 class Test__UTC(unittest.TestCase):
 
@@ -47,10 +48,10 @@ class Test__UTC(unittest.TestCase):
         self.assertTrue(utc.fromutc(source) is source)
 
 
-class pyTimeStampTests(unittest.TestCase):
+class TimeStampTests(unittest.TestCase):
 
     def _getTargetClass(self):
-        from persistent.timestamp import pyTimeStamp
+        from persistent.timestamp import TimeStampPy as pyTimeStamp
         return pyTimeStamp
 
     def _makeOne(self, *args, **kw):
@@ -198,14 +199,74 @@ class pyTimeStampTests(unittest.TestCase):
                 check(op, passes)
 
 
-class TimeStampTests(pyTimeStampTests):
+class pyTimeStampTests(TimeStampTests):
+    # Things specific to the Python implementation
+
+    def test_py_hash_32_64_bit(self):
+        # We happen to know that on a 32-bit platform, the hashcode
+        # of the c version should be exactly
+        # -1419374591
+        # and the 64-bit should be exactly:
+        # -3850693964765720575
+        # Fake out the python version to think it's on a 32-bit
+        # platform and test the same; also verify 64 bit
+        from persistent import timestamp as MUT
+
+        # The instant in time 1229959248.3 split as the result of this expression:
+        #    (time.gmtime(now)[:5] + (now % 60,))
+        now_ts_args = (2008, 12, 22, 15, 20, 48.299999952316284)
+
+        bit_32_hash = -1419374591
+        bit_64_hash = -3850693964765720575
+        # pylint:disable=protected-access
+        orig_maxint = MUT._MAXINT
+
+        is_32_bit_hash = orig_maxint == MAX_32_BITS
+
+        orig_c_long = None
+        c_int64 = None
+        c_int32 = None
+        if hasattr(MUT, 'c_long'):
+            import ctypes
+            orig_c_long = MUT.c_long
+            c_int32 = ctypes.c_int32
+            c_int64 = ctypes.c_int64
+            # win32, even on 64-bit long, has funny sizes
+            is_32_bit_hash = c_int32 == ctypes.c_long
+
+        try:
+            MUT._MAXINT = MAX_32_BITS
+            MUT.c_long = c_int32
+
+            py = self._makeOne(*now_ts_args)
+            self.assertEqual(hash(py), bit_32_hash)
+
+            MUT._MAXINT = int(2 ** 63 - 1)
+            MUT.c_long = c_int64
+            # call __hash__ directly to avoid interpreter truncation
+            # in hash() on 32-bit platforms
+            self.assertEqual(py.__hash__(), bit_64_hash)
+        finally:
+            MUT._MAXINT = orig_maxint
+            if orig_c_long is not None:
+                MUT.c_long = orig_c_long
+            else: # pragma: no cover
+                del MUT.c_long
+
+        # These are *usually* aliases, but aren't required
+        # to be
+        expected_hash = bit_32_hash if is_32_bit_hash else bit_64_hash
+        self.assertEqual(py.__hash__(), expected_hash)
+
+
+class CTimeStampTests(TimeStampTests):
 
     def _getTargetClass(self):
         from persistent.timestamp import TimeStamp
         return TimeStamp
 
-@unittest.skipIf(persistent.timestamp.CTimeStamp is None,
-                 "CTimeStamp not available")
+
+@skipIfNoCExtension
 class PyAndCComparisonTests(unittest.TestCase):
     """
     Compares C and Python implementations.
@@ -225,11 +286,11 @@ class PyAndCComparisonTests(unittest.TestCase):
             yield self.now_ts_args[:-1] + (self.now_ts_args[-1] + (i % 60.0)/100.0, )
 
     def _makeC(self, *args, **kwargs):
-        from persistent.timestamp import TimeStamp
-        return TimeStamp(*args, **kwargs)
+        from persistent._compat import _c_optimizations_available as get_c
+        return get_c()['persistent.timestamp'].TimeStamp(*args, **kwargs)
 
     def _makePy(self, *args, **kwargs):
-        from persistent.timestamp import pyTimeStamp
+        from persistent.timestamp import TimeStampPy as pyTimeStamp
         return pyTimeStamp(*args, **kwargs)
 
     def _make_C_and_Py(self, *args, **kwargs):
@@ -256,56 +317,6 @@ class PyAndCComparisonTests(unittest.TestCase):
     def test_hash_equal(self):
         c, py = self._make_C_and_Py(*self.now_ts_args)
         self.assertEqual(hash(c), hash(py))
-
-    def test_py_hash_32_64_bit(self):
-        # We happen to know that on a 32-bit platform, the hashcode
-        # of the c version should be exactly
-        # -1419374591
-        # and the 64-bit should be exactly:
-        # -3850693964765720575
-        # Fake out the python version to think it's on a 32-bit
-        # platform and test the same; also verify 64 bit
-        from persistent import timestamp as MUT
-        bit_32_hash = -1419374591
-        bit_64_hash = -3850693964765720575
-        orig_maxint = MUT._MAXINT
-
-        is_32_bit_hash = orig_maxint == MAX_32_BITS
-
-        orig_c_long = None
-        c_int64 = None
-        c_int32 = None
-        if hasattr(MUT, 'c_long'):
-            import ctypes
-            orig_c_long = MUT.c_long
-            c_int32 = ctypes.c_int32
-            c_int64 = ctypes.c_int64
-            # win32, even on 64-bit long, has funny sizes
-            is_32_bit_hash = c_int32 == ctypes.c_long
-
-        try:
-            MUT._MAXINT = MAX_32_BITS
-            MUT.c_long = c_int32
-
-            py = self._makePy(*self.now_ts_args)
-            self.assertEqual(hash(py), bit_32_hash)
-
-            MUT._MAXINT = int(2 ** 63 - 1)
-            MUT.c_long = c_int64
-            # call __hash__ directly to avoid interpreter truncation
-            # in hash() on 32-bit platforms
-            self.assertEqual(py.__hash__(), bit_64_hash)
-        finally:
-            MUT._MAXINT = orig_maxint
-            if orig_c_long is not None:
-                MUT.c_long = orig_c_long
-            else: # pragma: no cover
-                del MUT.c_long
-
-        # These are *usually* aliases, but aren't required
-        # to be
-        expected_hash = bit_32_hash if is_32_bit_hash else bit_64_hash
-        self.assertEqual(py.__hash__(), expected_hash)
 
     def test_hash_equal_constants(self):
         # The simple constants make it easier to diagnose
