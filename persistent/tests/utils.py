@@ -75,14 +75,20 @@ class RememberingJar(object):
 
 def copy_test(self, obj):
     import copy
-    # Test internal copy
-    obj_copy = obj.copy()
-    self.assertIsNot(obj.data, obj_copy.data)
-    self.assertEqual(obj.data, obj_copy.data)
-
-    # Test copy.copy
+    # Test copy.copy. Do this first, because depending on the
+    # version of Python, `UserDict.copy()` may wind up
+    # mutating the original object's ``data`` (due to our
+    # BWC with ``_container``). This shows up only as a failure
+    # of coverage.
     obj.test = [1234]  # Make sure instance vars are also copied.
     obj_copy = copy.copy(obj)
     self.assertIsNot(obj.data, obj_copy.data)
     self.assertEqual(obj.data, obj_copy.data)
     self.assertIs(obj.test, obj_copy.test)
+
+    # Test internal copy
+    obj_copy = obj.copy()
+    self.assertIsNot(obj.data, obj_copy.data)
+    self.assertEqual(obj.data, obj_copy.data)
+
+    return obj_copy

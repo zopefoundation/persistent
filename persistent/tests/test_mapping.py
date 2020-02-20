@@ -286,7 +286,21 @@ class PersistentMappingTests(unittest.TestCase):
     def test_copy(self):
         pm = self._makeOne()
         pm['key'] = 42
-        copy_test(self, pm)
+        copy = copy_test(self, pm)
+        self.assertEqual(42, copy['key'])
+
+    def test_copy_legacy_container(self):
+        pm = self._makeOne()
+        pm['key'] = 42
+        pm.__dict__['_container'] = pm.__dict__.pop('data')
+
+        self.assertNotIn('data', pm.__dict__)
+        self.assertIn('_container', pm.__dict__)
+
+        copy = copy_test(self, pm)
+        self.assertNotIn('_container', copy.__dict__)
+        self.assertIn('data', copy.__dict__)
+        self.assertEqual(42, copy['key'])
 
 
 class Test_legacy_PersistentDict(unittest.TestCase):
