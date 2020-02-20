@@ -55,8 +55,8 @@ class PersistentList(UserList, persistent.Persistent):
         else lambda inst: inst.__delitem__(_SLICE_ALL)
     )
 
-    if (2, 7, 0) < sys.version_info[:3] < (3, 7, 4):
-        # Prior to 3.7.4, Python 3 failed to properly
+    if not PYTHON2 and sys.version_info[:3] < (3, 7, 4):
+        # Prior to 3.7.4, Python 3 (but not Python 2) failed to properly
         # return an instance of the same class.
         # See https://bugs.python.org/issue27639
         # and https://github.com/zopefoundation/persistent/issues/112.
@@ -69,7 +69,7 @@ class PersistentList(UserList, persistent.Persistent):
             return result
 
     if sys.version_info[:3] < (3, 7, 4):
-        # Likewise for __copy__.
+        # Likewise for __copy__, except even Python 2 needs it.
         # See https://github.com/python/cpython/commit/3645d29a1dc2102fdb0f5f0c0129ff2295bcd768
         def __copy__(self):
             inst = self.__class__.__new__(self.__class__)
