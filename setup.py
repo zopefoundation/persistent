@@ -44,6 +44,12 @@ if is_pypy:
     ext_modules = []
     headers = []
 else:
+    define_macros = (
+        # We currently use macros like PyBytes_AS_STRING
+        # and internal functions like _PyObject_GetDictPtr
+        # that make it impossible to use the stable (limited) API.
+        # ('Py_LIMITED_API', '0x03050000'),
+    )
     ext_modules = [
         Extension(
             name='persistent.cPersistence',
@@ -55,7 +61,8 @@ else:
                 'persistent/cPersistence.h',
                 'persistent/ring.h',
                 'persistent/ring.c',
-            ]
+            ],
+            define_macros=list(define_macros),
         ),
         Extension(
             name='persistent.cPickleCache',
@@ -67,13 +74,15 @@ else:
                 'persistent/cPersistence.h',
                 'persistent/ring.h',
                 'persistent/ring.c',
-            ]
+            ],
+            define_macros=list(define_macros),
         ),
         Extension(
             name='persistent._timestamp',
             sources=[
                 'persistent/_timestamp.c',
             ],
+            define_macros=list(define_macros),
         ),
     ]
     headers = [

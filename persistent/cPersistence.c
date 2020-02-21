@@ -290,7 +290,7 @@ changed(cPersistentObject *self)
         }
         Py_INCREF(self);
         PyTuple_SET_ITEM(arg, 0, (PyObject *)self);
-        result = PyEval_CallObject(meth, arg);
+        result = PyObject_CallObject(meth, arg);
         Py_DECREF(arg);
         Py_DECREF(meth);
         if (result == NULL)
