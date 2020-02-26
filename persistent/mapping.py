@@ -16,6 +16,8 @@
 
 $Id$"""
 
+import sys
+
 import persistent
 from persistent._compat import IterableUserDict
 
@@ -54,6 +56,25 @@ class PersistentMapping(IterableUserDict, persistent.Persistent):
     __super_setdefault = IterableUserDict.setdefault
     __super_pop = IterableUserDict.pop
     __super_popitem = IterableUserDict.popitem
+
+
+    # Be sure to make a deep copy of our ``data`` (See PersistentList.)
+    # See https://github.com/python/cpython/commit/3645d29a1dc2102fdb0f5f0c0129ff2295bcd768
+    # This was fixed in CPython 3.7.4, but we can't rely on that because it
+    # doesn't handle our old ``_container`` appropriately (it goes directly
+    # to ``self.__dict__``, bypassing the descriptor). The code here was initially
+    # based on the version found in 3.7.4.
+    def __copy__(self):
+        inst = self.__class__.__new__(self.__class__)
+        inst.__dict__.update(self.__dict__)
+        # Create a copy and avoid triggering descriptors
+        if '_container' in inst.__dict__:
+            # BWC for ZODB < 3.3.
+            data = inst.__dict__.pop('_container')
+        else:
+            data = inst.__dict__['data']
+        inst.__dict__["data"] = data.copy()
+        return inst
 
     def __delitem__(self, key):
         self.__super_delitem(key)
@@ -121,8 +142,10 @@ class PersistentMapping(IterableUserDict, persistent.Persistent):
         self._p_changed = 1
         return result
 
-    # Old implementations used _container rather than data.
-    # Use a descriptor to provide data when we have _container instead
+    # Old implementations (prior to 2001; see
+    # https://github.com/zopefoundation/ZODB/commit/c64281cf2830b569eed4f211630a8a61d22a0f0b#diff-b0f568e20f51129c10a096abad27c64a)
+    # used ``_container`` rather than ``data``. Use a descriptor to provide
+    # ``data`` when we have ``_container`` instead
 
     @default
     def data(self): # pylint:disable=method-hidden
