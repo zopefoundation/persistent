@@ -12,19 +12,39 @@
 #
 ##############################################################################
 import gc
-import platform
 import unittest
 
 from persistent.interfaces import UPTODATE
+from persistent._compat import PYPY
 from persistent.tests.utils import skipIfNoCExtension
 from persistent.tests.utils import skipIfPurePython
 
 # pylint:disable=protected-access,too-many-lines,too-many-public-methods
 # pylint:disable=attribute-defined-outside-init,redefined-outer-name
 
-_is_pypy = platform.python_implementation() == 'PyPy'
-
 _marker = object()
+
+class DummyPersistent(object):
+
+    def _p_invalidate(self):
+        from persistent.interfaces import GHOST
+        self._p_state = GHOST
+
+    _p_deactivate = _p_invalidate
+
+    def _p_invalidate_deactivate_helper(self, clear=True):
+        self._p_invalidate()
+
+    def _p_activate(self):
+        self._p_state = UPTODATE
+
+
+class DummyConnection(object):
+    pass
+
+
+def _len(seq):
+    return len(list(seq))
 
 
 class PickleCacheTests(unittest.TestCase):
@@ -35,7 +55,7 @@ class PickleCacheTests(unittest.TestCase):
                                 unittest.TestCase.assertRaisesRegexp)
 
     def _getTargetClass(self):
-        from persistent import PickleCachePy as BasePickleCache
+        from persistent.picklecache import PickleCachePy as BasePickleCache
         class PickleCache(BasePickleCache):
             _CACHEABLE_TYPES = BasePickleCache._CACHEABLE_TYPES + (DummyPersistent,)
         return PickleCache
@@ -966,7 +986,7 @@ class PythonPickleCacheTests(PickleCacheTests):
         self.assertEqual(candidate._p_state, UPTODATE)
 
     def test_cache_garbage_collection_bytes_also_deactivates_object(self,
-                                                                    force_collect=_is_pypy):
+                                                                    force_collect=PYPY):
 
         class MyPersistent(self._getDummyPersistentClass()):
             def _p_deactivate(self):
@@ -1016,8 +1036,8 @@ class PythonPickleCacheTests(PickleCacheTests):
 
 
     def test_new_ghost_obj_already_in_cache(self):
-        cache, key, candidate = super(PythonPickleCacheTests, self).test_new_ghost_obj_already_in_cache()
-
+        base_result = super(PythonPickleCacheTests, self).test_new_ghost_obj_already_in_cache()
+        cache, key, candidate = base_result
         # If we're sneaky and remove the OID and jar, then we get the duplicate
         # key error. Removing them only works because we're not using a real
         # persistent object.
@@ -1085,6 +1105,8 @@ class CPickleCacheTests(PickleCacheTests):
         return DummyPersistent
 
     def test_inst_does_not_conform_to_IExtendedPickleCache(self):
+        # Test that ``@use_c_impl`` is only applying the correct
+        # interface declaration to the C implementation.
         from persistent.interfaces import IExtendedPickleCache
         from zope.interface.verify import verifyObject
         from zope.interface.exceptions import DoesNotImplement
@@ -1144,26 +1166,6 @@ class CPickleCacheTests(PickleCacheTests):
         self.assertEqual(cache.cache_non_ghost_count, 0)
         self.assertEqual(len(cache), 0)
 
-
-class DummyPersistent(object):
-
-    def _p_invalidate(self):
-        from persistent.interfaces import GHOST
-        self._p_state = GHOST
-
-    _p_deactivate = _p_invalidate
-
-    def _p_invalidate_deactivate_helper(self, clear=True):
-        self._p_invalidate()
-
-    def _p_activate(self):
-        self._p_state = UPTODATE
-
-class DummyConnection(object):
-    pass
-
-def _len(seq):
-    return len(list(seq))
 
 def test_suite():
     return unittest.defaultTestLoader.loadTestsFromName(__name__)

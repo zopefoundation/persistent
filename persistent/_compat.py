@@ -56,7 +56,7 @@ def _c_optimizations_required():
     """
     Return a true value if the C optimizations are required.
 
-    This uses the ``PURE_PYTHON`` variable as documented in `_use_c_impl`.
+    This uses the ``PURE_PYTHON`` variable as documented in `use_c_impl`.
     """
     pure_env = os.environ.get('PURE_PYTHON')
     require_c = pure_env == "0"
@@ -91,10 +91,17 @@ def _c_optimizations_available():
 def _c_optimizations_ignored():
     """
     The opposite of `_c_optimizations_required`.
+
+    On PyPy, this always returns True.
+
+    Otherwise, if ``$PURE_PYTHON`` is set to any non-empty value
+    besides "0", optimizations are ignored. Setting ``$PURE_PYTHON``
+    to "1", for example, ignores optimizations. Setting ``$PURE_PYTHON`` to
+    an empty value *does not* ignore optimizations.
     """
     pure_env = os.environ.get('PURE_PYTHON')
     # The extensions can be compiled with PyPy 7.3, but they don't work.
-    return PYPY or (pure_env is not None and pure_env != "0")
+    return PYPY or (pure_env and pure_env != "0")
 
 
 def _should_attempt_c_optimizations():
@@ -102,7 +109,10 @@ def _should_attempt_c_optimizations():
     Return a true value if we should attempt to use the C optimizations.
 
     This takes into account whether we're on PyPy and the value of the
-    ``PURE_PYTHON`` environment variable, as defined in `_use_c_impl`.
+    ``PURE_PYTHON`` environment variable, as defined in `use_c_impl`.
+
+    Note that setting ``PURE_PYTHON=0`` forces the use of C optimizations,
+    even on PyPy.
     """
     if _c_optimizations_required():
         return True
@@ -111,7 +121,7 @@ def _should_attempt_c_optimizations():
     return not _c_optimizations_ignored()
 
 
-def use_c_impl(py_impl, name=None, globs=None):
+def use_c_impl(py_impl, name=None, globs=None, mod_name=None):
     """
     Decorator. Given an object implemented in Python, with a name like
     ``Foo``, import the corresponding C implementation from
@@ -163,7 +173,7 @@ def use_c_impl(py_impl, name=None, globs=None):
     """
     name = name or py_impl.__name__
     globs = globs or sys._getframe(1).f_globals
-    mod_name = globs['__name__']
+    mod_name = mod_name or globs['__name__']
 
     def find_impl():
         if not _should_attempt_c_optimizations():

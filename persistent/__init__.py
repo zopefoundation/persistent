@@ -29,20 +29,21 @@ __all__ = [
     'TimeStamp',
 ]
 
-from persistent.interfaces import IPersistent
-
-import persistent.timestamp as TimeStamp
-
+# Take care not to shadow the module names
+from persistent import interfaces as _interfaces
+from persistent import timestamp as _timestamp
 from persistent import persistence as _persistence
 from persistent import picklecache as _picklecache
 
+IPersistent = _interfaces.IPersistent
 Persistent = _persistence.Persistent
-PersistentPy = _persistence.PersistentPy
-GHOST = _persistence.GHOST
-UPTODATE = _persistence.UPTODATE
-CHANGED = _persistence.CHANGED
-STICKY = _persistence.STICKY
+GHOST = _interfaces.GHOST
+UPTODATE = _interfaces.UPTODATE
+CHANGED = _interfaces.CHANGED
+STICKY = _interfaces.STICKY
 PickleCache = _picklecache.PickleCache
-PickleCachePy = _picklecache.PickleCachePy
+
+# BWC for TimeStamp.
+TimeStamp = _timestamp
 
 sys.modules['persistent.TimeStamp'] = sys.modules['persistent.timestamp']

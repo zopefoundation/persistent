@@ -25,6 +25,11 @@ _MAXINT = sys.maxsize
 
 _ZERO = b'\x00' * 8
 
+__all__ = [
+    'TimeStamp',
+    'TimeStampPy',
+]
+
 try:
     # Make sure to overflow and wraparound just
     # like the C code does.
@@ -36,21 +41,34 @@ except ImportError: # pragma: no cover
     # It can be fixed by setting _MAXINT = 2 ** 31 - 1 on all
     # win32 platforms, but then that breaks PyPy3 64 bit for an unknown
     # reason.
+    c_long = None
     def _wraparound(x):
         return int(((x + (_MAXINT + 1)) & ((_MAXINT << 1) + 1)) - (_MAXINT + 1))
 else:
     def _wraparound(x):
         return c_long(x).value
 
-class _UTC(datetime.tzinfo):
-    def tzname(self):
+
+class _UTCClass(datetime.tzinfo):
+    # A Python 2 implementation of a UTC tzinfo.
+    def tzname(self, dt):
         return 'UTC'
-    def utcoffset(self, when):
+    def utcoffset(self, dt):
         return datetime.timedelta(0, 0, 0)
-    def dst(self):
-        return 0
+    def dst(self, dt):
+        return None
     def fromutc(self, dt):
         return dt
+
+try:
+    from datetime import timezone
+    def _UTC():
+        return timezone.utc
+except ImportError: # pragma: no cover
+    # Python 2
+    def _UTC(_inst=_UTCClass()):
+        return _inst
+
 
 def _makeUTC(y, mo, d, h, mi, s):
     s = round(s, 6) # microsecond precision, to match the C implementation
@@ -66,7 +84,7 @@ _TS_SECOND_BYTES_BIAS = 60.0 / (1<<16) / (1<<16)
 def _makeRaw(year, month, day, hour, minute, second):
     a = (((year - 1900) * 12 + month - 1) * 31 + day - 1)
     a = (a * 24 + hour) * 60 + minute
-    b = int(second / _TS_SECOND_BYTES_BIAS) # Don't round() this; the C version does simple truncation
+    b = int(second / _TS_SECOND_BYTES_BIAS) # Don't round() this; the C version just truncates
     return struct.pack('>II', a, b)
 
 def _parseRaw(octets):
@@ -79,7 +97,7 @@ def _parseRaw(octets):
     second = b * _TS_SECOND_BYTES_BIAS
     return (year, month, day, hour, minute, second)
 
-TimeStampPy = None
+
 
 @use_c_impl
 class TimeStamp(object):
@@ -95,7 +113,7 @@ class TimeStamp(object):
                 raise TypeError('Raw must be 8 octets')
             self._raw = raw
         elif len(args) == 6:
-            self._raw = _makeRaw(*args)
+            self._raw = _makeRaw(*args) # pylint:disable=no-value-for-parameter
             # Note that we don't preserve the incoming arguments in self._elements,
             # we derive them from the raw value. This is because the incoming
             # seconds value could have more precision than would survive
@@ -151,6 +169,7 @@ class TimeStamp(object):
         """
         if not isinstance(other, self.__class__):
             raise ValueError()
+        # pylint:disable=protected-access
         if self._raw > other._raw:
             return self
         a, b = struct.unpack('>II', other._raw)
@@ -212,3 +231,8 @@ class TimeStamp(object):
             return self.raw() >= other.raw()
         except AttributeError:
             return NotImplemented
+
+
+# This name is bound by the ``@use_c_impl`` decorator to the class defined above.
+# We make sure and list it statically, though, to help out linters.
+TimeStampPy = TimeStampPy # pylint:disable=undefined-variable,self-assigning-variable

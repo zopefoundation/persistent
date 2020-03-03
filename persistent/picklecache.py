@@ -28,6 +28,11 @@ from persistent.persistence import PersistentPy
 from persistent.persistence import _estimated_size_in_24_bits
 from persistent.ring import Ring
 
+__all__ = [
+    'PickleCache',
+    'PickleCachePy',
+]
+
 # We're tightly coupled to the PersistentPy implementation and access
 # its internals.
 # pylint:disable=protected-access
@@ -36,7 +41,7 @@ from persistent.ring import Ring
 # On Jython, we need to explicitly ask it to monitor
 # objects if we want a more deterministic GC
 if hasattr(gc, 'monitorObject'): # pragma: no cover
-    _gc_monitor = gc.monitorObject
+    _gc_monitor = gc.monitorObject # pylint:disable=no-member
 else:
     def _gc_monitor(o):
         pass
@@ -56,8 +61,6 @@ def _sweeping_ring(f):
             self._is_sweeping_ring = False
     return locked
 
-# This name will be replaced by the use_c_impl decorator.
-PickleCachePy = None
 
 @use_c_impl
 # We actually implement IExtendedPickleCache, but
@@ -407,4 +410,7 @@ class PickleCache(object):
                 pass
 
 
+# This name is bound by the ``@use_c_impl`` decorator to the class defined above.
+# We make sure and list it statically, though, to help out linters.
+PickleCachePy = PickleCachePy # pylint:disable=undefined-variable,self-assigning-variable
 classImplements(PickleCachePy, IExtendedPickleCache)

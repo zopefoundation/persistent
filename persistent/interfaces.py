@@ -17,17 +17,17 @@
 from zope.interface import Interface
 from zope.interface import Attribute
 
-# Allowed values for _p_state
-try:
-    from persistent.cPersistence import GHOST
-    from persistent.cPersistence import UPTODATE
-    from persistent.cPersistence import CHANGED
-    from persistent.cPersistence import STICKY
-except ImportError: # pragma: no cover
-    GHOST = -1
-    UPTODATE = 0
-    CHANGED = 1
-    STICKY = 2
+from persistent._compat import use_c_impl
+
+
+# Allowed values for _p_state. Use the C constants if available (which
+# are defined in cPersistence --- there is no cInterfaces --- so we
+# need to pass the corresponding ``mod_name``), otherwise define some
+# values here.
+GHOST = use_c_impl(-1, 'GHOST', mod_name='persistent.persistence')
+UPTODATE = use_c_impl(0, 'UPTODATE', mod_name='persistent.persistence')
+CHANGED = use_c_impl(1, 'CHANGED', mod_name='persistent.persistence')
+STICKY = use_c_impl(2, 'STICKY', mod_name='persistent.persistence')
 
 
 OID_TYPE = SERIAL_TYPE = bytes

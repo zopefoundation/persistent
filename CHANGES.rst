@@ -12,8 +12,8 @@
   broken prior to Python 3.7.4.
 
 - Update the handling of the ``PURE_PYTHON`` environment variable.
-  Now, a value of 0 requires the C extensions to be used; any other
-  value prevents the extensions from being used. Also, all C
+  Now, a value of "0" requires that the C extensions be used; any other
+  non-empty value prevents the extensions from being used. Also, all C
   extensions are required together or none of them will be used. This
   prevents strange errors that arise from a mismatch of Python and C
   implementations. See `issue 131 <https://github.com/zopefoundation/persistent/issues/131>`_.
@@ -22,7 +22,8 @@
   the pure-Python implementations have changed.
 
 - Fix ``PersistentList`` to mark itself as changed after calling
-  ``clear``. See `PR 115 <https://github.com/zopefoundation/persistent/pull/115/>`_.
+  ``clear`` (if needed). See `PR 115
+  <https://github.com/zopefoundation/persistent/pull/115/>`_.
 
 - Fix ``PersistentMapping.update`` to accept keyword arguments like
   the native ``UserDict``. Previously, most uses of keyword arguments

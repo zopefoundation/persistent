@@ -12,12 +12,10 @@
 #
 ##############################################################################
 import unittest
-import sys
+from contextlib import contextmanager
 
 from persistent.tests.utils import skipIfNoCExtension
 
-MAX_32_BITS = 2 ** 31 - 1
-MAX_64_BITS = 2 ** 63 - 1
 
 
 class Test__UTC(unittest.TestCase):
@@ -31,28 +29,38 @@ class Test__UTC(unittest.TestCase):
 
     def test_tzname(self):
         utc = self._makeOne()
-        self.assertEqual(utc.tzname(), 'UTC')
+        # datetime.timezone.utc changed the tzname in 3.6
+        # Now it is just 'UTC', but prior to that it was 'UTC+00:00'
+        self.assertEqual(utc.tzname(None)[0:3], 'UTC')
 
     def test_utcoffset(self):
         from datetime import timedelta
         utc = self._makeOne()
-        self.assertEqual(utc.utcoffset(object()), timedelta(0))
+        self.assertEqual(utc.utcoffset(None), timedelta(0))
 
     def test_dst(self):
         utc = self._makeOne()
-        self.assertEqual(utc.dst(), 0)
+        self.assertEqual(utc.dst(None), None)
 
     def test_fromutc(self):
-        source = object()
+        import datetime
+        source = datetime.datetime.now(self._getTargetClass()())
         utc = self._makeOne()
-        self.assertTrue(utc.fromutc(source) is source)
+        self.assertEqual(utc.fromutc(source), source)
 
 
-class TimeStampTests(unittest.TestCase):
+class Test__UTCClass(Test__UTC):
 
     def _getTargetClass(self):
-        from persistent.timestamp import TimeStampPy as pyTimeStamp
-        return pyTimeStamp
+        from persistent.timestamp import _UTCClass
+        return _UTCClass
+
+
+class TimeStampTestsMixin(object):
+    # Tests that work for either implementation.
+
+    def _getTargetClass(self):
+        raise NotImplementedError
 
     def _makeOne(self, *args, **kw):
         return self._getTargetClass()(*args, **kw)
@@ -199,71 +207,99 @@ class TimeStampTests(unittest.TestCase):
                 check(op, passes)
 
 
-class pyTimeStampTests(TimeStampTests):
-    # Things specific to the Python implementation
+class Instant(object):
+    # Namespace to hold some constants.
+
+    # A particular instant in time.
+    now = 1229959248.3
+
+    # That instant in time split as the result of this expression:
+    #    (time.gmtime(now)[:5] + (now % 60,))
+    now_ts_args = (2008, 12, 22, 15, 20, 48.299999952316284)
+
+    # We happen to know that on a 32-bit platform, the hashcode
+    # of a TimeStamp at that instant should be exactly
+    # -1419374591
+    # and the 64-bit should be exactly:
+    # -3850693964765720575
+    bit_32_hash = -1419374591
+    bit_64_hash = -3850693964765720575
+
+    MAX_32_BITS = 2 ** 31 - 1
+    MAX_64_BITS = 2 ** 63 - 1
+
+    def __init__(self):
+        from persistent import timestamp as MUT
+        self.MUT = MUT
+        # pylint:disable=protected-access
+        self.orig_maxint = MUT._MAXINT
+
+        self.is_32_bit_hash = self.orig_maxint == self.MAX_32_BITS
+
+        self.orig_c_long = None
+        self.c_int64 = None
+        self.c_int32 = None
+        if MUT.c_long is not None:
+            import ctypes
+            self.orig_c_long = MUT.c_long
+            self.c_int32 = ctypes.c_int32
+            self.c_int64 = ctypes.c_int64
+            # win32, even on 64-bit long, has funny sizes
+            self.is_32_bit_hash = self.c_int32 == ctypes.c_long
+        self.expected_hash = self.bit_32_hash if self.is_32_bit_hash else self.bit_64_hash
+
+    @contextmanager
+    def _use_hash(self, maxint, c_long):
+        # pylint:disable=protected-access
+        try:
+            self.MUT._MAXINT = maxint
+            self.MUT.c_long = c_long
+            yield
+        finally:
+            self.MUT._MAXINT = self.orig_maxint
+            self.MUT.c_long = self.orig_c_long
+
+
+    def use_32bit(self):
+        return self._use_hash(self.MAX_32_BITS, self.c_int32)
+
+    def use_64bit(self):
+        return self._use_hash(self.MAX_64_BITS, self.c_int64)
+
+
+class pyTimeStampTests(TimeStampTestsMixin, unittest.TestCase):
+    # Tests specific to the Python implementation
+
+    def _getTargetClass(self):
+        from persistent.timestamp import TimeStampPy
+        return TimeStampPy
 
     def test_py_hash_32_64_bit(self):
-        # We happen to know that on a 32-bit platform, the hashcode
-        # of the c version should be exactly
-        # -1419374591
-        # and the 64-bit should be exactly:
-        # -3850693964765720575
         # Fake out the python version to think it's on a 32-bit
         # platform and test the same; also verify 64 bit
-        from persistent import timestamp as MUT
+        instant = Instant()
 
-        # The instant in time 1229959248.3 split as the result of this expression:
-        #    (time.gmtime(now)[:5] + (now % 60,))
-        now_ts_args = (2008, 12, 22, 15, 20, 48.299999952316284)
+        with instant.use_32bit():
+            py = self._makeOne(*Instant.now_ts_args)
+            self.assertEqual(hash(py), Instant.bit_32_hash)
 
-        bit_32_hash = -1419374591
-        bit_64_hash = -3850693964765720575
-        # pylint:disable=protected-access
-        orig_maxint = MUT._MAXINT
-
-        is_32_bit_hash = orig_maxint == MAX_32_BITS
-
-        orig_c_long = None
-        c_int64 = None
-        c_int32 = None
-        if hasattr(MUT, 'c_long'):
-            import ctypes
-            orig_c_long = MUT.c_long
-            c_int32 = ctypes.c_int32
-            c_int64 = ctypes.c_int64
-            # win32, even on 64-bit long, has funny sizes
-            is_32_bit_hash = c_int32 == ctypes.c_long
-
-        try:
-            MUT._MAXINT = MAX_32_BITS
-            MUT.c_long = c_int32
-
-            py = self._makeOne(*now_ts_args)
-            self.assertEqual(hash(py), bit_32_hash)
-
-            MUT._MAXINT = int(2 ** 63 - 1)
-            MUT.c_long = c_int64
+        with instant.use_64bit():
             # call __hash__ directly to avoid interpreter truncation
             # in hash() on 32-bit platforms
-            self.assertEqual(py.__hash__(), bit_64_hash)
-        finally:
-            MUT._MAXINT = orig_maxint
-            if orig_c_long is not None:
-                MUT.c_long = orig_c_long
-            else: # pragma: no cover
-                del MUT.c_long
+            self.assertEqual(py.__hash__(), Instant.bit_64_hash)
 
-        # These are *usually* aliases, but aren't required
-        # to be
-        expected_hash = bit_32_hash if is_32_bit_hash else bit_64_hash
-        self.assertEqual(py.__hash__(), expected_hash)
+        self.assertEqual(py.__hash__(), instant.expected_hash)
 
 
-class CTimeStampTests(TimeStampTests):
+class CTimeStampTests(TimeStampTestsMixin, unittest.TestCase):
 
     def _getTargetClass(self):
         from persistent.timestamp import TimeStamp
         return TimeStamp
+
+    def test_hash_32_or_64_bit(self):
+        ts = self._makeOne(*Instant.now_ts_args)
+        self.assertIn(hash(ts), (Instant.bit_32_hash, Instant.bit_64_hash))
 
 
 @skipIfNoCExtension
@@ -272,26 +308,20 @@ class PyAndCComparisonTests(unittest.TestCase):
     Compares C and Python implementations.
     """
 
-    # A particular instant in time
-    now = 1229959248.3
-    # That instant in time split as the result of this expression:
-    #    (time.gmtime(now)[:5] + (now % 60,))
-    now_ts_args = (2008, 12, 22, 15, 20, 48.299999952316284)
-
     def _make_many_instants(self):
         # Given the above data, return many slight variations on
         # it to test matching
-        yield self.now_ts_args
+        yield Instant.now_ts_args
         for i in range(2000):
-            yield self.now_ts_args[:-1] + (self.now_ts_args[-1] + (i % 60.0)/100.0, )
+            yield Instant.now_ts_args[:-1] + (Instant.now_ts_args[-1] + (i % 60.0)/100.0, )
 
     def _makeC(self, *args, **kwargs):
         from persistent._compat import _c_optimizations_available as get_c
         return get_c()['persistent.timestamp'].TimeStamp(*args, **kwargs)
 
     def _makePy(self, *args, **kwargs):
-        from persistent.timestamp import TimeStampPy as pyTimeStamp
-        return pyTimeStamp(*args, **kwargs)
+        from persistent.timestamp import TimeStampPy
+        return TimeStampPy(*args, **kwargs)
 
     def _make_C_and_Py(self, *args, **kwargs):
         return self._makeC(*args, **kwargs), self._makePy(*args, **kwargs)
@@ -307,24 +337,21 @@ class PyAndCComparisonTests(unittest.TestCase):
             self.assertEqual(str(c), str(py))
 
     def test_raw_equal(self):
-        c, py = self._make_C_and_Py(*self.now_ts_args)
+        c, py = self._make_C_and_Py(*Instant.now_ts_args)
         self.assertEqual(c.raw(), py.raw())
 
     def test_equal(self):
-        c, py = self._make_C_and_Py(*self.now_ts_args)
+        c, py = self._make_C_and_Py(*Instant.now_ts_args)
         self.assertEqual(c, py)
 
     def test_hash_equal(self):
-        c, py = self._make_C_and_Py(*self.now_ts_args)
+        c, py = self._make_C_and_Py(*Instant.now_ts_args)
         self.assertEqual(hash(c), hash(py))
 
     def test_hash_equal_constants(self):
         # The simple constants make it easier to diagnose
         # a difference in algorithms
-        import persistent.timestamp as MUT
-        # We get 32-bit hash values on 32-bit platforms,
-        # OR on Windows (whether compiled in 64 or 32-bit mode)
-        is_32_bit = MUT._MAXINT == (2**31 - 1) or sys.platform == 'win32'
+        is_32_bit = Instant().is_32_bit_hash
 
         c, py = self._make_C_and_Py(b'\x00\x00\x00\x00\x00\x00\x00\x00')
         self.assertEqual(hash(c), 8)

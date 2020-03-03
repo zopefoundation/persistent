@@ -1936,9 +1936,9 @@ class _Persistent_Base(object):
 class PyPersistentTests(unittest.TestCase, _Persistent_Base):
 
     def _getTargetClass(self):
-        from persistent.persistence import PersistentPy as Persistent
-        assert Persistent.__module__ == 'persistent.persistence', Persistent.__module__
-        return Persistent
+        from persistent.persistence import PersistentPy
+        assert PersistentPy.__module__ == 'persistent.persistence', PersistentPy.__module__
+        return PersistentPy
 
     def _makeCache(self, jar):
 

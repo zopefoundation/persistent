@@ -11,7 +11,6 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
-import functools
 import struct
 
 from zope.interface import implementer
@@ -23,6 +22,11 @@ from persistent._compat import copy_reg
 from persistent._compat import intern
 from persistent._compat import use_c_impl
 
+__all__ = [
+    'Persistent',
+    'PersistentPy',
+]
+
 # We use implementation details of PickleCachePy
 # pylint:disable=protected-access
 # we have lots of not-quite-correct continuation indentation.
@@ -30,11 +34,6 @@ from persistent._compat import use_c_impl
 # pylint:disable=bad-continuation
 # There are a few places we need to work with exact types.
 # pylint:disable=unidiomatic-typecheck
-
-GHOST = use_c_impl(interfaces.GHOST, 'GHOST')
-UPTODATE = use_c_impl(interfaces.UPTODATE, 'UPTODATE')
-CHANGED = use_c_impl(interfaces.CHANGED, 'CHANGED')
-STICKY = use_c_impl(interfaces.STICKY, 'STICKY')
 
 _INITIAL_SERIAL = _ZERO
 
@@ -207,16 +206,16 @@ class Persistent(object):
         # Note the use of OGA and caching to avoid recursive calls to __getattribute__:
         # __getattribute__ calls _p_accessed calls cache.mru() calls _p_state
         if _OGA(self, '_Persistent__jar') is None:
-            return UPTODATE
+            return interfaces.UPTODATE
         flags = _OGA(self, '_Persistent__flags')
         if flags is None:
-            return GHOST
+            return interfaces.GHOST
         if flags & _CHANGED:
-            result = CHANGED
+            result = interfaces.CHANGED
         else:
-            result = UPTODATE
+            result = interfaces.UPTODATE
         if flags & _STICKY:
-            return STICKY
+            return interfaces.STICKY
         return result
 
     _p_state = property(_get_state)
@@ -402,7 +401,7 @@ class Persistent(object):
             # while calling jar.setstate, and this is observable to clients).
             # The main point of this is to prevent changes made during
             # setstate from registering the object with the jar.
-            _OSA(self, '_Persistent__flags', CHANGED)
+            _OSA(self, '_Persistent__flags', interfaces.CHANGED)
             try:
                 jar.setstate(self)
             except:
@@ -623,3 +622,8 @@ def _estimated_size_in_24_bits(value):
     if value > 1073741696:
         return 16777215
     return (value//64) + 1
+
+
+# This name is bound by the ``@use_c_impl`` decorator to the class defined above.
+# We make sure and list it statically, though, to help out linters.
+PersistentPy = PersistentPy # pylint:disable=undefined-variable,self-assigning-variable
