@@ -1,7 +1,7 @@
 ``persistent`` Changelog
 ========================
 
-4.5.2 (unreleased)
+4.6.0 (unreleased)
 ------------------
 
 - Fix slicing of ``PersistentList`` to always return instances of the
@@ -11,8 +11,19 @@
   ``copy.copy`` to also copy the underlying data object. This was
   broken prior to Python 3.7.4.
 
+- Update the handling of the ``PURE_PYTHON`` environment variable.
+  Now, a value of "0" requires that the C extensions be used; any other
+  non-empty value prevents the extensions from being used. Also, all C
+  extensions are required together or none of them will be used. This
+  prevents strange errors that arise from a mismatch of Python and C
+  implementations. See `issue 131 <https://github.com/zopefoundation/persistent/issues/131>`_.
+
+  Note that some private implementation details such as the names of
+  the pure-Python implementations have changed.
+
 - Fix ``PersistentList`` to mark itself as changed after calling
-  ``clear``. See `PR 115 <https://github.com/zopefoundation/persistent/pull/115/>`_.
+  ``clear`` (if needed). See `PR 115
+  <https://github.com/zopefoundation/persistent/pull/115/>`_.
 
 - Fix ``PersistentMapping.update`` to accept keyword arguments like
   the native ``UserDict``. Previously, most uses of keyword arguments

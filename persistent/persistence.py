@@ -14,19 +14,26 @@
 import struct
 
 from zope.interface import implementer
-
-from persistent.interfaces import IPersistent
-from persistent.interfaces import GHOST
-from persistent.interfaces import UPTODATE
-from persistent.interfaces import CHANGED
-from persistent.interfaces import STICKY
-
+from persistent import interfaces
 from persistent.interfaces import SERIAL_TYPE
 from persistent.timestamp import TimeStamp
 from persistent.timestamp import _ZERO
 from persistent._compat import copy_reg
 from persistent._compat import intern
+from persistent._compat import use_c_impl
 
+__all__ = [
+    'Persistent',
+    'PersistentPy',
+]
+
+# We use implementation details of PickleCachePy
+# pylint:disable=protected-access
+# we have lots of not-quite-correct continuation indentation.
+# TODO: Fix that in a whitespace-only commit.
+# pylint:disable=bad-continuation
+# There are a few places we need to work with exact types.
+# pylint:disable=unidiomatic-typecheck
 
 _INITIAL_SERIAL = _ZERO
 
@@ -52,16 +59,23 @@ SPECIAL_NAMES = ('__class__',
 # check in __getattribute__
 _SPECIAL_NAMES = set(SPECIAL_NAMES)
 
+_SLOTS = ('__jar', '__oid', '__serial', '__flags', '__size', '__ring',)
+_SPECIAL_NAMES.update([intern('_Persistent' + x) for x in _SLOTS])
+
+
 # Represent 8-byte OIDs as hex integer, just like
 # ZODB does.
 _OID_STRUCT = struct.Struct('>Q')
 _OID_UNPACK = _OID_STRUCT.unpack
 
-@implementer(IPersistent)
+
+
+@use_c_impl
+@implementer(interfaces.IPersistent)
 class Persistent(object):
     """ Pure Python implmentation of Persistent base class
     """
-    __slots__ = ('__jar', '__oid', '__serial', '__flags', '__size', '__ring',)
+    __slots__ = _SLOTS
 
     def __new__(cls, *args, **kw):
         inst = super(Persistent, cls).__new__(cls)
@@ -183,9 +197,7 @@ class Persistent(object):
         self._p_activate()
         self._p_accessed()
         serial = _OGA(self, '_Persistent__serial')
-        if serial is not None:
-            ts = TimeStamp(serial)
-            return ts.timeTime()
+        return TimeStamp(serial).timeTime() if serial is not None else None
 
     _p_mtime = property(_get_mtime)
 
@@ -194,16 +206,16 @@ class Persistent(object):
         # Note the use of OGA and caching to avoid recursive calls to __getattribute__:
         # __getattribute__ calls _p_accessed calls cache.mru() calls _p_state
         if _OGA(self, '_Persistent__jar') is None:
-            return UPTODATE
+            return interfaces.UPTODATE
         flags = _OGA(self, '_Persistent__flags')
         if flags is None:
-            return GHOST
+            return interfaces.GHOST
         if flags & _CHANGED:
-            result = CHANGED
+            result = interfaces.CHANGED
         else:
-            result = UPTODATE
+            result = interfaces.UPTODATE
         if flags & _STICKY:
-            return STICKY
+            return interfaces.STICKY
         return result
 
     _p_state = property(_get_state)
@@ -314,7 +326,7 @@ class Persistent(object):
                    if not x.startswith('_p_') and
                       not (x.startswith('_v_') and _v_exclude) and
                       not x.startswith('_Persistent__') and
-                      x not in Persistent.__slots__]
+                      x not in _SLOTS]
 
     def __getstate__(self):
         """ See IPersistent.
@@ -322,6 +334,9 @@ class Persistent(object):
         idict = getattr(self, '__dict__', None)
         slotnames = self._slotnames()
         if idict is not None:
+            # TODO: Convert to a dictionary comprehension, avoid the intermediate
+            # list.
+            # pylint:disable=consider-using-dict-comprehension
             d = dict([x for x in idict.items()
                          if not x[0].startswith('_p_') and
                             not x[0].startswith('_v_')])
@@ -339,7 +354,7 @@ class Persistent(object):
     def __setstate__(self, state):
         """ See IPersistent.
         """
-        if isinstance(state,tuple):
+        if isinstance(state, tuple):
             inst_dict, slots = state
         else:
             inst_dict, slots = state, ()
@@ -386,7 +401,7 @@ class Persistent(object):
             # while calling jar.setstate, and this is observable to clients).
             # The main point of this is to prevent changes made during
             # setstate from registering the object with the jar.
-            _OSA(self, '_Persistent__flags', CHANGED)
+            _OSA(self, '_Persistent__flags', interfaces.CHANGED)
             try:
                 jar.setstate(self)
             except:
@@ -548,7 +563,7 @@ class Persistent(object):
         # The AttributeError arises in ZODB test cases
         try:
             jar._cache.mru(oid)
-        except (AttributeError,KeyError):
+        except (AttributeError, KeyError):
             pass
 
 
@@ -561,8 +576,10 @@ class Persistent(object):
         cache = getattr(jar, '_cache', None)
         if cache is not None:
             return cache.get(oid) is self
+        return None
 
     def __repr__(self):
+        # pylint:disable=broad-except
         p_repr_str = ''
         p_repr = getattr(type(self), '_p_repr', None)
         if p_repr is not None:
@@ -595,7 +612,8 @@ class Persistent(object):
         return '<%s.%s object at 0x%x%s%s%s>' % (
             # Match the C name for this exact class
             type(self).__module__ if type(self) is not Persistent else 'persistent',
-            type(self).__name__, id(self),
+            type(self).__name__ if type(self) is not Persistent else 'Persistent',
+            id(self),
             oid_str, jar_str, p_repr_str
         )
 
@@ -605,4 +623,7 @@ def _estimated_size_in_24_bits(value):
         return 16777215
     return (value//64) + 1
 
-_SPECIAL_NAMES.update([intern('_Persistent' + x) for x in Persistent.__slots__])
+
+# This name is bound by the ``@use_c_impl`` decorator to the class defined above.
+# We make sure and list it statically, though, to help out linters.
+PersistentPy = PersistentPy # pylint:disable=undefined-variable,self-assigning-variable

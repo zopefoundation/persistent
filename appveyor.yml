@@ -3,6 +3,7 @@ environment:
     TWINE_USERNAME: zope.wheelbuilder
     TWINE_PASSWORD:
       secure: UcdTh6W78cRLVGfKRFoa5A==
+    PURE_PYTHON: 0
 
   matrix:
     - python: 27
