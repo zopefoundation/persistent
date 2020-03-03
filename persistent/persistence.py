@@ -59,6 +59,7 @@ SPECIAL_NAMES = ('__class__',
 # check in __getattribute__
 _SPECIAL_NAMES = set(SPECIAL_NAMES)
 
+# __ring is for use by PickleCachePy and is opaque to us.
 _SLOTS = ('__jar', '__oid', '__serial', '__flags', '__size', '__ring',)
 _SPECIAL_NAMES.update([intern('_Persistent' + x) for x in _SLOTS])
 

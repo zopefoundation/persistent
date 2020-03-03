@@ -28,13 +28,13 @@
 
 struct ccobject_head_struct;
 
-typedef struct ccobject_head_struct PerCache;    
+typedef struct ccobject_head_struct PerCache;
 
 /* How big is a persistent object?
 
    12  PyGC_Head is two pointers and an int
     8  PyObject_HEAD is an int and a pointer
- 
+
    12  jar, oid, cache pointers
     8  ring struct
     8  serialno
@@ -67,7 +67,7 @@ typedef struct ccobject_head_struct PerCache;
    unsigned long field after a signed char state field and a
    3-character reserved field.  This didn't work because there
    are packages in the wild that have their own copies of cPersistence.h
-   that didn't see the update.  
+   that didn't see the update.
 
    To get around this, we used the reserved space by making
    estimated_size a 24-bit bit field in the space occupied by the old
@@ -132,14 +132,14 @@ static cPersistenceCAPIstruct *cPersistenceCAPI;
 
 #define PER_PREVENT_DEACTIVATION(O)  ((O)->state==cPersistent_UPTODATE_STATE && ((O)->state=cPersistent_STICKY_STATE))
 
-/* 
+/*
    Make a persistent object usable from C by:
 
    - Making sure it is not a ghost
 
    - Making it sticky.
 
-   IMPORTANT: If you call this and don't call PER_ALLOW_DEACTIVATION, 
+   IMPORTANT: If you call this and don't call PER_ALLOW_DEACTIVATION,
               your object will not be ghostified.
 
    PER_USE returns a 1 on success and 0 failure, where failure means

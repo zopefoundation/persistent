@@ -19,7 +19,7 @@ from .. import ring
 
 class DummyPersistent(object):
     _p_oid = None
-
+    _Persistent__ring = None
     __next_oid = 0
 
     @classmethod
@@ -32,7 +32,7 @@ class DummyPersistent(object):
             self._p_oid = self._next_oid()
 
     def __repr__(self): # pragma: no cover
-        return "<Dummy %r>" % self._p_oid
+        return "<Dummy %r at 0x%x>" % (self._p_oid, id(self))
 
 
 class CFFIRingTests(unittest.TestCase):
@@ -48,7 +48,7 @@ class CFFIRingTests(unittest.TestCase):
 
     def test_empty_contains(self):
         r = self._makeOne()
-        self.assertFalse(DummyPersistent() in r)
+        self.assertNotIn(DummyPersistent(), r)
 
     def test_empty_iter(self):
         self.assertEqual([], list(self._makeOne()))
@@ -63,7 +63,7 @@ class CFFIRingTests(unittest.TestCase):
         r = self._makeOne()
         p = DummyPersistent()
         r.add(p)
-        self.assertTrue(p in r)
+        self.assertIn(p, r)
 
     def test_delete_one_len0(self):
         r = self._makeOne()
@@ -110,9 +110,14 @@ class CFFIRingTests(unittest.TestCase):
         r.add(p1)
         r.add(p2)
         r.add(p3)
-
-        self.assertEqual([p1, p2, p3], list(r))
+        __traceback_info__ = [
+            p1._Persistent__ring,
+            p2._Persistent__ring,
+            p3._Persistent__ring,
+        ]
         self.assertEqual(3, len(r))
+        self.assertEqual([p1, p2, p3], list(r))
+
 
         r.move_to_head(p1)
         self.assertEqual([p2, p3, p1], list(r))
@@ -122,18 +127,3 @@ class CFFIRingTests(unittest.TestCase):
 
         r.move_to_head(p3)
         self.assertEqual([p2, p1, p3], list(r))
-
-    def test_delete_all(self):
-        r = self._makeOne()
-        p1 = DummyPersistent()
-        p2 = DummyPersistent()
-        p3 = DummyPersistent()
-
-        r.add(p1)
-        r.add(p2)
-        r.add(p3)
-        self.assertEqual([p1, p2, p3], list(r))
-
-        r.delete_all([(0, p1), (2, p3)])
-        self.assertEqual([p2], list(r))
-        self.assertEqual(1, len(r))

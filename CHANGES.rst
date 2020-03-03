@@ -40,6 +40,12 @@
 - Add support for Python 3.9a3+.
   See `issue 124 <https://github.com/zopefoundation/persistent/issues/124>`_.
 
+- Fix the Python implementation of the PickleCache to be able to store
+  objects that cannot be weakly referenced. See `issue 133
+  <https://github.com/zopefoundation/persistent/issues/133>`_.
+
+  Note that ``ctypes`` is required to use the Python implementation
+  (except on PyPy).
 
 4.5.1 (2019-11-06)
 ------------------
