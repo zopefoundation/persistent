@@ -4,8 +4,6 @@
 4.6.0 (unreleased)
 ------------------
 
-- Add preliminary support for Python 3.9a3.
-
 - Fix slicing of ``PersistentList`` to always return instances of the
   same class. It was broken on Python 3 prior to 3.7.4.
 
