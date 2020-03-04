@@ -1,4 +1,13 @@
 
+class TrivialJar(object):
+    """
+    Jar that only supports registering objects so ``_p_changed``
+    can be tested.
+    """
+
+    def register(self, ob):
+        """Does nothing"""
+
 class ResettingJar(object):
     """Testing stub for _p_jar attribute.
     """
@@ -62,3 +71,48 @@ class RememberingJar(object):
         # This isn't what setstate() is supposed to do,
         # but it suffices for the tests.
         obj.__setstate__(self.remembered)
+
+
+def copy_test(self, obj):
+    import copy
+    # Test copy.copy. Do this first, because depending on the
+    # version of Python, `UserDict.copy()` may wind up
+    # mutating the original object's ``data`` (due to our
+    # BWC with ``_container``). This shows up only as a failure
+    # of coverage.
+    obj.test = [1234]  # Make sure instance vars are also copied.
+    obj_copy = copy.copy(obj)
+    self.assertIsNot(obj.data, obj_copy.data)
+    self.assertEqual(obj.data, obj_copy.data)
+    self.assertIs(obj.test, obj_copy.test)
+
+    # Test internal copy
+    obj_copy = obj.copy()
+    self.assertIsNot(obj.data, obj_copy.data)
+    self.assertEqual(obj.data, obj_copy.data)
+
+    return obj_copy
+
+
+def skipIfNoCExtension(o):
+    import unittest
+    from persistent._compat import _should_attempt_c_optimizations
+    from persistent._compat import _c_optimizations_available
+    from persistent._compat import _c_optimizations_ignored
+
+    if _should_attempt_c_optimizations() and not _c_optimizations_available(): # pragma: no cover
+        return unittest.expectedFailure(o)
+    return unittest.skipIf(
+        _c_optimizations_ignored() or not _c_optimizations_available(),
+        "The C extension is not available"
+    )(o)
+
+
+def skipIfPurePython(o):
+    import unittest
+    from persistent._compat import _should_attempt_c_optimizations
+
+    return unittest.skipUnless(
+        _should_attempt_c_optimizations(),
+        "Cannot mix and match implementations"
+    )(o)

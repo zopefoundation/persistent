@@ -1,10 +1,46 @@
 ``persistent`` Changelog
 ========================
 
-4.5.2 (unreleased)
+4.6.0 (unreleased)
 ------------------
 
 - Add preliminary support for Python 3.9a3.
+
+- Fix slicing of ``PersistentList`` to always return instances of the
+  same class. It was broken on Python 3 prior to 3.7.4.
+
+- Fix copying  of ``PersistentList`` and ``PersistentMapping`` using
+  ``copy.copy`` to also copy the underlying data object. This was
+  broken prior to Python 3.7.4.
+
+- Update the handling of the ``PURE_PYTHON`` environment variable.
+  Now, a value of "0" requires that the C extensions be used; any other
+  non-empty value prevents the extensions from being used. Also, all C
+  extensions are required together or none of them will be used. This
+  prevents strange errors that arise from a mismatch of Python and C
+  implementations. See `issue 131 <https://github.com/zopefoundation/persistent/issues/131>`_.
+
+  Note that some private implementation details such as the names of
+  the pure-Python implementations have changed.
+
+- Fix ``PersistentList`` to mark itself as changed after calling
+  ``clear`` (if needed). See `PR 115
+  <https://github.com/zopefoundation/persistent/pull/115/>`_.
+
+- Fix ``PersistentMapping.update`` to accept keyword arguments like
+  the native ``UserDict``. Previously, most uses of keyword arguments
+  resulted in ``TypeError``; in the undocumented and extremely
+  unlikely event of a single keyword argument called ``b`` that
+  happens to be a dictionary, the behaviour will change. Also adjust
+  the signatures of ``setdefault`` and ``pop`` to match the native
+  version.
+
+- Fix ``PersistentList.clear``, ``PersistentMapping.clear`` and
+  ``PersistentMapping.popitem`` to no longer mark the object as
+  changed if it was empty.
+
+- Add support for Python 3.9a3+.
+  See `issue 124 <https://github.com/zopefoundation/persistent/issues/124>`_.
 
 
 4.5.1 (2019-11-06)

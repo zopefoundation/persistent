@@ -17,8 +17,9 @@ import re
 import sys
 import unittest
 
-import persistent
+
 from persistent._compat import copy_reg
+from persistent.tests.utils import skipIfNoCExtension
 
 
 _is_pypy3 = platform.python_implementation() == 'PyPy' and sys.version_info[0] > 2
@@ -28,11 +29,6 @@ _is_pypy3 = platform.python_implementation() == 'PyPy' and sys.version_info[0] >
 # pylint:disable=blacklisted-name,useless-object-inheritance
 # Hundreds of unused jar and OID vars make this useless
 # pylint:disable=unused-variable
-
-def skipIfNoCExtension(o):
-    return unittest.skipIf(
-        persistent._cPersistence is None,
-        "The C extension is not available")(o)
 
 
 class _Persistent_Base(object):
@@ -1079,10 +1075,21 @@ class _Persistent_Base(object):
         self.assertEqual(second, (Derived, 'a', 'b'))
         self.assertEqual(third, {'foo': 'bar'})
 
+    def _get_cucumber(self, name):
+        # Checks that it's actually a subclass of what we're testing;
+        # if it isn't, the test is skipped. The cucumbers module can
+        # only subclass either the C or Python implementation, not
+        # both
+        from persistent.tests import cucumbers
+        cls = getattr(cucumbers, name)
+        if not issubclass(cls, self._getTargetClass()):
+            self.skipTest("Cucumber is not correct implementation")
+        return cls
+
     def test_pickle_roundtrip_simple(self):
         import pickle
         # XXX s.b. 'examples'
-        from persistent.tests.cucumbers import Simple
+        Simple = self._get_cucumber('Simple')
         inst = Simple('testing')
         copy = pickle.loads(pickle.dumps(inst))
         self.assertEqual(copy, inst)
@@ -1093,7 +1100,7 @@ class _Persistent_Base(object):
     def test_pickle_roundtrip_w_getnewargs_and_getstate(self):
         import pickle
         # XXX s.b. 'examples'
-        from persistent.tests.cucumbers import Custom
+        Custom = self._get_cucumber('Custom')
         inst = Custom('x', 'y')
         copy = pickle.loads(pickle.dumps(inst))
         self.assertEqual(copy, inst)
@@ -1104,7 +1111,7 @@ class _Persistent_Base(object):
     def test_pickle_roundtrip_w_slots_missing_slot(self):
         import pickle
         # XXX s.b. 'examples'
-        from persistent.tests.cucumbers import SubSlotted
+        SubSlotted = self._get_cucumber('SubSlotted')
         inst = SubSlotted('x', 'y', 'z')
         copy = pickle.loads(pickle.dumps(inst))
         self.assertEqual(copy, inst)
@@ -1115,7 +1122,7 @@ class _Persistent_Base(object):
     def test_pickle_roundtrip_w_slots_filled_slot(self):
         import pickle
         # XXX s.b. 'examples'
-        from persistent.tests.cucumbers import SubSlotted
+        SubSlotted = self._get_cucumber('SubSlotted')
         inst = SubSlotted('x', 'y', 'z')
         inst.s4 = 'a'
         copy = pickle.loads(pickle.dumps(inst))
@@ -1127,7 +1134,7 @@ class _Persistent_Base(object):
     def test_pickle_roundtrip_w_slots_and_empty_dict(self):
         import pickle
         # XXX s.b. 'examples'
-        from persistent.tests.cucumbers import SubSubSlotted
+        SubSubSlotted = self._get_cucumber('SubSubSlotted')
         inst = SubSubSlotted('x', 'y', 'z')
         copy = pickle.loads(pickle.dumps(inst))
         self.assertEqual(copy, inst)
@@ -1138,7 +1145,7 @@ class _Persistent_Base(object):
     def test_pickle_roundtrip_w_slots_and_filled_dict(self):
         import pickle
         # XXX s.b. 'examples'
-        from persistent.tests.cucumbers import SubSubSlotted
+        SubSubSlotted = self._get_cucumber('SubSubSlotted')
         inst = SubSubSlotted('x', 'y', 'z', foo='bar', baz='bam')
         inst.s4 = 'a'
         copy = pickle.loads(pickle.dumps(inst))
@@ -1362,22 +1369,39 @@ class _Persistent_Base(object):
 
     def test__p_invalidate_from_changed_w_slots(self):
         class Derived(self._getTargetClass()):
-            __slots__ = ('myattr1', 'myattr2', 'unset')
+            __slots__ = {
+                'myattr1': 'value1',
+                'myattr2': 'value2',
+                'unset': None
+            }
+
             def __init__(self):
                 self.myattr1 = 'value1'
                 self.myattr2 = 'value2'
+
         inst, jar, OID = self._makeOneWithJar(Derived)
         inst._p_activate()
         inst._p_changed = True
         jar._loaded = []
         jar._registered = []
-        self.assertEqual(Derived.myattr1.__get__(inst), 'value1')
-        self.assertEqual(Derived.myattr2.__get__(inst), 'value2')
+        for slot, expected_value in Derived.__slots__.items():
+            slot_descriptor = getattr(Derived, slot)
+            if expected_value:
+                self.assertEqual(slot_descriptor.__get__(inst), expected_value)
+            else:
+                with self.assertRaises(AttributeError):
+                    slot_descriptor.__get__(inst)
+
         inst._p_invalidate()
         self.assertEqual(inst._p_status, 'ghost')
         self.assertEqual(list(jar._loaded), [])
-        self.assertRaises(AttributeError, lambda: Derived.myattr1.__get__(inst))
-        self.assertRaises(AttributeError, lambda: Derived.myattr2.__get__(inst))
+
+        for slot in Derived.__slots__:
+            __traceback_info__ = slot, inst
+            slot_descriptor = getattr(Derived, slot)
+            with self.assertRaises(AttributeError):
+                slot_descriptor.__get__(inst)
+
         self.assertEqual(list(jar._loaded), [])
         self.assertEqual(list(jar._registered), [])
 
@@ -1912,8 +1936,9 @@ class _Persistent_Base(object):
 class PyPersistentTests(unittest.TestCase, _Persistent_Base):
 
     def _getTargetClass(self):
-        from persistent.persistence import Persistent
-        return Persistent
+        from persistent.persistence import PersistentPy
+        assert PersistentPy.__module__ == 'persistent.persistence', PersistentPy.__module__
+        return PersistentPy
 
     def _makeCache(self, jar):
 
@@ -1938,7 +1963,7 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
         return _Cache(jar)
 
     def _makeRealCache(self, jar):
-        from persistent.picklecache import PickleCache
+        from persistent.picklecache import PickleCachePy as PickleCache
         return PickleCache(jar, 10)
 
     def _checkMRU(self, jar, value):
@@ -2024,8 +2049,8 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
 class CPersistentTests(unittest.TestCase, _Persistent_Base):
 
     def _getTargetClass(self):
-        from persistent.cPersistence import Persistent
-        return Persistent
+        from persistent._compat import _c_optimizations_available as get_c
+        return get_c()['persistent.persistence'].Persistent
 
     def _checkMRU(self, jar, value):
         pass # Figure this out later
@@ -2034,7 +2059,8 @@ class CPersistentTests(unittest.TestCase, _Persistent_Base):
         pass # Figure this out later
 
     def _makeCache(self, jar):
-        from persistent.cPickleCache import PickleCache
+        from persistent._compat import _c_optimizations_available as get_c
+        PickleCache = get_c()['persistent.picklecache'].PickleCache
         return PickleCache(jar)
 
 
@@ -2042,7 +2068,8 @@ class CPersistentTests(unittest.TestCase, _Persistent_Base):
 class Test_simple_new(unittest.TestCase):
 
     def _callFUT(self, x):
-        from persistent.cPersistence import simple_new
+        from persistent._compat import _c_optimizations_available as get_c
+        simple_new = get_c()['persistent.persistence'].simple_new
         return simple_new(x)
 
     def test_w_non_type(self):

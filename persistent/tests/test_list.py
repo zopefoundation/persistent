@@ -16,6 +16,11 @@
 
 import unittest
 
+
+from persistent.tests.utils import TrivialJar
+from persistent.tests.utils import copy_test
+
+
 l0 = []
 l1 = [0]
 l2 = [0, 1]
@@ -30,6 +35,7 @@ class OtherList:
     def __getitem__(self, i):
         return self.__data[i]
 
+
 class TestPList(unittest.TestCase):
 
     def _getTargetClass(self):
@@ -37,10 +43,7 @@ class TestPList(unittest.TestCase):
         return PersistentList
 
     def _makeJar(self):
-        class Jar(object):
-            def register(self, obj):
-                "no-op"
-        return Jar()
+        return TrivialJar()
 
     def _makeOne(self, *args):
         inst = self._getTargetClass()(*args)
@@ -268,12 +271,38 @@ class TestPList(unittest.TestCase):
         self.assertEqual(inst, [1, 2, 3])
         self.assertTrue(inst._p_changed)
 
-    def test_delslice(self):
+    def test_delslice_all_nonempty_list(self):
+        # Delete everything from a non-empty list
         inst = self._makeOne([1, 2, 3])
         self.assertFalse(inst._p_changed)
         self.assertEqual(inst, [1, 2, 3])
         del inst[:]
+        self.assertEqual(inst, [])
         self.assertTrue(inst._p_changed)
+
+    def test_delslice_sub_nonempty_list(self):
+        # delete a sub-list from a non-empty list
+        inst = self._makeOne([0, 1, 2, 3])
+        self.assertFalse(inst._p_changed)
+        del inst[1:2]
+        self.assertEqual(inst, [0, 2, 3])
+        self.assertTrue(inst._p_changed)
+
+    def test_delslice_empty_nonempty_list(self):
+        # delete an empty sub-list from a non-empty list
+        inst = self._makeOne([0, 1, 2, 3])
+        self.assertFalse(inst._p_changed)
+        del inst[1:1]
+        self.assertEqual(inst, [0, 1, 2, 3])
+        self.assertFalse(inst._p_changed)
+
+    def test_delslice_all_empty_list(self):
+        inst = self._makeOne([])
+        self.assertFalse(inst._p_changed)
+        self.assertEqual(inst, [])
+        del inst[:]
+        self.assertEqual(inst, [])
+        self.assertFalse(inst._p_changed)
 
     def test_iadd(self):
         inst = self._makeOne()
@@ -303,6 +332,20 @@ class TestPList(unittest.TestCase):
         self.assertEqual(inst, [1])
         self.assertTrue(inst._p_changed)
 
+    def test_clear_nonempty(self):
+        inst = self._makeOne([1, 2, 3, 4])
+        self.assertFalse(inst._p_changed)
+        inst.clear()
+        self.assertEqual(inst, [])
+        self.assertTrue(inst._p_changed)
+
+    def test_clear_empty(self):
+        inst = self._makeOne([])
+        self.assertFalse(inst._p_changed)
+        inst.clear()
+        self.assertEqual(inst, [])
+        self.assertFalse(inst._p_changed)
+
     def test_insert(self):
         inst = self._makeOne()
         self.assertFalse(inst._p_changed)
@@ -323,6 +366,33 @@ class TestPList(unittest.TestCase):
         inst.reverse()
         self.assertEqual(inst, [1, 2])
         self.assertTrue(inst._p_changed)
+
+    def test_getslice_same_class(self):
+        class MyList(self._getTargetClass()):
+            pass
+
+        inst = MyList()
+        inst._p_jar = self._makeJar()
+        # Entire thing, empty.
+        inst2 = inst[:]
+        self.assertIsNot(inst, inst2)
+        self.assertEqual(inst, inst2)
+        self.assertIsInstance(inst2, MyList)
+        # The _p_jar is *not* propagated.
+        self.assertIsNotNone(inst._p_jar)
+        self.assertIsNone(inst2._p_jar)
+
+        # Partial
+        inst.extend((1, 2, 3))
+        inst2 = inst[1:2]
+        self.assertEqual(inst2, [2])
+        self.assertIsInstance(inst2, MyList)
+        self.assertIsNone(inst2._p_jar)
+
+    def test_copy(self):
+        inst = self._makeOne()
+        inst.append(42)
+        copy_test(self, inst)
 
 
 def test_suite():

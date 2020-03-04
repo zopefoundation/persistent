@@ -13,13 +13,12 @@
 ##############################################################################
 
 import os
-import platform
 
 from setuptools import Extension
 from setuptools import find_packages
 from setuptools import setup
 
-version = '4.5.2.dev0'
+version = '4.6.0.dev0'
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -31,55 +30,52 @@ def _read_file(filename):
 
 README = (_read_file('README.rst') + '\n\n' + _read_file('CHANGES.rst'))
 
-is_pypy = platform.python_implementation() == 'PyPy'
 
-# On PyPy the C optimizations are
-# anti-optimizations (the C extension compatibility layer is known-slow,
-# and defeats JIT opportunities); PyPy 6.0 can compile them, but the
-# tests fail and they actually crash the VM.
-if is_pypy:
-    # Note that all the lists we pass to setuptools must be distinct
-    # objects, or bad things happen.
-    # See https://github.com/zopefoundation/persistent/issues/88
-    ext_modules = []
-    headers = []
-else:
-    ext_modules = [
-        Extension(
-            name='persistent.cPersistence',
-            sources=[
-                'persistent/cPersistence.c',
-                'persistent/ring.c',
-            ],
-            depends=[
-                'persistent/cPersistence.h',
-                'persistent/ring.h',
-                'persistent/ring.c',
-            ]
-        ),
-        Extension(
-            name='persistent.cPickleCache',
-            sources=[
-                'persistent/cPickleCache.c',
-                'persistent/ring.c',
-            ],
-            depends=[
-                'persistent/cPersistence.h',
-                'persistent/ring.h',
-                'persistent/ring.c',
-            ]
-        ),
-        Extension(
-            name='persistent._timestamp',
-            sources=[
-                'persistent/_timestamp.c',
-            ],
-        ),
-    ]
-    headers = [
-        'persistent/cPersistence.h',
-        'persistent/ring.h',
-    ]
+define_macros = (
+    # We currently use macros like PyBytes_AS_STRING
+    # and internal functions like _PyObject_GetDictPtr
+    # that make it impossible to use the stable (limited) API.
+    # ('Py_LIMITED_API', '0x03050000'),
+)
+ext_modules = [
+    Extension(
+        name='persistent.cPersistence',
+        sources=[
+            'persistent/cPersistence.c',
+            'persistent/ring.c',
+        ],
+        depends=[
+            'persistent/cPersistence.h',
+            'persistent/ring.h',
+            'persistent/ring.c',
+        ],
+        define_macros=list(define_macros),
+    ),
+    Extension(
+        name='persistent.cPickleCache',
+        sources=[
+            'persistent/cPickleCache.c',
+            'persistent/ring.c',
+        ],
+        depends=[
+            'persistent/cPersistence.h',
+            'persistent/ring.h',
+            'persistent/ring.c',
+        ],
+        define_macros=list(define_macros),
+    ),
+    Extension(
+        name='persistent._timestamp',
+        sources=[
+            'persistent/_timestamp.c',
+        ],
+        define_macros=list(define_macros),
+    ),
+]
+headers = [
+    'persistent/cPersistence.h',
+    'persistent/ring.h',
+]
 
 setup(name='persistent',
       version=version,
