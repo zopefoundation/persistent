@@ -1,7 +1,7 @@
 ``persistent`` Changelog
 ========================
 
-4.6.0 (unreleased)
+4.6.0 (2020-03-05)
 ------------------
 
 - Fix slicing of ``PersistentList`` to always return instances of the
