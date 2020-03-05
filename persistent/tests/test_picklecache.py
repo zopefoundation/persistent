@@ -17,7 +17,7 @@ import unittest
 from persistent.interfaces import UPTODATE
 from persistent._compat import PYPY
 from persistent.tests.utils import skipIfNoCExtension
-from persistent.tests.utils import skipIfPurePython
+
 
 # pylint:disable=protected-access,too-many-lines,too-many-public-methods
 # pylint:disable=attribute-defined-outside-init,redefined-outer-name
@@ -25,6 +25,7 @@ from persistent.tests.utils import skipIfPurePython
 _marker = object()
 
 class DummyPersistent(object):
+    _Persistent__ring = None
 
     def _p_invalidate(self):
         from persistent.interfaces import GHOST
@@ -47,7 +48,7 @@ def _len(seq):
     return len(list(seq))
 
 
-class PickleCacheTests(unittest.TestCase):
+class PickleCacheTestMixin(object):
 
     # py2/3 compat
     assertRaisesRegex = getattr(unittest.TestCase,
@@ -71,6 +72,10 @@ class PickleCacheTests(unittest.TestCase):
 
     def _getDummyPersistentClass(self):
         return DummyPersistent
+
+    def _getRealPersistentClass(self):
+        from persistent.persistence import PersistentPy
+        return PersistentPy
 
     def _makePersist(self, state=None, oid=b'foo', jar=_marker, kind=_marker):
         from persistent.interfaces import GHOST
@@ -125,7 +130,7 @@ class PickleCacheTests(unittest.TestCase):
         cache = self._makeOne()
         default = object
 
-        self.assertTrue(cache.get('nonesuch', default) is default)
+        self.assertIs(cache.get('nonesuch', default), default)
 
     def test___setitem___non_string_oid_raises_TypeError(self):
         cache = self._makeOne()
@@ -336,10 +341,10 @@ class PickleCacheTests(unittest.TestCase):
         self.assertEqual(items[9][0], b'oid_0099')
 
         for oid in oids[:90]:
-            self.assertTrue(cache.get(oid) is None)
+            self.assertIsNone(cache.get(oid))
 
         for oid in oids[90:]:
-            self.assertFalse(cache.get(oid) is None)
+            self.assertIsNotNone(cache.get(oid))
 
     def test_incrgc_w_smaller_drain_resistance(self):
         cache = self._makeOne()
@@ -378,7 +383,6 @@ class PickleCacheTests(unittest.TestCase):
 
 
     def test_minimize(self):
-
         cache = self._makeOne()
         oids = self._populate_cache(cache)
         self.assertEqual(cache.cache_non_ghost_count, 100)
@@ -647,8 +651,19 @@ class PickleCacheTests(unittest.TestCase):
 
         self.assertTrue(pclass.invalidated)
 
+    def test_cache_raw(self):
+        raw = self._makePersist(kind=self._getRealPersistentClass())
+        cache = self._makeOne(raw._p_jar)
 
-class PythonPickleCacheTests(PickleCacheTests):
+        cache[raw._p_oid] = raw
+        self.assertEqual(1, len(cache))
+        self.assertIs(cache.get(raw._p_oid), raw)
+
+        del raw
+        self.assertEqual(1, len(cache))
+
+
+class PythonPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
     # Tests that depend on the implementation details of the
     # Python PickleCache and the Python persistent object.
     # Anything that involves directly setting the _p_state of a persistent
@@ -748,7 +763,6 @@ class PythonPickleCacheTests(PickleCacheTests):
         cache, Pclass, key = super(PythonPickleCacheTests, self).test_new_ghost_w_pclass_ghost()
         self.assertEqual(Pclass._p_jar, cache.jar)
         self.assertIs(cache.persistent_classes[key], Pclass)
-
 
     def test_mru_nonesuch_raises_KeyError(self):
         cache = self._makeOne()
@@ -985,8 +999,7 @@ class PythonPickleCacheTests(PickleCacheTests):
         self.assertTrue(items[0][1] is candidate)
         self.assertEqual(candidate._p_state, UPTODATE)
 
-    def test_cache_garbage_collection_bytes_also_deactivates_object(self,
-                                                                    force_collect=PYPY):
+    def test_cache_garbage_collection_bytes_also_deactivates_object(self):
 
         class MyPersistent(self._getDummyPersistentClass()):
             def _p_deactivate(self):
@@ -1028,9 +1041,9 @@ class PythonPickleCacheTests(PickleCacheTests):
         cache.incrgc()
         self.assertEqual(cache.total_estimated_size, 0)
 
-        # It also shrank the measured size of the cache;
-        # this would fail under PyPy if _SWEEP_NEEDS_GC was False
-        if force_collect: # pragma: no cover
+        # It also shrank the measured size of the cache,
+        # though this may require a GC to be visible.
+        if PYPY: # pragma: no cover
             gc.collect()
         self.assertEqual(len(cache), 1)
 
@@ -1091,16 +1104,18 @@ class PythonPickleCacheTests(PickleCacheTests):
 
 
 @skipIfNoCExtension
-@skipIfPurePython
-class CPickleCacheTests(PickleCacheTests):
+class CPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
 
     def _getTargetClass(self):
         from persistent._compat import _c_optimizations_available as get_c
         return get_c()['persistent.picklecache'].PickleCache
 
+    def _getRealPersistentClass(self):
+        from persistent._compat import _c_optimizations_available as get_c
+        return get_c()['persistent.persistence'].Persistent
+
     def _getDummyPersistentClass(self):
-        from persistent import Persistent
-        class DummyPersistent(Persistent):
+        class DummyPersistent(self._getRealPersistentClass()):
             __slots__ = ()
         return DummyPersistent
 

@@ -12,17 +12,15 @@
 #
 ##############################################################################
 
-import platform
 import re
-import sys
 import unittest
 
-
 from persistent._compat import copy_reg
+from persistent._compat import PYPY
+from persistent._compat import PYTHON3 as PY3
 from persistent.tests.utils import skipIfNoCExtension
 
-
-_is_pypy3 = platform.python_implementation() == 'PyPy' and sys.version_info[0] > 2
+_is_pypy3 = PYPY and PY3
 
 # pylint:disable=R0904,W0212,E1101
 # pylint:disable=attribute-defined-outside-init,too-many-lines
@@ -119,6 +117,14 @@ class _Persistent_Base(object):
         from zope.interface.verify import verifyObject
         from persistent.interfaces import IPersistent
         verifyObject(IPersistent, self._makeOne())
+
+    def test_instance_cannot_be_weakly_referenced(self):
+        if PYPY: # pragma: no cover
+            self.skipTest('On PyPy, everything can be weakly referenced')
+        import weakref
+        inst = self._makeOne()
+        with self.assertRaises(TypeError):
+            weakref.ref(inst)
 
     def test_ctor(self):
         from persistent.persistence import _INITIAL_SERIAL

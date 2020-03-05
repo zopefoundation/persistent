@@ -43,6 +43,7 @@ ring_add(CPersistentRing *ring, CPersistentRing *elt)
 void
 ring_del(CPersistentRing *elt)
 {
+    assert(elt->r_next);
     elt->r_next->r_prev = elt->r_prev;
     elt->r_prev->r_next = elt->r_next;
     elt->r_next = NULL;
@@ -52,6 +53,7 @@ ring_del(CPersistentRing *elt)
 void
 ring_move_to_head(CPersistentRing *ring, CPersistentRing *elt)
 {
+    assert(elt->r_next);
     elt->r_prev->r_next = elt->r_next;
     elt->r_next->r_prev = elt->r_prev;
     elt->r_next = ring;

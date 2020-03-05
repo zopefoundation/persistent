@@ -106,13 +106,3 @@ def skipIfNoCExtension(o):
         _c_optimizations_ignored() or not _c_optimizations_available(),
         "The C extension is not available"
     )(o)
-
-
-def skipIfPurePython(o):
-    import unittest
-    from persistent._compat import _should_attempt_c_optimizations
-
-    return unittest.skipUnless(
-        _should_attempt_c_optimizations(),
-        "Cannot mix and match implementations"
-    )(o)

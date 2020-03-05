@@ -38,6 +38,7 @@ typedef struct CPersistentRing_struct
     struct CPersistentRing_struct *r_next;
 } CPersistentRing;
 
+
 /* The list operations here take constant time independent of the
  * number of objects in the list:
  */
