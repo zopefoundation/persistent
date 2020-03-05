@@ -17,6 +17,7 @@ python:
   - 3.6
   - 3.7
   - 3.8
+  - 3.9-dev
 
 jobs:
   include:
@@ -101,8 +102,8 @@ before_install:
     fi
 
 install:
-  - pip install -U pip setuptools cffi wheel coverage coveralls
-  - pip install -U -e .[test]
+  - python -m pip install -U pip setuptools cffi wheel coverage coveralls
+  - python -m pip install -U -e .[test]
 
 script:
   - python --version
