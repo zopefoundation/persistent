@@ -37,7 +37,7 @@
   ``PersistentMapping.popitem`` to no longer mark the object as
   changed if it was empty.
 
-- Add support for Python 3.9a3+.
+- Add preliminary support for Python 3.9a3+.
   See `issue 124 <https://github.com/zopefoundation/persistent/issues/124>`_.
 
 
