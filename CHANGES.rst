@@ -1,7 +1,7 @@
 ``persistent`` Changelog
 ========================
 
-4.6.1 (unreleased)
+4.6.1 (2020-03-06)
 ------------------
 
 - Stop installing C header files on PyPy (which is what persistent before 4.6.0
