@@ -12,6 +12,7 @@
 #
 ##############################################################################
 
+import platform
 import os
 
 from setuptools import Extension
@@ -72,10 +73,17 @@ ext_modules = [
         define_macros=list(define_macros),
     ),
 ]
-headers = [
-    'persistent/cPersistence.h',
-    'persistent/ring.h',
-]
+
+is_pypy = platform.python_implementation() == 'PyPy'
+if is_pypy:
+    # Header installation doesn't work on PyPy:
+    # https://github.com/zopefoundation/persistent/issues/135
+    headers = []
+else:
+    headers = [
+        'persistent/cPersistence.h',
+        'persistent/ring.h',
+    ]
 
 setup(name='persistent',
       version=version,
