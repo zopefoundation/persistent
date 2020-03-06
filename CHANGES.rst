@@ -4,7 +4,9 @@
 4.6.1 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Stop installing C header files on PyPy (which is what persistent before 4.6.0
+  used to do), fixes `issue 135
+  <https://github.com/zopefoundation/persistent/issues/135>`_.
 
 
 4.6.0 (2020-03-05)
