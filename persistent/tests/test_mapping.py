@@ -273,6 +273,15 @@ class PersistentMappingTests(unittest.TestCase):
         pm.clear()
         self.assertFalse(pm._p_changed)
 
+    def test_clear_no_jar(self):
+        # https://github.com/zopefoundation/persistent/issues/139
+        self._makeOne = self._getTargetClass()
+        self.test_clear_empty()
+
+        pm = self._makeOne(a=42)
+        pm.clear()
+        self.assertFalse(pm._p_changed)
+
     def test_clear_empty_legacy_container(self):
         pm = self._makeOne()
         pm.__dict__['_container'] = pm.__dict__.pop('data')
