@@ -4,7 +4,9 @@
 4.6.2 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Fix an ``AssertionError`` clearing a non-empty ``PersistentMapping``
+  that has no connection. See `issue 139
+  <https://github.com/zopefoundation/persistent/issues/139>`_.
 
 
 4.6.1 (2020-03-06)

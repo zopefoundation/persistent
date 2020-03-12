@@ -101,7 +101,6 @@ class PersistentMapping(IterableUserDict, persistent.Persistent):
         self.__super_clear()
         if needs_changed:
             self._p_changed = 1
-            assert self._p_changed
 
     def update(self, *args, **kwargs):
         """
