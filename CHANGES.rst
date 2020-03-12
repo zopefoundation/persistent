@@ -1,7 +1,7 @@
 ``persistent`` Changelog
 ========================
 
-4.6.2 (unreleased)
+4.6.2 (2020-03-12)
 ------------------
 
 - Fix an ``AssertionError`` clearing a non-empty ``PersistentMapping``
