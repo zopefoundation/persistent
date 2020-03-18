@@ -4,7 +4,10 @@
 4.6.3 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Fix a crash in the test suite under a 32-bit CPython on certain
+  platforms. See `issue 137
+  <https://github.com/zopefoundation/persistent/issues/137>`_. Fix by
+  `Jerry James <https://github.com/jamesjer>`_.
 
 
 4.6.2 (2020-03-12)

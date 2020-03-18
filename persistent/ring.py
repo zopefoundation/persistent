@@ -124,7 +124,7 @@ class _CFFIRing(object):
 
             if self.cleanup_func:
                 node = ffi.new('CPersistentRingCFFI*')
-                node.pobj_id = ffi.cast('intptr_t', id(persistent_object))
+                node.pobj_id = ffi.cast('uintptr_t', id(persistent_object))
                 gc_ptr = ffi.gc(node, self.cleanup_func)
             else:
                 node = ffi.new("CPersistentRing*")

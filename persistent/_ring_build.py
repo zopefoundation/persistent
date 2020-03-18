@@ -31,7 +31,7 @@ typedef struct CPersistentRingCFFI_struct
 {
     struct CPersistentRing_struct *r_prev;
     struct CPersistentRing_struct *r_next;
-    intptr_t pobj_id; /* The id(PersistentPy object) */
+    uintptr_t pobj_id; /* The id(PersistentPy object) */
 } CPersistentRingCFFI;
 """
 
