@@ -1,7 +1,7 @@
 ``persistent`` Changelog
 ========================
 
-4.6.3 (unreleased)
+4.6.3 (2020-03-18)
 ------------------
 
 - Fix a crash in the test suite under a 32-bit CPython on certain
