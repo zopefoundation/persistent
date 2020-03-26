@@ -1,7 +1,7 @@
 ``persistent`` Changelog
 ========================
 
-4.6.4 (unreleased)
+4.6.4 (2020-03-26)
 ------------------
 
 - Fix an overly specific test failure using zope.interface 5. See
