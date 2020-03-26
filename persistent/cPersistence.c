@@ -1278,9 +1278,9 @@ Per_get_mtime(cPersistentObject *self)
         if (!ts_module)
             return NULL;
         TimeStamp = PyObject_GetAttrString(ts_module, "TimeStamp");
+        Py_DECREF(ts_module);
         if (!TimeStamp)
           return NULL;
-        Py_DECREF(ts_module);
     }
 
 #ifdef PY3K

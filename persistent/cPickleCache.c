@@ -193,16 +193,16 @@ scan_gc_items(ccobject *self, int target, Py_ssize_t target_bytes)
     */
     insert_after(&before_original_home, self->ring_home.r_prev);
     here = self->ring_home.r_next;   /* least recently used object */
-	/* All objects should be deactivated when the objects count parameter
-	 * (target) is zero and the size limit parameter in bytes(target_bytes)
-	 * is also zero.
-	 *
-	 * Otherwise the objects should be collect while one of the following
-	 * conditions are True:
-	 *  - the ghost count is bigger than the number of objects limit(target).
-	 *  - the estimated size in bytes is bigger than the size limit in
-	 *    bytes(target_bytes).
-	 */
+    /* All objects should be deactivated when the objects count parameter
+     * (target) is zero and the size limit parameter in bytes(target_bytes)
+     * is also zero.
+     *
+     * Otherwise the objects should be collect while one of the following
+     * conditions are True:
+     *  - the ghost count is bigger than the number of objects limit(target).
+     *  - the estimated size in bytes is bigger than the size limit in
+     *    bytes(target_bytes).
+     */
     while (here != &before_original_home &&
             (
              (!target && !target_bytes) ||
@@ -614,15 +614,20 @@ cc_oid_unreferenced(ccobject *self, PyObject *oid)
         not release the global interpreter lock until this is
         complete. */
 
-    PyObject *dead_pers_obj;
+    cPersistentObject *dead_pers_obj;
+    ccobject* dead_pers_obj_ref_to_self;
 
     /* If the cache has been cleared by GC, data will be NULL. */
     if (!self->data)
         return;
 
-    dead_pers_obj = PyDict_GetItem(self->data, oid);
+    dead_pers_obj = (cPersistentObject*)PyDict_GetItem(self->data, oid);
     assert(dead_pers_obj);
     assert(dead_pers_obj->ob_refcnt == 0);
+
+    dead_pers_obj_ref_to_self = (ccobject*)dead_pers_obj->cache;
+    assert(dead_pers_obj_ref_to_self == self);
+
     /* Need to be very hairy here because a dictionary is about
         to decref an already deleted object.
     */
@@ -636,17 +641,31 @@ cc_oid_unreferenced(ccobject *self, PyObject *oid)
     Py_INCREF(dead_pers_obj);
 
     if (PyDict_DelItem(self->data, oid) < 0)
-        return;
+    {
+        /* Almost ignore errors if it wasn't already present (somehow;
+           that shouldn't be possible since we literally just got it out
+           of this dict and we're holding the GIL and not making any
+           calls that could cause a greenlet switch so the state of the
+           dictionary should not change). We still need to finish the cleanup.
+
+           Just write an unraisable error (like an exception from __del__,
+           because that's basically what this is).
+        */
+        PyErr_WriteUnraisable((PyObject*)dead_pers_obj);
+        PyErr_Clear();
+        /* Have the same side effect of clearing a ref count as the dict would have.*/
+        Py_DECREF(dead_pers_obj);
+    }
     /* Now remove the dead object's reference to self. Note that this could
        cause self to be dealloced.
     */
-    Py_DECREF((ccobject *)((cPersistentObject *)dead_pers_obj)->cache);
-    ((cPersistentObject *)dead_pers_obj)->cache = NULL;
+    Py_DECREF(dead_pers_obj_ref_to_self);
+    dead_pers_obj->cache = NULL;
 
     assert(dead_pers_obj->ob_refcnt == 1);
 
     /* Don't DECREF the object, because this function is called from
-        the object's dealloc function. If the refcnt reaches zero, it
+        the object's dealloc function. If the refcnt reaches zero (again), it
         will all be invoked recursively.
     */
 }

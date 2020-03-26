@@ -6,7 +6,8 @@
 
 - Fix an overly specific test failure using zope.interface 5. See
   `issue 144 <https://github.com/zopefoundation/persistent/issues/144>`_.
-
+- Fix two reference leaks that could theoretically occur as the result
+  of obscure errors. See `issue 143 <https://github.com/zopefoundation/persistent/issues/143>`_.
 
 4.6.3 (2020-03-18)
 ------------------
