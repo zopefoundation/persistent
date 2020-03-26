@@ -1124,13 +1124,13 @@ class CPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
         # interface declaration to the C implementation.
         from persistent.interfaces import IExtendedPickleCache
         from zope.interface.verify import verifyObject
-        from zope.interface.exceptions import DoesNotImplement
-        from zope.interface.exceptions import BrokenImplementation
+        from zope.interface.exceptions import Invalid
         # We don't claim to implement it.
-        with self.assertRaises(DoesNotImplement):
-            verifyObject(IExtendedPickleCache, self._makeOne())
+        self.assertFalse(IExtendedPickleCache.providedBy(self._makeOne()))
         # And we don't even provide everything it asks for.
-        with self.assertRaises(BrokenImplementation):
+        # (Exact error depends on version of zope.interface and what we
+        # fail to implement. 5.0 probably raises MultipleInvalid).
+        with self.assertRaises(Invalid):
             verifyObject(IExtendedPickleCache, self._makeOne(), tentative=True)
 
     def test___setitem___persistent_class(self):

@@ -4,7 +4,8 @@
 4.6.4 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Fix an overly specific test failure using zope.interface 5. See
+  `issue 144 <https://github.com/zopefoundation/persistent/issues/144>`_.
 
 
 4.6.3 (2020-03-18)
