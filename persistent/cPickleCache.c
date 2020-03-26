@@ -193,16 +193,16 @@ scan_gc_items(ccobject *self, int target, Py_ssize_t target_bytes)
     */
     insert_after(&before_original_home, self->ring_home.r_prev);
     here = self->ring_home.r_next;   /* least recently used object */
-	/* All objects should be deactivated when the objects count parameter
-	 * (target) is zero and the size limit parameter in bytes(target_bytes)
-	 * is also zero.
-	 *
-	 * Otherwise the objects should be collect while one of the following
-	 * conditions are True:
-	 *  - the ghost count is bigger than the number of objects limit(target).
-	 *  - the estimated size in bytes is bigger than the size limit in
-	 *    bytes(target_bytes).
-	 */
+    /* All objects should be deactivated when the objects count parameter
+     * (target) is zero and the size limit parameter in bytes(target_bytes)
+     * is also zero.
+     *
+     * Otherwise the objects should be collect while one of the following
+     * conditions are True:
+     *  - the ghost count is bigger than the number of objects limit(target).
+     *  - the estimated size in bytes is bigger than the size limit in
+     *    bytes(target_bytes).
+     */
     while (here != &before_original_home &&
             (
              (!target && !target_bytes) ||
@@ -653,8 +653,8 @@ cc_oid_unreferenced(ccobject *self, PyObject *oid)
         */
         PyErr_WriteUnraisable((PyObject*)dead_pers_obj);
         PyErr_Clear();
-	/* Have the same side effect of clearing a ref count as the dict would have.*/
-	Py_DECREF(dead_pers_obj);
+        /* Have the same side effect of clearing a ref count as the dict would have.*/
+        Py_DECREF(dead_pers_obj);
     }
     /* Now remove the dead object's reference to self. Note that this could
        cause self to be dealloced.
