@@ -27,6 +27,7 @@ __all__ = [
     'STICKY',
     'PickleCache',
     'TimeStamp',
+    'static',
 ]
 
 # Take care not to shadow the module names
@@ -42,6 +43,7 @@ UPTODATE = _interfaces.UPTODATE
 CHANGED = _interfaces.CHANGED
 STICKY = _interfaces.STICKY
 PickleCache = _picklecache.PickleCache
+static = _persistence.static
 
 # BWC for TimeStamp.
 TimeStamp = _timestamp

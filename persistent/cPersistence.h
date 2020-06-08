@@ -92,6 +92,11 @@ typedef struct {
     cPersistent_HEAD
 } cPersistentObject;
 
+typedef struct {
+    PyObject_HEAD \
+    PyObject *value;
+} cStaticObject;
+
 typedef void (*percachedelfunc)(PerCache *, PyObject *);
 
 typedef struct {

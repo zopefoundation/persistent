@@ -99,6 +99,9 @@ static PyObject * pickle_slotnames(PyTypeObject *cls);
 
 static PyObject * convert_name(PyObject *name);
 
+static PyObject * get_static(cPersistentObject *self, PyObject *attr);
+static PyObject * is_static(cPersistentObject *self, PyObject *attr);
+
 /* Load the state of the object, unghostifying it.  Upon success, return 1.
  * If an error occurred, re-ghostify the object and return -1.
  */
@@ -152,6 +155,7 @@ unghostify(cPersistentObject *self)
 /****************************************************************************/
 
 static PyTypeObject Pertype;
+static PyTypeObject Statictype;
 
 static void
 accessed(cPersistentObject *self)
@@ -917,13 +921,64 @@ unghost_getattr(const char *s)
     return 1;
 }
 
+/* Returns pointer of attr if attr is exempt from ghostification because it has been annotated.
+
+   Some attributes don't need unghostification because they are never going to be modified.
+   They are faster to access with the tradeoff of higher memory usage and immutability.
+   They are always read from the class (not instance) of the Persistent.
+   This facility is designed for non-threaded implementations of the underlying storage,
+   so that they can avoid being called.
+   Especially, asyncio implementations can avoid unnecessary `await` operators
+*/
+static PyObject *
+is_static(cPersistentObject *self, PyObject *attr)
+{
+    PyObject *clattr = PyObject_GenericGetAttr((PyObject *)Py_TYPE(self), attr);
+    if (clattr == NULL)
+    {
+        PyErr_Clear();
+        return NULL;
+    }
+    if (PyObject_IsInstance(clattr, (PyObject *)&Statictype))
+    {
+        return clattr;
+    }
+    else
+    {
+        Py_DECREF(clattr);
+        return NULL;
+    }
+}
+
+static PyObject *
+get_static(cPersistentObject *self, PyObject *attr)
+{
+    PyObject *clattr;
+    clattr = 0;
+    clattr = is_static(self, attr);
+    PyObject *value;
+    if (clattr)
+    {
+        value = ((cStaticObject *)clattr)->value;
+        if (Py_TYPE(value)->tp_descr_get)
+        {
+            /* https://github.com/python/cpython/blob/master/Objects/object.c#L1201 */
+            value = (Py_TYPE(value)->tp_descr_get)(value, self, (PyObject *)Py_TYPE(self));
+        }
+        Py_INCREF(value);
+        Py_DECREF(clattr); /* will decref value */
+        return value;
+    }
+    Py_XDECREF(clattr);
+    return NULL;
+}
+
 static PyObject*
 Per_getattro(cPersistentObject *self, PyObject *name)
 {
     PyObject *result = NULL;    /* guilty until proved innocent */
     PyObject *converted;
     char *s;
-
     converted = convert_name(name);
     if (!converted)
         goto Done;
@@ -931,7 +986,8 @@ Per_getattro(cPersistentObject *self, PyObject *name)
 
     if (unghost_getattr(s))
     {
-        if (unghostify(self) < 0)
+        result = get_static(self, name);
+        if (result || unghostify(self) < 0) /* don't trigger access hook for statics */
             goto Done;
         accessed(self);
     }
@@ -946,29 +1002,37 @@ Done:
 static PyObject *
 Per__p_getattr(cPersistentObject *self, PyObject *name)
 {
-    PyObject *result = NULL;    /* guilty until proved innocent */
+    PyObject *result;
     PyObject *converted;
+    PyObject *static_result;
     char *s;
 
     converted = convert_name(name);
     if (!converted)
-        goto Done;
+        return NULL;
     s = PyBytes_AS_STRING(converted);
+    Py_DECREF(converted);
+    converted = NULL;
 
     if (*s != '_' || unghost_getattr(s))
     {
+        static_result = get_static(self, name);
+        if (static_result)
+        {
+            Py_DECREF(static_result);
+            result = Py_True;
+            goto out;
+        }
         if (unghostify(self) < 0)
-            goto Done;
+            return NULL;
         accessed(self);
         result = Py_False;
     }
     else
         result = Py_True;
 
+out:
     Py_INCREF(result);
-
-Done:
-    Py_XDECREF(converted);
     return result;
 }
 
@@ -982,6 +1046,11 @@ Per_setattro(cPersistentObject *self, PyObject *name, PyObject *v)
     int result = -1;    /* guilty until proved innocent */
     PyObject *converted;
     char *s;
+    if (is_static(self, name))
+    {
+        PyErr_SetString(PyExc_TypeError, "Static property cannot be assigned to");
+        return -1;
+    }
 
     converted = convert_name(name);
     if (!converted)
@@ -1049,6 +1118,12 @@ Per__p_setattr(cPersistentObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "OO:_p_setattr", &name, &v))
         return NULL;
 
+    if (is_static(self, name))
+    {
+        PyErr_SetString(PyExc_TypeError, "Static property cannot be assigned to");
+        return NULL;
+    }
+
     r = Per_p_set_or_delattro(self, name, v);
     if (r < 0)
         return NULL;
@@ -1063,6 +1138,12 @@ Per__p_delattr(cPersistentObject *self, PyObject *name)
 {
     int r;
     PyObject *result;
+
+    if (is_static(self, name))
+    {
+        PyErr_SetString(PyExc_TypeError, "Static property cannot be deleted");
+        return NULL;
+    }
 
     r = Per_p_set_or_delattro(self, name, NULL);
     if (r < 0)
@@ -1647,6 +1728,68 @@ static PyTypeObject Pertype = {
 /* End of code for Persistent objects */
 /* -------------------------------------------------------- */
 
+static void
+Static_dealloc(cStaticObject *self)
+{
+    Py_DECREF(self->value);
+    /* No need to decref type because we are never on the heap */
+}
+
+static int
+Static_init(cStaticObject *self, PyObject *args, PyObject *kwds)
+{
+    if (!PyArg_ParseTuple(args, "O", &self->value))
+    {
+        return -1;
+    }
+    Py_INCREF(self->value);
+    return 0;
+}
+
+static PyTypeObject Statictype = {
+  PyVarObject_HEAD_INIT(DEFERRED_ADDRESS(&PyType_Type), 0)
+  "persistent.static",              /* tp_name */
+  sizeof(cStaticObject),            /* tp_basicsize */
+  0,                                /* tp_itemsize */
+  (destructor)Static_dealloc,       /* tp_dealloc */
+  0,                                /* tp_print */
+  0,                                /* tp_getattr */
+  0,                                /* tp_setattr */
+  0,                                /* tp_compare */
+  0,                                /* tp_repr */
+  0,                                /* tp_as_number */
+  0,                                /* tp_as_sequence */
+  0,                                /* tp_as_mapping */
+  0,                                /* tp_hash */
+  0,                                /* tp_call */
+  0,                                /* tp_str */
+  0,                                /* tp_getattro */
+  0,                                /* tp_setattro */
+  0,                                /* tp_as_buffer */
+  Py_TPFLAGS_DEFAULT,               /* tp_flags */
+  0,                                /* tp_doc */
+  0,                                /* tp_traverse */
+  0,                                /* tp_clear */
+  0,                                /* tp_richcompare */
+  0,                                /* tp_weaklistoffset */
+  0,                                /* tp_iter */
+  0,                                /* tp_iternext */
+  0,                                /* tp_methods */
+  0,                                /* tp_members */
+  0,                                /* tp_getset */
+  0,                                /* tp_base */
+  0,                                /* tp_dict */
+  0,                                /* tp_descr_get */
+  0,                                /* tp_descr_set */
+  0,                                /* tp_dictoffset */
+  (initproc)Static_init,            /* tp_init */
+  0,                                /* tp_alloc */
+  0,                                /* tp_new */
+};
+
+/* End of code for static objects */
+/* -------------------------------------------------------- */
+
 typedef int (*intfunctionwithpythonarg)(PyObject*);
 
 /* Load the object's state if necessary and become sticky */
@@ -1736,6 +1879,17 @@ module_init(void)
     if (PyType_Ready(&Pertype) < 0)
         return NULL;
     if (PyModule_AddObject(module, "Persistent", (PyObject *)&Pertype) < 0)
+        return NULL;
+
+#ifdef PY3K
+    ((PyObject*)&Statictype)->ob_type = &PyType_Type;
+#else
+    Statictype.ob_type = &PyType_Type;
+#endif
+    Statictype.tp_new = PyType_GenericNew;
+    if (PyType_Ready(&Statictype) < 0)
+        return NULL;
+    if (PyModule_AddObject(module, "static", (PyObject *)&Statictype) < 0)
         return NULL;
 
     cPersistenceCAPI = &truecPersistenceCAPI;

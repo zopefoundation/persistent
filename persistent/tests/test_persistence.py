@@ -40,6 +40,10 @@ class _Persistent_Base(object):
         # concrete testcase classes must override
         raise NotImplementedError()
 
+    def _getStaticClass(self):
+        # concrete testcase classes must override
+        raise NotImplementedError()
+
     def _makeCache(self, jar):
         # concrete testcase classes must override
         raise NotImplementedError()
@@ -687,7 +691,22 @@ class _Persistent_Base(object):
         getattr(inst, '_p_mtime')
         self._checkMRU(jar, [OID])
 
-    def test___getattribute__special_name(self):
+    def test___getattribute___static(self):
+        from persistent import GHOST
+        static = self._getStaticClass()
+        class Derived(self._getTargetClass()):
+            static_str = static('value')
+            @static
+            def static_func(self):
+                return 'return_value'
+        inst = self._makeOneWithJar(Derived)[0]
+        inst._p_changed = None
+
+        self.assertEqual(inst.static_str, 'value')
+        self.assertEqual(inst.static_func(), 'return_value')
+        self.assertEqual(inst._p_state, GHOST)
+
+    def test___getattribute___special_name(self):
         from persistent.persistence import SPECIAL_NAMES
         inst, jar, OID = self._makeOneWithJar()
         self._clearMRU(jar)
@@ -695,13 +714,13 @@ class _Persistent_Base(object):
             getattr(inst, name, None)
         self._checkMRU(jar, [])
 
-    def test___getattribute__normal_name_from_unsaved(self):
+    def test___getattribute___normal_name_from_unsaved(self):
         class Derived(self._getTargetClass()):
             normal = 'value'
         inst = Derived()
         self.assertEqual(getattr(inst, 'normal', None), 'value')
 
-    def test___getattribute__normal_name_from_ghost(self):
+    def test___getattribute___normal_name_from_ghost(self):
         class Derived(self._getTargetClass()):
             normal = 'value'
         inst, jar, OID = self._makeOneWithJar(Derived)
@@ -710,7 +729,7 @@ class _Persistent_Base(object):
         self.assertEqual(getattr(inst, 'normal', None), 'value')
         self._checkMRU(jar, [OID])
 
-    def test___getattribute__normal_name_from_saved(self):
+    def test___getattribute___normal_name_from_saved(self):
         class Derived(self._getTargetClass()):
             normal = 'value'
         inst, jar, OID = self._makeOneWithJar(Derived)
@@ -719,7 +738,7 @@ class _Persistent_Base(object):
         self.assertEqual(getattr(inst, 'normal', None), 'value')
         self._checkMRU(jar, [OID])
 
-    def test___getattribute__normal_name_from_changed(self):
+    def test___getattribute___normal_name_from_changed(self):
         class Derived(self._getTargetClass()):
             normal = 'value'
         inst, jar, OID = self._makeOneWithJar(Derived)
@@ -761,6 +780,21 @@ class _Persistent_Base(object):
         for name, value in NAMES:
             setattr(inst, name, value)
         self._checkMRU(jar, [])
+
+    def test___setattr___static(self):
+        from persistent import GHOST
+        static = self._getStaticClass()
+        class Derived(self._getTargetClass()):
+            static_str = static('value')
+        inst = self._makeOneWithJar(Derived)[0]
+        inst._p_changed = None
+
+        with self.assertRaises(TypeError):
+            inst.static_str = 'value2'
+        with self.assertRaises(TypeError):
+            inst._p_setattr('static_str', 'value3')
+        self.assertEqual(inst.static_str, 'value')
+        self.assertEqual(inst._p_state, GHOST)
 
     def test___setattr___v__name(self):
         class Derived(self._getTargetClass()):
@@ -827,6 +861,21 @@ class _Persistent_Base(object):
             delattr(inst, name)
         self._checkMRU(jar, [])
         self.assertEqual(jar._registered, [])
+
+    def test___delattr___static(self):
+        from persistent import GHOST
+        static = self._getStaticClass()
+        class Derived(self._getTargetClass()):
+            static_str = static('value')
+        inst = self._makeOneWithJar(Derived)[0]
+        inst._p_changed = None
+
+        with self.assertRaises(TypeError):
+            del inst.static_str
+        with self.assertRaises(TypeError):
+            inst._p_delattr('static_str')
+        self.assertEqual(inst.static_str, 'value')
+        self.assertEqual(inst._p_state, GHOST)
 
     def test___delattr__normal_name_from_unsaved(self):
         class Derived(self._getTargetClass()):
@@ -1946,6 +1995,11 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
         assert PersistentPy.__module__ == 'persistent.persistence', PersistentPy.__module__
         return PersistentPy
 
+    def _getStaticClass(self):
+        from persistent.persistence import staticPy
+        assert staticPy.__module__ == 'persistent.persistence', staticPy.__module__
+        return staticPy
+
     def _makeCache(self, jar):
 
         class _Cache(object):
@@ -2057,6 +2111,10 @@ class CPersistentTests(unittest.TestCase, _Persistent_Base):
     def _getTargetClass(self):
         from persistent._compat import _c_optimizations_available as get_c
         return get_c()['persistent.persistence'].Persistent
+
+    def _getStaticClass(self):
+        from persistent._compat import _c_optimizations_available as get_c
+        return get_c()['persistent.persistence'].static
 
     def _checkMRU(self, jar, value):
         pass # Figure this out later

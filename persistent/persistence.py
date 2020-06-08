@@ -70,6 +70,38 @@ _OID_STRUCT = struct.Struct('>Q')
 _OID_UNPACK = _OID_STRUCT.unpack
 
 
+@use_c_impl
+class static(object):
+    def __init__(self, value):
+        self._value = value
+
+
+# Check if the attr is marked as static on the superclass and get it if so
+def _is_static(self, name):
+    try:
+        clattr = _OGA(type(self), name)
+    except AttributeError:
+        return None
+    if isinstance(clattr, (static, staticPy)):
+        return clattr
+    return None
+
+
+def _get_static(self, clattr):
+    value = clattr._value  # no need for _OGA because we defined it
+    try:
+        get = _OGA(value, '__get__')
+    except AttributeError:
+        get = None
+    if callable(get):
+        return get(clattr, self)
+    return value
+
+
+# This name is bound by the ``@use_c_impl`` decorator to the class defined above.
+# We make sure and list it statically, though, to help out linters.
+staticPy = staticPy # pylint:disable=undefined-variable,self-assigning-variable
+
 
 @use_c_impl
 @implementer(interfaces.IPersistent)
@@ -278,6 +310,9 @@ class Persistent(object):
         """ See IPersistent.
         """
         oga = _OGA
+        static = _is_static(self, name)
+        if static:
+            return _get_static(self, static)
         if (not name.startswith('_p_') and
             name not in _SPECIAL_NAMES):
             if oga(self, '_Persistent__flags') is None:
@@ -286,6 +321,8 @@ class Persistent(object):
         return oga(self, name)
 
     def __setattr__(self, name, value):
+        if _is_static(self, name):
+            raise TypeError("Static property cannot be assigned to")
         special_name = (name in _SPECIAL_NAMES or
                         name.startswith('_p_'))
         volatile = name.startswith('_v_')
@@ -306,6 +343,8 @@ class Persistent(object):
                 _OGA(self, '_p_register')()
 
     def __delattr__(self, name):
+        if _is_static(self, name):
+            raise TypeError("Static property cannot be deleted")
         special_name = (name in _SPECIAL_NAMES or
                         name.startswith('_p_'))
         if not special_name:
@@ -480,13 +519,16 @@ class Persistent(object):
         """
         if name.startswith('_p_') or name in _SPECIAL_NAMES:
             return True
-        self._p_activate()
-        self._p_accessed()
+        if not _is_static(self, name):
+            self._p_activate()
+            self._p_accessed()
         return False
 
     def _p_setattr(self, name, value):
         """ See IPersistent.
         """
+        if _is_static(self, name):
+            raise TypeError("Static property cannot be assigned to")
         if name.startswith('_p_'):
             _OSA(self, name, value)
             return True
@@ -497,6 +539,8 @@ class Persistent(object):
     def _p_delattr(self, name):
         """ See IPersistent.
         """
+        if _is_static(self, name):
+            raise TypeError("Static property cannot be deleted")
         if name.startswith('_p_'):
             if name == '_p_oid' and self._p_is_in_cache(_OGA(self, '_Persistent__jar')):
                 # The C implementation forbids deleting the oid
