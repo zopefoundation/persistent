@@ -32,6 +32,10 @@ class default(object):
         return self.func(inst)
 
 
+class PersistentMappingConflictError(Exception):
+    pass
+
+
 class PersistentMapping(IterableUserDict, persistent.Persistent):
     """A persistent wrapper for mapping objects.
 
@@ -156,3 +160,48 @@ class PersistentMapping(IterableUserDict, persistent.Persistent):
         self.__dict__['data'] = data
 
         return data
+
+    def _p_resolveConflict(self, old, com, new):
+        res = {}
+        for k in set(com.keys()) | set(new.keys()) | set(old.keys()):
+            # value has been deleted in a and b --> ignore
+            if k not in com and k not in new:
+                continue
+
+            # value not in old
+            if k not in old:
+                if k not in com:
+                    # value is not in new --> keep com value
+                    res[k] = new[k]
+                    continue
+
+                if k not in new:
+                    # value is not in com --> keep new value
+                    res[k] = com[k]
+                    continue
+
+            # value in old
+            else:
+                # com unchanged, new changed --> keep new value
+                if com.get(k) == old.get(k):
+                    res[k] = new[k]
+                    continue
+
+                # new unchanged, com changed --> keep com value
+                if new.get(k) == old.get(k):
+                    res[k] = com[k]
+                    continue
+
+            # value equal in com and new --> keep any value
+            if com.get(k) == new.get(k):
+                res[k] = com[k]
+                continue
+
+            # values are dict --> merge recursively
+            if isinstance(com[k], dict) and isinstance(new[k], dict):
+                res[k] = self._p_resolveConflict(old[k], com[k], new[k])
+                continue
+
+            raise PersistentMappingConflictError()
+
+        return res
