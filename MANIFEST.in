@@ -7,6 +7,7 @@ include *.yml
 
 recursive-include docs *
 recursive-include persistent *
+recursive-include .github *.yml
 
 global-exclude *.dll
 global-exclude *.pyc
@@ -19,7 +20,6 @@ prune persistent/__pycache__
 
 
 include .coveragerc
-include .travis.yml
 include buildout.cfg
 include tox.ini
 include *.py
