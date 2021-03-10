@@ -1,14 +1,16 @@
-``persistent`` Changelog
-========================
+==========================
+ ``persistent`` Changelog
+==========================
 
-4.6.5 (unreleased)
-------------------
+4.7.0 (unreleased)
+==================
 
-- Nothing changed yet.
-
+- Add support for Python 3.9.
+- Move from Travis CI to Github Actions.
+- Supply manylinux wheels for aarch64 (ARM).
 
 4.6.4 (2020-03-26)
-------------------
+==================
 
 - Fix an overly specific test failure using zope.interface 5. See
   `issue 144 <https://github.com/zopefoundation/persistent/issues/144>`_.
@@ -16,7 +18,7 @@
   of obscure errors. See `issue 143 <https://github.com/zopefoundation/persistent/issues/143>`_.
 
 4.6.3 (2020-03-18)
-------------------
+==================
 
 - Fix a crash in the test suite under a 32-bit CPython on certain
   32-bit platforms. See `issue 137
@@ -25,7 +27,7 @@
 
 
 4.6.2 (2020-03-12)
-------------------
+==================
 
 - Fix an ``AssertionError`` clearing a non-empty ``PersistentMapping``
   that has no connection. See `issue 139
@@ -33,7 +35,7 @@
 
 
 4.6.1 (2020-03-06)
-------------------
+==================
 
 - Stop installing C header files on PyPy (which is what persistent before 4.6.0
   used to do), fixes `issue 135
@@ -41,7 +43,7 @@
 
 
 4.6.0 (2020-03-05)
-------------------
+==================
 
 - Fix slicing of ``PersistentList`` to always return instances of the
   same class. It was broken on Python 3 prior to 3.7.4.
@@ -87,7 +89,7 @@
   (except on PyPy).
 
 4.5.1 (2019-11-06)
-------------------
+==================
 
 - Add support for Python 3.8.
 
@@ -95,7 +97,7 @@
 
 
 4.5.0 (2019-05-09)
-------------------
+==================
 
 - Fully test the C implementation of the PickleCache, and fix
   discrepancies between it and the Python implementation:
@@ -127,7 +129,7 @@
 
 
 4.4.3 (2018-10-22)
-------------------
+==================
 
 - Fix the repr of the persistent objects to include the module name
   when using the C extension. This matches the pure-Python behaviour
@@ -141,7 +143,7 @@
 
 
 4.4.2 (2018-08-28)
-------------------
+==================
 
 - Explicitly use unsigned constants for packing and unpacking C
   timestamps, fixing an arithmetic issue for GCC when optimizations
@@ -150,14 +152,14 @@
 
 
 4.4.1 (2018-08-23)
-------------------
+==================
 
 - Fix installation of source packages on PyPy. See `issue 88
   <https://github.com/zopefoundation/persistent/issues/88>`_.
 
 
 4.4.0 (2018-08-22)
-------------------
+==================
 
 - Use unsigned constants when doing arithmetic on C timestamps,
   possibly avoiding some overflow issues with some compilers or
@@ -208,7 +210,7 @@
 
 
 4.3.0 (2018-07-30)
-------------------
+==================
 
 - Fix the possibility of a rare crash in the C extension when
   deallocating items. See https://github.com/zopefoundation/persistent/issues/66
@@ -224,19 +226,19 @@
 
 
 4.2.4.2 (2017-04-23)
---------------------
+====================
 
 - Packaging-only release: fix Python 2.7 ``manylinux`` wheels.
 
 
 4.2.4.1 (2017-04-21)
---------------------
+====================
 
 - Packaging-only release:  get ``manylinux`` wheel built automatically.
 
 
 4.2.4 (2017-03-20)
-------------------
+==================
 
 - Avoid raising a ``SystemError: error return without exception set``
   when loading an object with slots whose jar generates an exception
@@ -244,7 +246,7 @@
 
 
 4.2.3 (2017-03-08)
-------------------
+==================
 
 - Fix the hashcode of Python ``TimeStamp`` objects on 64-bit Python on
   Windows. See https://github.com/zopefoundation/persistent/pull/55
@@ -266,7 +268,7 @@
 
 
 4.2.2 (2016-11-29)
-------------------
+==================
 
 - Drop use of ``ctypes`` for determining maximum integer size, to increase
   pure-Python compatibility. See https://github.com/zopefoundation/persistent/pull/31
@@ -279,14 +281,14 @@
 
 
 4.2.1 (2016-05-26)
-------------------
+==================
 
 - Fix the hashcode of C ``TimeStamp`` objects on 64-bit Python 3 on
   Windows.
 
 
 4.2.0 (2016-05-05)
-------------------
+==================
 
 - Fixed the Python(/PYPY) implementation ``TimeStamp.timeTime`` method
   to have subsecond precision.
@@ -300,13 +302,13 @@
 
 
 4.1.1 (2015-06-02)
-------------------
+==================
 
 - Fix manifest and re-upload to fix stray files included in 4.1.0.
 
 
 4.1.0 (2015-05-19)
-------------------
+==================
 
 - Make the Python implementation of ``Persistent`` and ``PickleCache``
   behave more similarly to the C implementation. In particular, the
@@ -316,7 +318,7 @@
 
 
 4.0.9 (2015-04-08)
-------------------
+==================
 
 - Make the C and Python ``TimeStamp`` objects behave more alike. The
   Python version now produces the same ``repr`` and ``.raw()`` output as
@@ -332,7 +334,7 @@
 
 
 4.0.8 (2014-03-20)
-------------------
+==================
 
 - Add support for Python 3.4.
 
@@ -351,7 +353,7 @@
 
 
 4.0.7 (2014-02-20)
-------------------
+==================
 
 - Avoid a KeyError from ``_p_accessed()`` on newly-created objects under
   pure-Python:  these objects may be assigned to a jar, but not yet added
@@ -368,20 +370,20 @@
 
 
 4.0.6 (2013-01-03)
-------------------
+==================
 
 - Updated Trove classifiers.
 
 
 4.0.5 (2012-12-14)
-------------------
+==================
 
 - Fixed the C-extensions under Py3k (previously they compiled but were
   not importable).
 
 
 4.0.4 (2012-12-11)
-------------------
+==================
 
 - Added support for Python 3.3.
 
@@ -390,7 +392,7 @@
 
 
 4.0.3 (2012-11-19)
-------------------
+==================
 
 - Fixed: In the C implimentation, an integer was compared with a
   pointer, with undefined results and a compiler warning.
@@ -404,13 +406,13 @@
 
 
 4.0.2 (2012-08-27)
-------------------
+==================
 
 - Correct initialization functions in renamed ``_timestamp`` extension.
 
 
 4.0.1 (2012-08-26)
-------------------
+==================
 
 - Worked around test failure due to overflow to long on 32-bit systems.
 
@@ -426,10 +428,10 @@
 
 
 4.0.0 (2012-08-11)
-------------------
+==================
 
 Platform Changes
-################
+----------------
 
 - Added explicit support for Python 3.2 and PyPy.
 
@@ -439,7 +441,7 @@ Platform Changes
 - Dropped support for Python < 2.6.
 
 Testing Changes
-###############
+---------------
 
 - 100% unit test coverage.
 
@@ -464,7 +466,7 @@ Testing Changes
   run with ``setup.py test``.
 
 Documentation Changes
-#####################
+---------------------
 
 - Refactored many Doctests as Sphinx documentation (snippets are exercised
   via 'tox').

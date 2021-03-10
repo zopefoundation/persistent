@@ -1,8 +1,9 @@
-``persistent``:  automatic persistence for Python objects
-=========================================================
+===========================================================
+ ``persistent``:  automatic persistence for Python objects
+===========================================================
 
-.. image:: https://travis-ci.com/zopefoundation/persistent.svg?branch=master
-        :target: https://travis-ci.com/zopefoundation/persistent
+.. image:: https://github.com/zopefoundation/persistent/actions/workflows/tests.yml/badge.svg
+        :target: https://github.com/zopefoundation/persistent/actions/workflows/tests.yml
 
 .. image:: https://coveralls.io/repos/github/zopefoundation/persistent/badge.svg?branch=master
         :target: https://coveralls.io/github/zopefoundation/persistent?branch=master

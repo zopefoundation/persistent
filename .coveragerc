@@ -1,5 +1,7 @@
 [run]
 source = persistent
+# New in 5.0; required for the GHA coveralls submission.
+relative_files = True
 omit =
      persistent/_ring_build.py
 
