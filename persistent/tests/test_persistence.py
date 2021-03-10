@@ -50,7 +50,7 @@ class _Persistent_Base(object):
     def _makeOne(self, *args, **kw):
         return self._getTargetClass()(*args, **kw)
 
-    def _makeJar(self):
+    def _makeJar(self, real_cache=False):
         from zope.interface import implementer
         from persistent.interfaces import IPersistentDataManager
 
@@ -77,7 +77,7 @@ class _Persistent_Base(object):
                 self._registered.append(obj._p_oid)
 
         jar = _Jar()
-        jar._cache = self._makeCache(jar)
+        jar._cache = self._makeRealCache(jar) if real_cache else self._makeCache(jar)
         return jar
 
     def _makeBrokenJar(self):
@@ -98,14 +98,16 @@ class _Persistent_Base(object):
         jar._cache = self._makeCache(jar)
         return jar
 
-    def _makeOneWithJar(self, klass=None, broken_jar=False):
+    def _makeOneWithJar(self, klass=None, broken_jar=False, real_cache=False):
         OID = b'\x01' * 8
         if klass is not None:
             inst = klass()
         else:
             inst = self._makeOne()
-        jar = self._makeJar() if not broken_jar else self._makeBrokenJar()
+        jar = self._makeJar(real_cache=real_cache) if not broken_jar else self._makeBrokenJar()
         jar._cache.new_ghost(OID, inst) # assigns _p_jar, _p_oid
+        # Be sure it really returned a ghost.
+        assert inst._p_status == 'ghost'
         return inst, jar, OID
 
     def test_class_conforms_to_IPersistent(self):
@@ -803,6 +805,51 @@ class _Persistent_Base(object):
         self.assertEqual(getattr(inst, 'normal', None), 'after')
         self.assertEqual(inst._p_status, 'changed')
 
+    def test__setattr__class__from_saved(self):
+        # Setting __class__ activates the object and uses
+        # the old class's methods to do so. See
+        # https://github.com/zopefoundation/persistent/issues/155
+        P = self._getTargetClass()
+
+        setstate = []
+
+        class OriginalClass(P):
+            def __setstate__(self, state):
+                setstate.append(type(self))
+                P.__setstate__(self, state)
+
+        class NewClass(P):
+            "Does nothing"
+
+        inst, jar, OID = self._makeOneWithJar(OriginalClass)
+        # Make the fake jar call __setstate__ when the object is activated
+        jar.setstate_calls_object = {}
+        inst._p_changed = False
+        self._clearMRU(jar)
+
+        # Assigning to __class__...
+        inst.__class__ = NewClass
+        # ...uses the original __setstate__ method...
+        self.assertEqual(setstate, [OriginalClass])
+        # ...and activates the object
+        self.assertTrue(inst._p_changed)
+
+    def test__setattr__dict__from_saved(self):
+        # Setting __dict__ activates the object and uses
+        # the old class's methods to do so. See
+        # https://github.com/zopefoundation/persistent/issues/155
+        class Derived(self._getTargetClass()):
+            "Nothing special"
+
+        inst, jar, OID = self._makeOneWithJar(Derived)
+        inst._p_changed = False
+        self._clearMRU(jar)
+
+        # Assigning to __dict__...
+        inst.__dict__ = {}
+        # ...activates the object
+        self.assertTrue(inst._p_changed)
+
     def test___setattr__normal_name_from_changed(self):
         class Derived(self._getTargetClass()):
             normal = 'before'
@@ -837,10 +884,10 @@ class _Persistent_Base(object):
         delattr(inst, 'normal')
         self.assertEqual(getattr(inst, 'normal', None), 'before')
 
-    def test___delattr__normal_name_from_ghost(self):
+    def test___delattr__normal_name_from_ghost(self, real_cache=False):
         class Derived(self._getTargetClass()):
             normal = 'before'
-        inst, jar, OID = self._makeOneWithJar(Derived)
+        inst, jar, OID = self._makeOneWithJar(Derived, real_cache=real_cache)
         inst._p_deactivate()
         self._clearMRU(jar)
         jar._registered = []
@@ -852,12 +899,15 @@ class _Persistent_Base(object):
         self.assertEqual(jar._registered, [OID])
         self.assertEqual(getattr(inst, 'normal', None), 'before')
 
-    def test___delattr__normal_name_from_saved(self):
+    def test___delattr__normal_name_from_ghost_real_cache(self):
+        self.test___delattr__normal_name_from_ghost(real_cache=True)
+
+    def test___delattr__normal_name_from_saved(self, real_cache=False):
         class Derived(self._getTargetClass()):
             normal = 'before'
             def __init__(self):
                 self.__dict__['normal'] = 'after'
-        inst, jar, OID = self._makeOneWithJar(Derived)
+        inst, jar, OID = self._makeOneWithJar(Derived, real_cache=real_cache)
         inst._p_changed = False
         self._clearMRU(jar)
         jar._registered = []
@@ -866,12 +916,15 @@ class _Persistent_Base(object):
         self.assertEqual(jar._registered, [OID])
         self.assertEqual(getattr(inst, 'normal', None), 'before')
 
-    def test___delattr__normal_name_from_changed(self):
+    def test___delattr__normal_name_from_saved_real_cache(self):
+        self.test___delattr__normal_name_from_saved(real_cache=True)
+
+    def test___delattr__normal_name_from_changed(self, real_cache=False):
         class Derived(self._getTargetClass()):
             normal = 'before'
             def __init__(self):
                 self.__dict__['normal'] = 'after'
-        inst, jar, OID = self._makeOneWithJar(Derived)
+        inst, jar, OID = self._makeOneWithJar(Derived, real_cache=real_cache)
         inst._p_changed = True
         self._clearMRU(jar)
         jar._registered = []
@@ -879,6 +932,9 @@ class _Persistent_Base(object):
         self._checkMRU(jar, [OID])
         self.assertEqual(jar._registered, [])
         self.assertEqual(getattr(inst, 'normal', None), 'before')
+
+    def test___delattr__normal_name_from_changed_real_cache(self):
+        self.test___delattr__normal_name_from_changed(real_cache=True)
 
     def test___getstate__(self):
         inst = self._makeOne()
@@ -1958,6 +2014,14 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
             def new_ghost(self, oid, obj):
                 obj._p_jar = self._jar
                 obj._p_oid = oid
+                # The C implementation always returns actual ghosts,
+                # make sure we do too. However, we can't call
+                # _p_deactivate(), because that clears the dictionary.
+                # The C pickle cache makes the object a ghost just by
+                # setting its status to 'ghost', without going though
+                # _p_deactivate(). Thus, we do the same by setting the
+                # flags.
+                object.__setattr__(obj, '_Persistent__flags', None)
                 self._data[oid] = obj
             def get(self, oid):
                 return self._data.get(oid)
@@ -1968,15 +2032,23 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
 
         return _Cache(jar)
 
-    def _makeRealCache(self, jar):
+    def _getRealCacheClass(self):
         from persistent.picklecache import PickleCachePy as PickleCache
+        return PickleCache
+
+    def _makeRealCache(self, jar):
+        PickleCache = self._getRealCacheClass()
         return PickleCache(jar, 10)
 
     def _checkMRU(self, jar, value):
-        self.assertEqual(list(jar._cache._mru), value)
+        if not isinstance(jar._cache, self._getRealCacheClass()):
+            # We can't do this for the real cache.
+            self.assertEqual(list(jar._cache._mru), value)
 
     def _clearMRU(self, jar):
-        jar._cache._mru[:] = []
+        if not isinstance(jar._cache, self._getRealCacheClass()):
+            # We can't do this for the real cache.
+            jar._cache._mru[:] = []
 
     def test_accessed_with_jar_and_oid_but_not_in_cache(self):
         # This scenario arises in ZODB: ZODB.serialize.ObjectWriter

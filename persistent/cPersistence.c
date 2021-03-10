@@ -973,7 +973,9 @@ Done:
 }
 
 /*
-  TODO:  we should probably not allow assignment of __class__ and __dict__.
+ * TODO:  we should probably not allow assignment of __class__ and __dict__.
+ * But we do, and have for a long time. Code in the wild is known to rely on
+ * assigning __class__.
 */
 
 static int
