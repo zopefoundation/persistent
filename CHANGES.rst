@@ -8,6 +8,10 @@
 - Add support for Python 3.9.
 - Move from Travis CI to Github Actions.
 - Supply manylinux wheels for aarch64 (ARM).
+- Fix the pure-Python implementation to activate a ghost object
+  when setting its ``__class__`` and ``__dict__``. This matches the
+  behaviour of the C implementation. See `issue 155
+  <https://github.com/zopefoundation/persistent/issues/155>`_.
 
 4.6.4 (2020-03-26)
 ==================

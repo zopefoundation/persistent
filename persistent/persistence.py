@@ -46,7 +46,7 @@ _OGA = object.__getattribute__
 _OSA = object.__setattr__
 _ODA = object.__delattr__
 
-# These names can be used from a ghost without causing it to be
+# These names can be read from a ghost without causing it to be
 # activated. These are standardized with the C implementation
 SPECIAL_NAMES = ('__class__',
                  '__del__',
@@ -63,6 +63,12 @@ _SPECIAL_NAMES = set(SPECIAL_NAMES)
 _SLOTS = ('__jar', '__oid', '__serial', '__flags', '__size', '__ring',)
 _SPECIAL_NAMES.update([intern('_Persistent' + x) for x in _SLOTS])
 
+# These are names that can be written to a ghost without
+# causing it to be activated. The C code only makes the exception for
+# _p_* names; in practice, only __class__ and __dict__ are actually
+# going to be set on instances, as the rest of the exceptions are
+# methods called on the type
+_SPECIAL_WRITE_NAMES = set(_SPECIAL_NAMES) - set(('__class__', '__dict__'))
 
 # Represent 8-byte OIDs as hex integer, just like
 # ZODB does.
@@ -286,7 +292,7 @@ class Persistent(object):
         return oga(self, name)
 
     def __setattr__(self, name, value):
-        special_name = (name in _SPECIAL_NAMES or
+        special_name = (name in _SPECIAL_WRITE_NAMES or
                         name.startswith('_p_'))
         volatile = name.startswith('_v_')
         if not special_name:
