@@ -2041,18 +2041,14 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
         return PickleCache(jar, 10)
 
     def _checkMRU(self, jar, value):
-        try:
-            self.assertEqual(list(jar._cache._mru), value)
-        except AttributeError:
+        if not isinstance(jar._cache, self._getRealCacheClass()):
             # We can't do this for the real cache.
-            assert isinstance(jar._cache, self._getRealCacheClass())
+            self.assertEqual(list(jar._cache._mru), value)
 
     def _clearMRU(self, jar):
-        try:
-            jar._cache._mru[:] = []
-        except AttributeError:
+        if not isinstance(jar._cache, self._getRealCacheClass()):
             # We can't do this for the real cache.
-            assert isinstance(jar._cache, self._getRealCacheClass())
+            jar._cache._mru[:] = []
 
     def test_accessed_with_jar_and_oid_but_not_in_cache(self):
         # This scenario arises in ZODB: ZODB.serialize.ObjectWriter
