@@ -1136,7 +1136,8 @@ class PythonPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
         o = cache[oid] = self._makePersist(oid=oid)
         # Clear the dict, or at least part of it.
         # This is coupled to ``cleanup_hook``
-        del cache.data._addr_to_oid
+        if cache.data.cleanup_hook:
+            del cache.data._addr_to_oid
         del cache[oid]
 
         self.assertEqual(unraised, [])
