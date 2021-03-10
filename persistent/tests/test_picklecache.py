@@ -1125,10 +1125,8 @@ class PythonPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
             old_hook = sys.unraisablehook
         except AttributeError:
             pass
-        else:
-            def new_hook(unraisable):
-                unraised.append(1)
-            sys.unraisablehook = new_hook
+        else: # pragma: no cover
+            sys.unraisablehook = unraised.append
             self.addCleanup(setattr, sys, 'unraisablehook', old_hook)
 
         cache = self._makeOne()
