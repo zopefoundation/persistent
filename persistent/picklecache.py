@@ -430,6 +430,13 @@ class PickleCache(object):
     @_sweeping_ring
     def _sweep(self, target, target_size_bytes=0):
         ejected = 0
+        # If we find and eject objects that may have been weak referenced,
+        # we need to run a garbage collection to try to clear those references.
+        # Otherwise, it's highly likely that accessing those objects through those
+        # references will try to ``_p_activate()`` them, and since the jar they came
+        # from is probably closed, that will lead to an error. See
+        # https://github.com/zopefoundation/persistent/issues/149
+        had_weak_refs = False
         ring = self.ring
         for node, value in ring.iteritems():
             if ((target or target_size_bytes) # pylint:disable=too-many-boolean-expressions
@@ -452,7 +459,10 @@ class PickleCache(object):
                 # to make this happen...this is only noticeable though, when
                 # we eject objects. Also, note that we can only take any of these
                 # actions if our _p_deactivate ran, in case of buggy subclasses.
-                # see _persistent_deactivate_ran
+                # see _persistent_deactivate_ran.
+
+                if not had_weak_refs:
+                    had_weak_refs |= getattr(value, '__weakref__', None) is not None
 
                 value._p_deactivate()
                 if (self._persistent_deactivate_ran
@@ -464,6 +474,12 @@ class PickleCache(object):
                     ejected += 1
                     self.non_ghost_count -= 1
 
+        if ejected and had_weak_refs:
+            # Clear the iteration variables, so the objects they point to
+            # are subject to GC.
+            node = None
+            value = None
+            gc.collect()
         return ejected
 
     @_sweeping_ring

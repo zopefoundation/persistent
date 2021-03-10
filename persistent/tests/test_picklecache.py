@@ -44,6 +44,16 @@ class DummyConnection(object):
     pass
 
 
+class ClosedConnection(DummyConnection):
+    def __init__(self, test):
+        self.test = test
+
+    def setstate(self, obj): # pragma: no cover
+        self.test.fail("Connection is closed")
+
+    def register(self, obj):
+        """Does nothing."""
+
 def _len(seq):
     return len(list(seq))
 
@@ -381,6 +391,84 @@ class PickleCacheTestMixin(object):
         for oid in oids:
             self.assertTrue(cache.get(oid) is None)
 
+    def test_full_sweep_clears_weakrefs_in_interface(self, sweep_method='full_sweep'):
+        # https://github.com/zopefoundation/persistent/issues/149
+        # Sweeping the cache clears weak refs (for PyPy especially)
+        # In the real world, this shows up in the interaction with
+        # persistent objects and zope.interface/zope.component,
+        # so we use an Interface to demonstrate. This helps find issues
+        # like needing to run GC more than once, etc, because of how the
+        # object is referenced.
+        from zope.interface import Interface
+
+        gc.disable()
+        self.addCleanup(gc.enable)
+
+        jar = ClosedConnection(self)
+        cache = self._makeOne(jar, 0)
+
+        # Make a persistent object, put it in the cache as saved
+        class P(self._getRealPersistentClass()):
+            "A real persistent object that can be weak referenced"
+
+        p = P()
+        p._p_jar = jar
+        p._p_oid = b'\x01' * 8
+        cache[p._p_oid] = p
+        p._p_changed = False
+
+        # Now, take a weak reference to it from somewhere far away.
+        Interface.subscribe(p)
+
+        # Remove the original object
+        del p
+
+        # Sweep the cache.
+        getattr(cache, sweep_method)()
+
+        # Now, try to use that weak reference. If the weak reference is
+        # still around, this will raise the error about the connection
+        # being closed.
+        Interface.changed(None)
+
+    def test_incrgc_clears_weakrefs_in_interface(self):
+        self.test_full_sweep_clears_weakrefs_in_interface(sweep_method='incrgc')
+
+    def test_full_sweep_clears_weakrefs(self, sweep_method='incrgc'):
+        # like test_full_sweep_clears_weakrefs_in_interface,
+        # but directly using a weakref. This is the simplest version of the test.
+        from weakref import ref as WeakRef
+        gc.disable()
+        self.addCleanup(gc.enable)
+
+        jar = ClosedConnection(self)
+        cache = self._makeOne(jar, 0)
+
+        # Make a persistent object, put it in the cache as saved
+        class P(self._getRealPersistentClass()):
+            "A real persistent object that can be weak referenced"
+
+        p = P()
+        p._p_jar = jar
+        p._p_oid = b'\x01' * 8
+        cache[p._p_oid] = p
+        p._p_changed = False
+
+        # Now, take a weak reference to it
+        ref = WeakRef(p)
+
+        # Remove the original object
+        del p
+
+        # Sweep the cache.
+        getattr(cache, sweep_method)()
+
+        # Now, try to use that weak reference; it should be gone.
+        p = ref()
+        self.assertIsNone(p)
+
+    def test_incrgc_clears_weakrefs(self):
+        self.test_full_sweep_clears_weakrefs(sweep_method='incrgc')
 
     def test_minimize(self):
         cache = self._makeOne()
