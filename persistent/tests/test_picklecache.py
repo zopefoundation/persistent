@@ -1102,6 +1102,44 @@ class PythonPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
         self.assertEqual(cache.cache_non_ghost_count, 0)
         self.assertEqual(len(cache), 0)
 
+    def test_interpreter_finalization_ffi_cleanup(self):
+        # When the interpreter is busy garbage collecting old objects
+        # and clearing their __dict__ in random orders, the CFFI cleanup
+        # ``ffi.gc()`` cleanup hooks we use on CPython don't
+        # raise errors.
+        #
+        # Prior to Python 3.8, when ``sys.unraisablehook`` was added,
+        # the only way to know if this test fails is to look for AttributeError
+        # on stderr.
+        #
+        # But wait, it gets worse. Prior to https://foss.heptapod.net/pypy/cffi/-/issues/492
+        # (CFFI > 1.14.5, unreleased at this writing), CFFI ignores
+        # ``sys.unraisablehook``, so even on 3.8 the only way to know
+        # a failure is to watch stderr.
+        #
+        # See https://github.com/zopefoundation/persistent/issues/150
+
+        import sys
+        unraised = []
+        try:
+            old_hook = sys.unraisablehook
+        except AttributeError:
+            pass
+        else: # pragma: no cover
+            sys.unraisablehook = unraised.append
+            self.addCleanup(setattr, sys, 'unraisablehook', old_hook)
+
+        cache = self._makeOne()
+        oid = self._numbered_oid(42)
+        o = cache[oid] = self._makePersist(oid=oid)
+        # Clear the dict, or at least part of it.
+        # This is coupled to ``cleanup_hook``
+        if cache.data.cleanup_hook:
+            del cache.data._addr_to_oid
+        del cache[oid]
+
+        self.assertEqual(unraised, [])
+
 
 @skipIfNoCExtension
 class CPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
@@ -1180,6 +1218,30 @@ class CPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
         self.assertEqual(cache.total_estimated_size, 0)
         self.assertEqual(cache.cache_non_ghost_count, 0)
         self.assertEqual(len(cache), 0)
+
+
+class TestWeakValueDictionary(unittest.TestCase):
+
+    def _getTargetClass(self):
+        from persistent.picklecache import _WeakValueDictionary
+        return _WeakValueDictionary
+
+    def _makeOne(self):
+        return self._getTargetClass()()
+
+    @unittest.skipIf(PYPY, "PyPy doesn't have the cleanup_hook")
+    def test_cleanup_hook_gc(self):
+        # A more targeted test than ``test_interpreter_finalization_ffi_cleanup``
+        # See https://github.com/zopefoundation/persistent/issues/150
+        wvd = self._makeOne()
+
+        class cdata(object):
+            o = object()
+            pobj_id = id(o)
+        wvd['key'] = cdata.o
+
+        wvd.__dict__.clear()
+        wvd.cleanup_hook(cdata)
 
 
 def test_suite():

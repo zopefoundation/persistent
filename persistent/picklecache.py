@@ -102,7 +102,13 @@ class _WeakValueDictionary(object):
             return self._cast(addr, self._py_object).value
 
         def cleanup_hook(self, cdata):
-            oid = self._addr_to_oid.pop(cdata.pobj_id, None)
+            # This is called during GC, possibly at interpreter shutdown
+            # when the __dict__ of this object may have already been cleared.
+            try:
+                addr_to_oid = self._addr_to_oid
+            except AttributeError:
+                return
+            oid = addr_to_oid.pop(cdata.pobj_id, None)
             self._data.pop(oid, None)
 
     def __contains__(self, oid):

@@ -12,6 +12,10 @@
   when setting its ``__class__`` and ``__dict__``. This matches the
   behaviour of the C implementation. See `issue 155
   <https://github.com/zopefoundation/persistent/issues/155>`_.
+- Fix the CFFI cache implementation (used on CPython when
+  ``PURE_PYTHON=1``) to not print unraisable ``AttributeErrors`` from
+  ``_WeakValueDictionary`` during garbage collection. See `issue 150
+  <https://github.com/zopefoundation/persistent/issues/150>`_.
 
 4.6.4 (2020-03-26)
 ==================
