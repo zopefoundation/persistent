@@ -446,7 +446,7 @@ class PickleCacheTestMixin(object):
 
         # Make a persistent object, put it in the cache as saved
         class P(self._getRealPersistentClass()):
-            "A real persistent object that can be weak referenced"
+            """A real persistent object that can be weak referenced."""
 
         p = P()
         p._p_jar = jar
