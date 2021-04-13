@@ -16,6 +16,13 @@
   ``PURE_PYTHON=1``) to not print unraisable ``AttributeErrors`` from
   ``_WeakValueDictionary`` during garbage collection. See `issue 150
   <https://github.com/zopefoundation/persistent/issues/150>`_.
+- Make the pure-Python implementation of the cache run a garbage
+  collection (``gc.collect()``) on ``full_sweep``, ``incrgc`` and
+  ``minimize`` *if* it detects that an object that was weakly
+  referenced has been ejected. This solves issues on PyPy with ZODB raising
+  ``ConnectionStateError`` when there are persistent
+  ``zope.interface`` utilities/adapters registered. This partly
+  reverts a change from release 4.2.3.
 
 4.6.4 (2020-03-26)
 ==================
