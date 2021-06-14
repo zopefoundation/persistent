@@ -74,6 +74,7 @@ def _c_optimizations_available():
 
     This does not say whether they should be used or not.
     """
+    return {}
     catch = () if _c_optimizations_required() else (ImportError,)
     try:
         from persistent import cPersistence
