@@ -129,7 +129,9 @@ setup(name='persistent',
           ],
           'testing': (),
           'docs': [
-              'Sphinx',
+              # Until repoze.sphinx.autointerface supports Sphinx 4.x we cannot use it:
+              # https://github.com/repoze/repoze.sphinx.autointerface/issues/16
+              'Sphinx < 4',
               'repoze.sphinx.autointerface',
           ],
       },
