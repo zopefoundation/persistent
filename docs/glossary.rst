@@ -42,3 +42,9 @@ Glossary
    invalidation
      Moving an object from either the ``UPTODATE`` state or the ``CHANGED``
      state to the ``GHOST`` state, discarding its :term:`pickled data`.
+
+   object id
+     The stable identifier that uniquely names a particular object.
+     This is analogous to Python's `id`, but unlike `id`, object
+     ids remain the same for a given object across different
+     processes.

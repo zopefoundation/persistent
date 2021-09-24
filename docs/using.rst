@@ -408,7 +408,7 @@ Of course, the estimated size must not be negative.
 
    >>> p._p_estimated_size = -1
    Traceback (most recent call last):
-   ....
+   ...
    ValueError: _p_estimated_size must not be negative
 
 

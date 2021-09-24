@@ -12,6 +12,7 @@ Contents:
 
    using
    api
+   changes
    glossary
 
 Indices and tables
@@ -20,4 +21,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
