@@ -42,33 +42,33 @@ ext_modules = [
     Extension(
         name='persistent.cPersistence',
         sources=[
-            'persistent/cPersistence.c',
-            'persistent/ring.c',
+            'src/persistent/cPersistence.c',
+            'src/persistent/ring.c',
         ],
         depends=[
-            'persistent/cPersistence.h',
-            'persistent/ring.h',
-            'persistent/ring.c',
+            'src/persistent/cPersistence.h',
+            'src/persistent/ring.h',
+            'src/persistent/ring.c',
         ],
         define_macros=list(define_macros),
     ),
     Extension(
         name='persistent.cPickleCache',
         sources=[
-            'persistent/cPickleCache.c',
-            'persistent/ring.c',
+            'src/persistent/cPickleCache.c',
+            'src/persistent/ring.c',
         ],
         depends=[
-            'persistent/cPersistence.h',
-            'persistent/ring.h',
-            'persistent/ring.c',
+            'src/persistent/cPersistence.h',
+            'src/persistent/ring.h',
+            'src/persistent/ring.c',
         ],
         define_macros=list(define_macros),
     ),
     Extension(
         name='persistent._timestamp',
         sources=[
-            'persistent/_timestamp.c',
+            'src/persistent/_timestamp.c',
         ],
         define_macros=list(define_macros),
     ),
@@ -81,8 +81,8 @@ if is_pypy:
     headers = []
 else:
     headers = [
-        'persistent/cPersistence.h',
-        'persistent/ring.h',
+        'src/persistent/cPersistence.h',
+        'src/persistent/ring.h',
     ]
 
 setup(name='persistent',
@@ -109,18 +109,16 @@ setup(name='persistent',
           "Operating System :: Microsoft :: Windows",
           "Operating System :: Unix",
       ],
-      author="Zope Corporation",
+      author="Zope Foundation and Contributors",
       author_email="zodb-dev@zope.org",
       url="https://github.com/zopefoundation/persistent/",
       license="ZPL 2.1",
-      platforms=["any"],
-      # Make sure we don't get 'terryfy' included in wheels
-      # created on macOS CI
-      packages=find_packages(include=("persistent",)),
+      packages=find_packages('src'),
+      package_dir={'': 'src'},
       include_package_data=True,
       zip_safe=False,
       ext_modules=ext_modules,
-      cffi_modules=['persistent/_ring_build.py:ffi'],
+      cffi_modules=['src/persistent/_ring_build.py:ffi'],
       headers=headers,
       extras_require={
           'test': [
@@ -129,9 +127,7 @@ setup(name='persistent',
           ],
           'testing': (),
           'docs': [
-              # Until repoze.sphinx.autointerface supports Sphinx 4.x we cannot use it:
-              # https://github.com/repoze/repoze.sphinx.autointerface/issues/16
-              'Sphinx < 4',
+              'Sphinx',
               'repoze.sphinx.autointerface',
           ],
       },

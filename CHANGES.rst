@@ -5,7 +5,7 @@
 4.7.1 (unreleased)
 ==================
 
-- Nothing changed yet.
+- Switch package to src-layout.
 
 
 4.7.0 (2021-04-13)
