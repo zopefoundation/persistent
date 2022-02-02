@@ -5,7 +5,8 @@
 4.7.1 (unreleased)
 ==================
 
-- Switch package to src-layout.
+- Switch package to src-layout, this is a packaging only change.
+  (`#168 <https://github.com/zopefoundation/persistent/pull/168>`_)
 
 
 4.7.0 (2021-04-13)
