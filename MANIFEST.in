@@ -6,7 +6,7 @@ include *.sh
 include *.yml
 
 recursive-include docs *
-recursive-include persistent *
+recursive-include src *
 recursive-include .github *.yml
 
 global-exclude *.dll
@@ -16,7 +16,7 @@ global-exclude *.so
 global-exclude coverage.xml
 
 prune docs/_build
-prune persistent/__pycache__
+prune src/persistent/__pycache__
 
 
 include .coveragerc
