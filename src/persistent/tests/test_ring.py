@@ -27,9 +27,8 @@ class DummyPersistent(object):
         cls.__next_oid += 1
         return cls.__next_oid
 
-    def __init__(self, oid=None):
-        if oid is None:
-            self._p_oid = self._next_oid()
+    def __init__(self):
+        self._p_oid = self._next_oid()
 
     def __repr__(self): # pragma: no cover
         return "<Dummy %r at 0x%x>" % (self._p_oid, id(self))

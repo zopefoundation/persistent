@@ -7,6 +7,7 @@
 
 - Switch package to src-layout, this is a packaging only change.
   (`#168 <https://github.com/zopefoundation/persistent/pull/168>`_)
+- Add support for Python 3.10.
 
 
 4.7.0 (2021-04-13)
