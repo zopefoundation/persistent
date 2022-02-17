@@ -1,14 +1,31 @@
+# Generated from:
+# https://github.com/zopefoundation/meta/tree/master/config/c-code
 [run]
 source = persistent
 # New in 5.0; required for the GHA coveralls submission.
 relative_files = True
+branch = true
 omit =
-     persistent/_ring_build.py
+     src/persistent/_ring_build.py
+
+[paths]
+source =
+    src/
+    .tox/*/lib/python*/site-packages/
+    .tox/pypy*/site-packages/
 
 [report]
+show_missing = true
+precision = 2
 exclude_lines =
-    pragma: no cover
-    class I[A-Z]\w+\((Interface|I[A-Z].*)\):
-    raise NotImplementedError
-    raise AssertionError
+    except ImportError:
     if __name__ == '__main__':
+    pragma: no cover
+    pragma: nocover
+    raise AssertionError
+    raise NotImplementedError
+    raise unittest.Skip
+    self.fail\(
+
+[html]
+directory = parts/htmlcov

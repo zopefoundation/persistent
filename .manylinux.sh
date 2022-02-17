@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
+# Generated from:
+# https://github.com/zopefoundation/meta/tree/master/config/c-code
 
 set -e -x
+
 # Mount the current directory as /io
 # Mount the pip cache directory as /cache
 # `pip cache` requires pip 20.1

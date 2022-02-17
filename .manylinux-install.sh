@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Generated from:
+# https://github.com/zopefoundation/meta/tree/master/config/c-code
 
 set -e -x
 
@@ -21,23 +23,27 @@ fi
 ls -ld /cache
 ls -ld /cache/pip
 
-# libffi-devel needed to build CFFI;
-# CFFI doesn't have wheels for aarch64
+# We need some libraries because we build wheels from scratch:
 yum -y install libffi-devel
 
 # Compile wheels
 for PYBIN in /opt/python/*/bin; do
-    if [[ "${PYBIN}" == *"cp27"* ]] || \
+    if \
+       [[ "${PYBIN}" == *"cp27"* ]] || \
        [[ "${PYBIN}" == *"cp35"* ]] || \
        [[ "${PYBIN}" == *"cp36"* ]] || \
        [[ "${PYBIN}" == *"cp37"* ]] || \
        [[ "${PYBIN}" == *"cp38"* ]] || \
-       [[ "${PYBIN}" == *"cp39"* ]]; then
-        "${PYBIN}/pip" install -U pip setuptools cffi
-        "${PYBIN}/pip" install -e /io/[test]
-        "${PYBIN}/zope-testrunner" --test-path=/io/
+       [[ "${PYBIN}" == *"cp39"* ]] || \
+       [[ "${PYBIN}" == *"cp310"* ]] ; then
+        "${PYBIN}/pip" install -e /io/
         "${PYBIN}/pip" wheel /io/ -w wheelhouse/
-
+        if [ `uname -m` == 'aarch64' ]; then
+         cd /io/
+         "${PYBIN}/pip" install tox
+         "${PYBIN}/tox" -e py
+         cd ..
+        fi
         rm -rf /io/build /io/*.egg-info
     fi
 done
