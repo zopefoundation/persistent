@@ -2,7 +2,7 @@
  ``persistent`` Changelog
 ==========================
 
-4.8.0 (unreleased)
+4.8.0 (2022-03-07)
 ==================
 
 - Switch package to src-layout, this is a packaging only change.
