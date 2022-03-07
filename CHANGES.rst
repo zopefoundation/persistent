@@ -2,7 +2,7 @@
  ``persistent`` Changelog
 ==========================
 
-4.7.1 (unreleased)
+4.8.0 (unreleased)
 ==================
 
 - Switch package to src-layout, this is a packaging only change.
