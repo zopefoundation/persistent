@@ -55,7 +55,7 @@ class PersistentList(UserList, persistent.Persistent):
         else lambda inst: inst.__delitem__(_SLICE_ALL)
     )
 
-    if not PYTHON2 and sys.version_info[:3] < (3, 7, 4):
+    if not PYTHON2 and sys.version_info[:3] < (3, 7, 4):  # pragma: no cover
         # Prior to 3.7.4, Python 3 (but not Python 2) failed to properly
         # return an instance of the same class.
         # See https://bugs.python.org/issue27639
@@ -68,7 +68,7 @@ class PersistentList(UserList, persistent.Persistent):
                 result = self.__class__(result)
             return result
 
-    if sys.version_info[:3] < (3, 7, 4):
+    if sys.version_info[:3] < (3, 7, 4):  # pragma: no cover
         # Likewise for __copy__, except even Python 2 needs it.
         # See https://github.com/python/cpython/commit/3645d29a1dc2102fdb0f5f0c0129ff2295bcd768
         def __copy__(self):

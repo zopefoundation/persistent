@@ -1,25 +1,19 @@
-prune terryfy
-
-include *.txt
+# Generated from:
+# https://github.com/zopefoundation/meta/tree/master/config/c-code
+include *.md
 include *.rst
-include *.sh
-include *.yml
-
-recursive-include docs *
-recursive-include src *
-recursive-include .github *.yml
-
-global-exclude *.dll
-global-exclude *.pyc
-global-exclude *.pyo
-global-exclude *.so
-global-exclude coverage.xml
-
-prune docs/_build
-prune src/persistent/__pycache__
-
-
-include .coveragerc
+include *.txt
 include buildout.cfg
 include tox.ini
-include *.py
+include appveyor.yml
+include .coveragerc
+
+recursive-include docs *.py
+recursive-include docs *.rst
+recursive-include docs *.txt
+recursive-include docs Makefile
+
+recursive-include src *.py
+include *.sh
+recursive-include docs *.bat
+recursive-include src *.h

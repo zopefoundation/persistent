@@ -1,0 +1,58 @@
+# Generated from:
+# https://github.com/zopefoundation/meta/tree/master/config/c-code
+[meta]
+template = "c-code"
+commit-id = "121e74bd9c9718abd9a1a079e6ede252c1a0ba7d"
+
+[python]
+with-appveyor = true
+with-windows = false
+with-pypy = true
+with-future-python = false
+with-legacy-python = true
+with-docs = true
+with-sphinx-doctests = true
+
+[tox]
+use-flake8 = false
+coverage-command = [
+    "coverage run -m zope.testrunner --test-path=src {posargs:-vc}",
+    "python -c 'import os, subprocess; subprocess.check_call(\"coverage run -a -m zope.testrunner --test-path=src\", env=dict(os.environ, PURE_PYTHON=\"1\"), shell=True)'",
+    "python -c 'import os, subprocess; subprocess.check_call(\"coverage run -a -m zope.testrunner --test-path=src\", env=dict(os.environ, PURE_PYTHON=\"0\"), shell=True)'",
+    ]
+
+[coverage]
+fail-under = 99.8
+
+[coverage-run]
+additional-config = [
+    "omit =",
+    "     src/persistent/_ring_build.py",
+    ]
+
+[manifest]
+additional-rules = [
+    "include *.sh",
+    "recursive-include docs *.bat",
+    "recursive-include src *.h",
+    ]
+
+[check-manifest]
+additional-ignores = [
+    "docs/_build/html/_sources/api/*",
+    ]
+
+[appveyor]
+global-env-vars = [
+    "# Currently the builds use @mgedmin's Appveyor account.  The PyPI token belongs",
+    "# to zope.wheelbuilder, which is managed by @mgedmin and @dataflake.",
+    "",
+    "global:",
+    "  TWINE_USERNAME: __token__",
+    "  TWINE_PASSWORD:",
+    "    secure: aoZC/+rvJKg8B5GMGIxd1WN5nlr8JpHkzvR9PeQFNDJjz6AQ4dSfbdAxcUzjgusof0wqc7W2m4XhdWQdXVPQ8D62xeizEEG/ONwTczHdE6dfl87VZ23egxbGmsQtcf/Rxa1jvEsHAFAYFMGndArmZ3slMSeQCwEfc/blpNlVi7VcLYcCbKqh9q41DPhIuq3HcLypdocMu9aooDzwqia69n1e7ZkFpBnQu53YxZhuFQmzoY2pBJAM3uI4+6yrH3wUw9QF0ySzrgpgN9oLE2RVUg==",
+    ]
+install-steps = [
+    "- pip install cffi",
+    "- pip install -U -e .[test]",
+    ]

@@ -1,12 +1,13 @@
-# Currently the builds use @mgedmin's Appveyor account.  The PyPI token belongs
-# to zope.wheelbuilder, which is managed by @mgedmin and @dataflake.
-
+# Generated from:
+# https://github.com/zopefoundation/meta/tree/master/config/c-code
 environment:
+  # Currently the builds use @mgedmin's Appveyor account.  The PyPI token belongs
+  # to zope.wheelbuilder, which is managed by @mgedmin and @dataflake.
+  
   global:
     TWINE_USERNAME: __token__
     TWINE_PASSWORD:
       secure: aoZC/+rvJKg8B5GMGIxd1WN5nlr8JpHkzvR9PeQFNDJjz6AQ4dSfbdAxcUzjgusof0wqc7W2m4XhdWQdXVPQ8D62xeizEEG/ONwTczHdE6dfl87VZ23egxbGmsQtcf/Rxa1jvEsHAFAYFMGndArmZ3slMSeQCwEfc/blpNlVi7VcLYcCbKqh9q41DPhIuq3HcLypdocMu9aooDzwqia69n1e7ZkFpBnQu53YxZhuFQmzoY2pBJAM3uI4+6yrH3wUw9QF0ySzrgpgN9oLE2RVUg==
-    PURE_PYTHON: 0
 
   matrix:
     - python: 27
@@ -21,8 +22,11 @@ environment:
     - python: 38-x64
     - python: 39
     - python: 39-x64
+    - python: 310
+    - python: 310-x64
 
 install:
+  - "SET PYTHONVERSION=%PYTHON%"
   - "SET PATH=C:\\Python%PYTHON%;c:\\Python%PYTHON%\\scripts;%PATH%"
   - ps: |
       $env:PYTHON = "C:\\Python${env:PYTHON}"
@@ -32,20 +36,24 @@ install:
       }
   - ps: if (-not (Test-Path $env:PYTHON)) { throw "No $env:PYTHON" }
   - echo "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64 > "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\amd64\vcvars64.bat"
-  - python -m pip install -U pip setuptools wheel cffi
-  - pip install -e .[test]
+  - python -m pip install -U pip
+  - pip install -U setuptools wheel
+  - pip install cffi
+  - pip install -U -e .[test]
+
+matrix:
+  fast_finish: true
 
 build_script:
   - python -W ignore setup.py -q bdist_wheel
 
 test_script:
-  - python -m zope.testrunner --test-path=.
-
+  - zope-testrunner --test-path=src
 artifacts:
   - path: 'dist\*.whl'
     name: wheel
 
 deploy_script:
-  - ps: if ($env:APPVEYOR_REPO_TAG -eq $TRUE) { pip install twine; twine upload dist/* }
+  - ps: if ($env:APPVEYOR_REPO_TAG -eq $TRUE) { pip install twine; twine upload --skip-existing dist\*.whl }
 
 deploy: on
