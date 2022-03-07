@@ -37,21 +37,15 @@ each subsequent attribute access.  The cache keeps a "most-recently-used"
 list of its objects, and removes objects in least-recently-used order
 when it is asked to reduce its working set.
 
-The examples below use a stub data manager class, and its stub cache class:
+The examples below use a stub data manager class:
 
 .. doctest::
 
-   >>> class Cache(object):
-   ...     def __init__(self):
-   ...         self._mru = []
-   ...     def mru(self, oid):
-   ...         self._mru.append(oid)
    >>> from zope.interface import implementer
    >>> from persistent.interfaces import IPersistentDataManager
    >>> @implementer(IPersistentDataManager)
    ... class DM(object):
    ...     def __init__(self):
-   ...         self._cache = Cache()
    ...         self.registered = 0
    ...     def register(self, ob):
    ...         self.registered += 1
@@ -224,7 +218,7 @@ Explicitly controlling ``_p_state``
 
 Persistent objects expose three methods for moving an object into and out
 of the "ghost" state::  :meth:`persistent.Persistent._p_activate`,
-:meth:`persistent.Persistent._p_activate_p_deactivate`, and
+:meth:`persistent.Persistent._p_deactivate`, and
 :meth:`persistent.Persistent._p_invalidate`:
 
 .. doctest::
