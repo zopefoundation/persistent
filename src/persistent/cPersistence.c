@@ -1091,7 +1091,7 @@ static int
 Per_set_changed(cPersistentObject *self, PyObject *v)
 {
     int deactivate = 0;
-    int true;
+    int istrue;
 
     if (!v)
     {
@@ -1114,7 +1114,7 @@ Per_set_changed(cPersistentObject *self, PyObject *v)
             Py_DECREF(res);
         else
         {
-            /* an error occured in _p_deactivate().
+            /* an error occurred in _p_deactivate().
 
                 It's not clear what we should do here.  The code is
                 obviously ignoring the exception, but it shouldn't return
@@ -1136,10 +1136,10 @@ Per_set_changed(cPersistentObject *self, PyObject *v)
     * If passed a false argument, and the object isn't a ghost, set the
     * state as up-to-date.
     */
-    true = PyObject_IsTrue(v);
-    if (true == -1)
+    istrue = PyObject_IsTrue(v);
+    if (istrue == -1)
         return -1;
-    if (true)
+    if (istrue)
     {
         if (self->state < 0)
         {
