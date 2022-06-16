@@ -5,7 +5,7 @@
 4.9.1 (unreleased)
 ==================
 
-- Nothing changed yet.
+- Update Python 3.11 support to 3.11.0-beta3.
 
 
 4.9.0 (2022-03-10)
