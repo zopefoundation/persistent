@@ -37,13 +37,8 @@ for PYBIN in /opt/python/*/bin; do
        [[ "${PYBIN}" == *"cp38"* ]] || \
        [[ "${PYBIN}" == *"cp39"* ]] || \
        [[ "${PYBIN}" == *"cp310"* ]] ; then
-        if [[ "${PYBIN}" == *"cp311"* ]] ; then
-            "${PYBIN}/pip" install --pre -e /io/
-            "${PYBIN}/pip" wheel /io/ --pre -w wheelhouse/
-        else
-            "${PYBIN}/pip" install -e /io/
-            "${PYBIN}/pip" wheel /io/ -w wheelhouse/
-        fi
+        "${PYBIN}/pip" install --pre -e /io/
+        "${PYBIN}/pip" wheel /io/ --pre -w wheelhouse/
         if [ `uname -m` == 'aarch64' ]; then
           cd /io/
           "${PYBIN}/pip" install tox
