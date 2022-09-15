@@ -5,7 +5,7 @@
 4.9.1 (unreleased)
 ==================
 
-- Update Python 3.11 support to 3.11.0-beta3.
+- Update Python 3.11 support to 3.11.0-rc1.
 
 - Disable unsafe math optimizations in C code.  See `pull request 176
   <https://github.com/zopefoundation/persistent/pull/176>`_.
