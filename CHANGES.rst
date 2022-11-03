@@ -2,10 +2,10 @@
  ``persistent`` Changelog
 ==========================
 
-4.9.2 (unreleased)
+4.9.2 (2022-11-03)
 ==================
 
-- Nothing changed yet.
+- Update Python 3.11 support to final release.
 
 
 4.9.1 (2022-09-16)

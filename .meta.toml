@@ -2,13 +2,13 @@
 # https://github.com/zopefoundation/meta/tree/master/config/c-code
 [meta]
 template = "c-code"
-commit-id = "958fcac80e0ec0ef716a0c185a1b15185409c0dc"
+commit-id = "b4dd6f9ffd3d6a2cde7dc70512c62d4c7ed22cd6"
 
 [python]
 with-appveyor = true
 with-windows = false
 with-pypy = true
-with-future-python = true
+with-future-python = false
 with-legacy-python = true
 with-docs = true
 with-sphinx-doctests = true

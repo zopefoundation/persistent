@@ -19,7 +19,7 @@ from setuptools import Extension
 from setuptools import find_packages
 from setuptools import setup
 
-version = '4.9.2.dev0'
+version = '4.9.2'
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -102,6 +102,7 @@ setup(name='persistent',
           "Programming Language :: Python :: 3.8",
           "Programming Language :: Python :: 3.9",
           "Programming Language :: Python :: 3.10",
+          "Programming Language :: Python :: 3.11",
           "Programming Language :: Python :: Implementation :: CPython",
           "Programming Language :: Python :: Implementation :: PyPy",
           "Framework :: ZODB",
