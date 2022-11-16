@@ -5,19 +5,22 @@
 .. image:: https://github.com/zopefoundation/persistent/actions/workflows/tests.yml/badge.svg
         :target: https://github.com/zopefoundation/persistent/actions/workflows/tests.yml
 
+.. image:: https://ci.appveyor.com/api/projects/status/github/zopefoundation/persistent?branch=master&svg=true
+        :target: https://ci.appveyor.com/project/mgedmin/persistent
+
 .. image:: https://coveralls.io/repos/github/zopefoundation/persistent/badge.svg?branch=master
         :target: https://coveralls.io/github/zopefoundation/persistent?branch=master
 
 .. image:: https://readthedocs.org/projects/persistent/badge/?version=latest
-        :target: http://persistent.readthedocs.org/en/latest/
+        :target: https://persistent.readthedocs.io/en/latest/
         :alt: Documentation Status
 
 .. image:: https://img.shields.io/pypi/v/persistent.svg
-        :target: https://pypi.org/project/persistent
+        :target: https://pypi.org/project/persistent/
         :alt: Latest release
 
 .. image:: https://img.shields.io/pypi/pyversions/persistent.svg
-        :target: https://pypi.org/project/persistent
+        :target: https://pypi.org/project/persistent/
         :alt: Python versions
 
 This package contains a generic persistence implementation for Python. It
@@ -26,8 +29,8 @@ a database such as the ZODB.
 
 Please see the Sphinx documentation (``docs/index.rst``) for further
 information, or view the documentation at Read The Docs, for either
-the latest (``http://persistent.readthedocs.io/en/latest/``) or stable
-release (``http://persistent.readthedocs.io/en/stable/``).
+the latest (``https://persistent.readthedocs.io/en/latest/``) or stable
+release (``https://persistent.readthedocs.io/en/stable/``).
 
 .. note::
 

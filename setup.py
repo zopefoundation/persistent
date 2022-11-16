@@ -19,7 +19,7 @@ from setuptools import Extension
 from setuptools import find_packages
 from setuptools import setup
 
-version = '4.9.3.dev0'
+version = '4.9.3'
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -114,6 +114,11 @@ setup(name='persistent',
       author="Zope Foundation and Contributors",
       author_email="zodb-dev@zope.org",
       url="https://github.com/zopefoundation/persistent/",
+      project_urls={
+        'Documentation': 'https://persistent.readthedocs.io',
+        'Issue Tracker': 'https://github.com/zopefoundation/persistent/issues',
+        'Sources': 'https://github.com/zopefoundation/persistent',
+      },
       license="ZPL 2.1",
       packages=find_packages('src'),
       package_dir={'': 'src'},
@@ -133,6 +138,7 @@ setup(name='persistent',
               'repoze.sphinx.autointerface',
           ],
       },
+      python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*',
       install_requires=[
           'zope.interface',
           "cffi ; platform_python_implementation == 'CPython'",

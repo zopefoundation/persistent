@@ -2,7 +2,7 @@
  ``persistent`` Changelog
 ==========================
 
-4.9.3 (unreleased)
+4.9.3 (2022-11-16)
 ==================
 
 - Add support for building arm64 and universal2 wheels on macOS.
