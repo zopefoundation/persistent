@@ -9,7 +9,7 @@
 4.9.3 (2022-11-16)
 ==================
 
-- Add support for building arm64 and universal2 wheels on macOS.
+- Add support for building arm64 wheels on macOS.
 
 
 4.9.2 (2022-11-03)
