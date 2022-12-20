@@ -12,13 +12,10 @@
 #
 ##############################################################################
 
-"""Python implementation of persistent list.
-
-$Id$"""
+"""Python implementation of persistent list."""
 import sys
 import persistent
-from persistent._compat import UserList
-from persistent._compat import PYTHON2
+from collections import UserList
 
 # The slice object you get when you write list[:]
 _SLICE_ALL = slice(None, None, None)
@@ -34,8 +31,6 @@ class PersistentList(UserList, persistent.Persistent):
        Using the `clear` method, or deleting a slice (e.g., ``del inst[:]`` or ``del inst[x:x]``)
        now only results in marking the instance as changed if it actually removed
        items.
-    .. versionchanged:: 4.5.2
-       The `copy` method is available on Python 2.
     """
     __super_getitem = UserList.__getitem__
     __super_setitem = UserList.__setitem__
@@ -55,8 +50,8 @@ class PersistentList(UserList, persistent.Persistent):
         else lambda inst: inst.__delitem__(_SLICE_ALL)
     )
 
-    if not PYTHON2 and sys.version_info[:3] < (3, 7, 4):  # pragma: no cover
-        # Prior to 3.7.4, Python 3 (but not Python 2) failed to properly
+    if sys.version_info[:3] < (3, 7, 4):  # pragma: no cover
+        # Prior to 3.7.4, Python 3 failed to properly
         # return an instance of the same class.
         # See https://bugs.python.org/issue27639
         # and https://github.com/zopefoundation/persistent/issues/112.
@@ -69,7 +64,7 @@ class PersistentList(UserList, persistent.Persistent):
             return result
 
     if sys.version_info[:3] < (3, 7, 4):  # pragma: no cover
-        # Likewise for __copy__, except even Python 2 needs it.
+        # Likewise for __copy__.
         # See https://github.com/python/cpython/commit/3645d29a1dc2102fdb0f5f0c0129ff2295bcd768
         def __copy__(self):
             inst = self.__class__.__new__(self.__class__)
@@ -91,24 +86,6 @@ class PersistentList(UserList, persistent.Persistent):
         if len(self.data) != len_before:
             self._p_changed = 1
 
-    if PYTHON2:  # pragma: no cover
-        __super_setslice = UserList.__setslice__
-        __super_delslice = UserList.__delslice__
-
-        def copy(self):
-            return self.__class__(self)
-
-        def __setslice__(self, i, j, other):
-            self.__super_setslice(i, j, other)
-            self._p_changed = 1
-
-        def __delslice__(self, i, j):
-            # In the past we just called super, but we want to apply the
-            # same _p_changed optimization logic that __delitem__ does. Don't
-            # call it as ``self.__delitem__``, though, because user code in subclasses
-            # on Python 2 may not be expecting to get a slice.
-            PersistentList.__delitem__(self, slice(i, j))
-
     def __iadd__(self, other):
         L = self.__super_iadd(other)
         self._p_changed = 1
@@ -128,8 +105,7 @@ class PersistentList(UserList, persistent.Persistent):
         Remove all items from the list.
 
         .. versionchanged:: 4.5.2
-           Now marks the list as changed, and is available
-           on both Python 2 and Python 3.
+           Now marks the list as changed.
         """
         needs_changed = bool(self)
         self.__super_clear()

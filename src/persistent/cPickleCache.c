@@ -1320,7 +1320,6 @@ static PyTypeObject Cctype =
     (initproc)cc_init,                  /* tp_init */
 };
 
-#ifdef PY3K
 static struct PyModuleDef moduledef =
 {
     PyModuleDef_HEAD_INIT,
@@ -1334,36 +1333,21 @@ static struct PyModuleDef moduledef =
     NULL,                               /* m_free */
 };
 
-#endif
-
 static PyObject*
 module_init(void)
 {
   PyObject *module;
 
-#ifdef PY3K
     ((PyObject*)&Cctype)->ob_type = &PyType_Type;
-#else
-    Cctype.ob_type = &PyType_Type;
-#endif
     Cctype.tp_new = &PyType_GenericNew;
     if (PyType_Ready(&Cctype) < 0)
     {
         return NULL;
     }
 
-#ifdef PY3K
     module = PyModule_Create(&moduledef);
-#else
-    module = Py_InitModule3("cPickleCache", NULL, cPickleCache_doc_string);
-#endif
 
-#ifdef PY3K
     cPersistenceCAPI = (cPersistenceCAPIstruct *)PyCapsule_Import(CAPI_CAPSULE_NAME, 0);
-#else
-    cPersistenceCAPI = (cPersistenceCAPIstruct *)PyCObject_Import(
-                       "persistent.cPersistence", "CAPI");
-#endif
     if (!cPersistenceCAPI)
         return NULL;
     cPersistenceCAPI->percachedel = (percachedelfunc)cc_oid_unreferenced;
@@ -1391,14 +1375,7 @@ module_init(void)
     return module;
 }
 
-#ifdef PY3K
 PyMODINIT_FUNC PyInit_cPickleCache(void)
 {
     return module_init();
 }
-#else
-PyMODINIT_FUNC initcPickleCache(void)
-{
-    module_init();
-}
-#endif

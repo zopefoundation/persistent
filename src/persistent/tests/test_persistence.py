@@ -15,12 +15,10 @@
 import re
 import unittest
 
-from persistent._compat import copy_reg
+import copyreg
 from persistent._compat import PYPY
-from persistent._compat import PYTHON3 as PY3
 from persistent.tests.utils import skipIfNoCExtension
-
-_is_pypy3 = PYPY and PY3
+from collections import UserDict as IterableUserDict
 
 # pylint:disable=R0904,W0212,E1101
 # pylint:disable=attribute-defined-outside-init,too-many-lines
@@ -29,7 +27,7 @@ _is_pypy3 = PYPY and PY3
 # pylint:disable=unused-variable
 
 
-class _Persistent_Base(object):
+class _Persistent_Base:
 
     # py2/3 compat
     assertRaisesRegex = getattr(unittest.TestCase,
@@ -55,7 +53,7 @@ class _Persistent_Base(object):
         from persistent.interfaces import IPersistentDataManager
 
         @implementer(IPersistentDataManager)
-        class _Jar(object):
+        class _Jar:
             _cache = None
             # Set this to a value to have our `setstate`
             # pass it through to the object's __setstate__
@@ -85,7 +83,7 @@ class _Persistent_Base(object):
         from persistent.interfaces import IPersistentDataManager
 
         @implementer(IPersistentDataManager)
-        class _BrokenJar(object):
+        class _BrokenJar:
             def __init__(self):
                 self.called = 0
             def register(self, ob):
@@ -261,7 +259,7 @@ class _Persistent_Base(object):
     def test_delete_p_oid_of_subclass_calling_p_delattr(self):
         class P(self._getTargetClass()):
             def __delattr__(self, name):
-                super(P, self)._p_delattr(name)
+                super()._p_delattr(name)
                 raise AssertionError("Should not get here")
 
         inst, _jar, _oid = self._makeOneWithJar(klass=P)
@@ -735,11 +733,11 @@ class _Persistent_Base(object):
         # This comes from the C implementation and is maintained
         # for backwards compatibility. (For example, Persistent and
         # ExtensionClass.Base/Acquisition take special care to mix together.)
-        class Base(object):
+        class Base:
             def __getattribute__(self, name):
                 if name == 'magic':
                     return 42
-                return super(Base, self).__getattribute__(name) # pragma: no cover
+                return super().__getattribute__(name) # pragma: no cover
 
         self.assertEqual(getattr(Base(), 'magic'), 42)
 
@@ -1042,7 +1040,7 @@ class _Persistent_Base(object):
         self.assertEqual(inst.baz, 'bam')
         self.assertEqual(inst.qux, 'spam')
 
-    if not _is_pypy3:
+    if not PYPY:
         def test___setstate___interns_dict_keys(self):
             class Derived(self._getTargetClass()):
                 pass
@@ -1057,7 +1055,6 @@ class _Persistent_Base(object):
             key2 = list(inst2.__dict__.keys())[0]
             self.assertTrue(key1 is key2)
 
-            from persistent._compat import IterableUserDict
             inst1 = Derived()
             inst2 = Derived()
             key1 = 'key'
@@ -1092,7 +1089,6 @@ class _Persistent_Base(object):
             pass
         inst1 = Derived()
 
-        from persistent._compat import IterableUserDict
         state = IterableUserDict({'foobar': [1, 2]})
 
         inst1.__setstate__(state)
@@ -1101,7 +1097,7 @@ class _Persistent_Base(object):
     def test___reduce__(self):
         inst = self._makeOne()
         first, second, third = inst.__reduce__()
-        self.assertTrue(first is copy_reg.__newobj__)
+        self.assertTrue(first is copyreg.__newobj__)
         self.assertEqual(second, (self._getTargetClass(),))
         self.assertEqual(third, None)
 
@@ -1111,7 +1107,7 @@ class _Persistent_Base(object):
                 return ('a', 'b')
         inst = Derived()
         first, second, third = inst.__reduce__()
-        self.assertTrue(first is copy_reg.__newobj__)
+        self.assertTrue(first is copyreg.__newobj__)
         self.assertEqual(second, (Derived, 'a', 'b'))
         self.assertEqual(third, {})
 
@@ -1121,7 +1117,7 @@ class _Persistent_Base(object):
                 return {}
         inst = Derived()
         first, second, third = inst.__reduce__()
-        self.assertTrue(first is copy_reg.__newobj__)
+        self.assertTrue(first is copyreg.__newobj__)
         self.assertEqual(second, (Derived,))
         self.assertEqual(third, {})
 
@@ -1133,7 +1129,7 @@ class _Persistent_Base(object):
                 return {'foo': 'bar'}
         inst = Derived()
         first, second, third = inst.__reduce__()
-        self.assertTrue(first is copy_reg.__newobj__)
+        self.assertTrue(first is copyreg.__newobj__)
         self.assertEqual(second, (Derived, 'a', 'b'))
         self.assertEqual(third, {'foo': 'bar'})
 
@@ -1506,10 +1502,10 @@ class _Persistent_Base(object):
             __slots__ = ('slot1',)
 
         # Pre-cache in __slotnames__; cpersistent goes directly for this
-        # and avoids a call to copy_reg. (If it calls the python code in
-        # copy_reg, the pending exception will be immediately propagated by
-        # copy_reg, not by us.)
-        copy_reg._slotnames(Derived)
+        # and avoids a call to copyreg. (If it calls the python code in
+        # copyreg, the pending exception will be immediately propagated by
+        # copyreg, not by us.)
+        copyreg._slotnames(Derived)
 
         inst, jar, OID = self._makeOneWithJar(Derived, broken_jar=True)
         inst._p_invalidate()
@@ -1681,7 +1677,7 @@ class _Persistent_Base(object):
             pass
         class C(A, B):
             pass
-        class D(object):
+        class D:
             pass
         class E(D, B):
             pass
@@ -1691,7 +1687,7 @@ class _Persistent_Base(object):
     def test_w_alternate_metaclass(self):
         class alternateMeta(type):
             pass
-        class alternate(object):
+        class alternate:
             __metaclass__ = alternateMeta
         class mixedMeta(alternateMeta, type):
             pass
@@ -1715,7 +1711,7 @@ class _Persistent_Base(object):
         class Broken(self._getTargetClass()):
             def __setattr__(self, name, value):
                 if name.startswith('_p_'):
-                    super(Broken, self).__setattr__(name, value)
+                    super().__setattr__(name, value)
                 else:
                     raise AssertionError("Can't change broken objects")
 
@@ -1805,7 +1801,7 @@ class _Persistent_Base(object):
     def test_repr_no_oid_in_jar(self):
         p = self._makeOne()
 
-        class Jar(object):
+        class Jar:
             def __repr__(self):
                 return '<SomeJar>'
 
@@ -1843,7 +1839,7 @@ class _Persistent_Base(object):
     def test_repr_no_oid_repr_jar_raises_exception(self):
         p = self._makeOne()
 
-        class Jar(object):
+        class Jar:
             def __repr__(self):
                 raise Exception('jar repr failed')
 
@@ -1887,7 +1883,7 @@ class _Persistent_Base(object):
                 raise Exception("oid repr failed")
         p._p_oid = BadOID(b'1234567')
 
-        class Jar(object):
+        class Jar:
             def __repr__(self):
                 raise Exception('jar repr failed')
 
@@ -1903,7 +1899,7 @@ class _Persistent_Base(object):
     def test_repr_no_oid_repr_jar_raises_baseexception(self):
         p = self._makeOne()
 
-        class Jar(object):
+        class Jar:
             def __repr__(self):
                 raise BaseException('jar repr failed')
 
@@ -1931,7 +1927,7 @@ class _Persistent_Base(object):
         p = self._makeOne()
         p._p_oid = self._PACKED_OID
 
-        class Jar(object):
+        class Jar:
             def __repr__(self):
                 return '<SomeJar>'
 
@@ -1967,7 +1963,7 @@ class _Persistent_Base(object):
             "<persistent.tests.test_persistence.P object at 0xdeadbeef oid " + self._HEX_OID
             + " _p_repr Exception('_p_repr failed')>")
 
-        class Jar(object):
+        class Jar:
             def __repr__(self):
                 return '<SomeJar>'
 
@@ -2004,7 +2000,7 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
 
     def _makeCache(self, jar):
 
-        class _Cache(object):
+        class _Cache:
             def __init__(self, jar):
                 self._jar = jar
                 self._mru = []
@@ -2074,7 +2070,7 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
     def test_accessed_invalidated_with_jar_and_oid_but_no_cache(self):
         # This scenario arises in ZODB tests where the jar is faked
         KEY = b'123'
-        class Jar(object):
+        class Jar:
             accessed = False
             def __getattr__(self, name):
                 if name == '_cache':

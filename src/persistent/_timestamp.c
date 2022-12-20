@@ -218,11 +218,7 @@ TimeStamp_richcompare(TimeStamp *self, TimeStamp *other, int op)
 }
 
 
-#ifdef PY3K
 static Py_hash_t
-#else
-static long
-#endif
 TimeStamp_hash(TimeStamp *self)
 {
     register unsigned char *p = (unsigned char *)self->data;
@@ -538,11 +534,7 @@ TimeStamp_TimeStamp(PyObject *obj, PyObject *args)
     int y, mo, d, h = 0, m = 0;
     double sec = 0;
 
-#ifdef PY3K
     if (PyArg_ParseTuple(args, "y#", &buf, &len))
-#else
-    if (PyArg_ParseTuple(args, "s#", &buf, &len))
-#endif
     {
         if (len != 8)
         {
@@ -565,7 +557,6 @@ static PyMethodDef TimeStampModule_functions[] =
     {NULL, NULL},
 };
 
-#ifdef PY3K
 static struct PyModuleDef moduledef =
 {
     PyModuleDef_HEAD_INIT,
@@ -578,7 +569,6 @@ static struct PyModuleDef moduledef =
     NULL,                       /* m_clear */
     NULL,                       /* m_free */
 };
-#endif
 
 
 static PyObject*
@@ -589,33 +579,17 @@ module_init(void)
     if (TimeStamp_init_gmoff() < 0)
         return NULL;
 
-#ifdef PY3K
     module = PyModule_Create(&moduledef);
-#else
-    module = Py_InitModule4("_timestamp", TimeStampModule_functions,
-               TimeStampModule_doc, NULL, PYTHON_API_VERSION);
-#endif
     if (module == NULL)
         return NULL;
 
-#ifdef PY3K
     ((PyObject*)&TimeStamp_type)->ob_type = &PyType_Type;
-#else
-    TimeStamp_type.ob_type = &PyType_Type;
-#endif
     TimeStamp_type.tp_getattro = PyObject_GenericGetAttr;
 
     return module;
 }
 
-#ifdef PY3K
 PyMODINIT_FUNC PyInit__timestamp(void)
 {
     return module_init();
 }
-#else
-PyMODINIT_FUNC init_timestamp(void)
-{
-    module_init();
-}
-#endif

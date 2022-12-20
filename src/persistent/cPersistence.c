@@ -25,17 +25,8 @@ struct ccobject_head_struct
     CACHE_HEAD
 };
 
-/*
-  The compiler on Windows used for Python 2.7 doesn't include
-  stdint.h.
-*/
-#if !defined(PY3K) && defined(_WIN32)
-typedef unsigned long long uint64_t;
-#  define PRIx64 "llx"
-#else
-#  include <stdint.h>
-#  include <inttypes.h>
-#endif
+#include <stdint.h>
+#include <inttypes.h>
 
 /* These objects are initialized when the module is loaded */
 static PyObject *py_simple_new;
@@ -227,20 +218,12 @@ ghostify(cPersistentObject *self)
                 int is_special;
 
                 name = PyList_GET_ITEM(slotnames, i);
-#ifdef PY3K
                 if (PyUnicode_Check(name))
                 {
                     PyObject *converted = convert_name(name);
                     cname = PyBytes_AS_STRING(converted);
-#else
-                if (PyBytes_Check(name))
-                {
-                    cname = PyBytes_AS_STRING(name);
-#endif
                     is_special = !strncmp(cname, "_p_", 3);
-#ifdef PY3K
                     Py_DECREF(converted);
-#endif
                     if (is_special) /* skip persistent */
                     {
                         continue;
@@ -427,22 +410,14 @@ pickle_copy_dict(PyObject *state)
     while (PyDict_Next(state, &pos, &key, &value))
     {
         int is_special;
-#ifdef PY3K
         if (key && PyUnicode_Check(key))
         {
             PyObject *converted = convert_name(key);
             ckey = PyBytes_AS_STRING(converted);
-#else
-        if (key && PyBytes_Check(key))
-        {
-            ckey = PyBytes_AS_STRING(key);
-#endif
             is_special = (*ckey == '_' &&
                           (ckey[1] == 'v' || ckey[1] == 'p') &&
                            ckey[2] == '_');
-#ifdef PY3K
             Py_DECREF(converted);
-#endif
             if (is_special) /* skip volatile and persistent */
                 continue;
         }
@@ -509,22 +484,14 @@ pickle___getstate__(PyObject *self)
             int is_special;
 
             name = PyList_GET_ITEM(slotnames, i);
-#ifdef PY3K
             if (PyUnicode_Check(name))
             {
                 PyObject *converted = convert_name(name);
                 cname = PyBytes_AS_STRING(converted);
-#else
-            if (PyBytes_Check(name))
-            {
-                cname = PyBytes_AS_STRING(name);
-#endif
                 is_special = (*cname == '_' &&
                               (cname[1] == 'v' || cname[1] == 'p') &&
                                cname[2] == '_');
-#ifdef PY3K
                 Py_DECREF(converted);
-#endif
                 if (is_special) /* skip volatile and persistent */
                 {
                     continue;
@@ -1285,11 +1252,7 @@ Per_get_mtime(cPersistentObject *self)
           return NULL;
     }
 
-#ifdef PY3K
     t = PyObject_CallFunction(TimeStamp, "y#", self->serial, (Py_ssize_t)8);
-#else
-    t = PyObject_CallFunction(TimeStamp, "s#", self->serial, (Py_ssize_t)8);
-#endif
     if (!t)
     {
         return NULL;
@@ -1697,7 +1660,6 @@ truecPersistenceCAPI = {
     readCurrent
 };
 
-#ifdef PY3K
 static struct PyModuleDef moduledef =
 {
     PyModuleDef_HEAD_INIT,
@@ -1711,8 +1673,6 @@ static struct PyModuleDef moduledef =
     NULL,                               /* m_free */
 };
 
-#endif
-
 static PyObject*
 module_init(void)
 {
@@ -1722,18 +1682,9 @@ module_init(void)
     if (init_strings() < 0)
         return NULL;
 
-#ifdef PY3K
     module = PyModule_Create(&moduledef);
-#else
-    module = Py_InitModule3("cPersistence", cPersistence_methods,
-                            cPersistence_doc_string);
-#endif
 
-#ifdef PY3K
     ((PyObject*)&Pertype)->ob_type = &PyType_Type;
-#else
-    Pertype.ob_type = &PyType_Type;
-#endif
     Pertype.tp_new = PyType_GenericNew;
     if (PyType_Ready(&Pertype) < 0)
         return NULL;
@@ -1741,11 +1692,7 @@ module_init(void)
         return NULL;
 
     cPersistenceCAPI = &truecPersistenceCAPI;
-#ifdef PY3K
     capi = PyCapsule_New(cPersistenceCAPI, CAPI_CAPSULE_NAME, NULL);
-#else
-    capi = PyCObject_FromVoidPtr(cPersistenceCAPI, NULL);
-#endif
     if (!capi)
         return NULL;
     if (PyModule_AddObject(module, "CAPI", capi) < 0)
@@ -1770,11 +1717,7 @@ module_init(void)
     if (!py_simple_new)
         return NULL;
 
-#ifdef PY3K
     copy_reg = PyImport_ImportModule("copyreg");
-#else
-    copy_reg = PyImport_ImportModule("copy_reg");
-#endif
     if (!copy_reg)
         return NULL;
 
@@ -1795,14 +1738,7 @@ module_init(void)
     return module;
 }
 
-#ifdef PY3K
 PyMODINIT_FUNC PyInit_cPersistence(void)
 {
     return module_init();
 }
-#else
-PyMODINIT_FUNC initcPersistence(void)
-{
-    module_init();
-}
-#endif

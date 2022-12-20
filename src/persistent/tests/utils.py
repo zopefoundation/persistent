@@ -1,5 +1,4 @@
-
-class TrivialJar(object):
+class TrivialJar:
     """
     Jar that only supports registering objects so ``_p_changed``
     can be tested.
@@ -8,7 +7,7 @@ class TrivialJar(object):
     def register(self, ob):
         """Does nothing"""
 
-class ResettingJar(object):
+class ResettingJar:
     """Testing stub for _p_jar attribute.
     """
     def __init__(self):
@@ -36,7 +35,7 @@ class ResettingJar(object):
         # but it suffices for the tests.
         obj.__class__.__init__(obj)
 
-class RememberingJar(object):
+class RememberingJar:
     """Testing stub for _p_jar attribute.
     """
     def __init__(self):

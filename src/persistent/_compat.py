@@ -21,33 +21,9 @@ from zope.interface import classImplements
 
 __all__ = [
     'use_c_impl',
-    'copy_reg',
-    'IterableUserDict',
-    'UserList',
-    'intern',
     'PYPY',
-    'PYTHON3',
-    'PYTHON2',
 ]
 
-# pylint:disable=import-error,self-assigning-variable
-if sys.version_info[0] > 2:
-    import copyreg as copy_reg
-    from collections import UserDict as IterableUserDict
-    from collections import UserList
-    from sys import intern
-
-    PYTHON3 = True
-    PYTHON2 = False
-else: # pragma: no cover
-    import copy_reg
-    from UserDict import IterableUserDict
-    from UserList import UserList
-
-    PYTHON3 = False
-    PYTHON2 = True
-
-    intern = intern
 
 PYPY = hasattr(sys, 'pypy_version_info')
 
@@ -206,19 +182,9 @@ def use_c_impl(py_impl, name=None, globs=None, mod_name=None):
             if not isinstance(v, types.FunctionType):
                 continue
 
-            # Somewhat surprisingly, on Python 2, while
-            # ``Class.function`` results in a
-            # ``types.UnboundMethodType`` (``instancemethed``) object,
-            # ``Class.__dict__["function"]`` returns a
-            # ``types.FunctionType``, just like ``Class.function``
-            # (and the dictionary access, of course) does on Python 3.
-            # The upshot is, we don't need different version-dependent
-            # code. Hooray!
             if new_globals is None:
                 new_globals = v.__globals__.copy()
                 new_globals[py_impl.__name__] = py_impl
-            # On Python 2, all arguments are optional, but an Python 3, all
-            # are required.
             v = types.FunctionType(
                 v.__code__,
                 new_globals,

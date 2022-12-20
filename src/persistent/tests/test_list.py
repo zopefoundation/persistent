@@ -60,7 +60,6 @@ class TestPList(unittest.TestCase):
         self.assertFalse('_v_baz' in state)
 
     def testTheWorld(self):
-        from persistent._compat import PYTHON2
         # Test constructors
         pl = self._getTargetClass()
         u = pl()
@@ -234,10 +233,6 @@ class TestPList(unittest.TestCase):
         eq(u, u2, "u == u2")
 
         # Test keyword arguments to sort
-        if PYTHON2: # pragma: no cover
-            u.sort(cmp=lambda x, y: cmp(y, x))
-            eq(u, [1, 0], "u == [1, 0]")
-
         u.sort(key=lambda x: -x)
         eq(u, [1, 0], "u == [1, 0]")
 

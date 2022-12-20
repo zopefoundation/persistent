@@ -17,6 +17,8 @@ import datetime
 import math
 import struct
 import sys
+import functools
+from datetime import timezone
 
 from persistent._compat import use_c_impl
 
@@ -49,25 +51,8 @@ else:
         return c_long(x).value
 
 
-class _UTCClass(datetime.tzinfo):
-    # A Python 2 implementation of a UTC tzinfo.
-    def tzname(self, dt):
-        return 'UTC'
-    def utcoffset(self, dt):
-        return datetime.timedelta(0, 0, 0)
-    def dst(self, dt):
-        return None
-    def fromutc(self, dt):
-        return dt
-
-try:
-    from datetime import timezone
-    def _UTC():
-        return timezone.utc
-except ImportError: # pragma: no cover
-    # Python 2
-    def _UTC(_inst=_UTCClass()):
-        return _inst
+def _UTC():
+    return timezone.utc
 
 
 def _makeUTC(y, mo, d, h, mi, s):
@@ -100,7 +85,8 @@ def _parseRaw(octets):
 
 
 @use_c_impl
-class TimeStamp(object):
+@functools.total_ordering
+class TimeStamp:
     __slots__ = ('_raw', '_elements')
 
     def __init__(self, *args):
@@ -205,30 +191,9 @@ class TimeStamp(object):
             x = -2
         return x
 
-    # Now the rest of the comparison operators
-    # Sigh. Python 2.6 doesn't have functools.total_ordering
-    # so we have to do it by hand
     def __lt__(self, other):
         try:
             return self.raw() < other.raw()
-        except AttributeError:
-            return NotImplemented
-
-    def __gt__(self, other):
-        try:
-            return self.raw() > other.raw()
-        except AttributeError:
-            return NotImplemented
-
-    def __le__(self, other):
-        try:
-            return self.raw() <= other.raw()
-        except AttributeError:
-            return NotImplemented
-
-    def __ge__(self, other):
-        try:
-            return self.raw() >= other.raw()
         except AttributeError:
             return NotImplemented
 
