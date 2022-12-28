@@ -17,7 +17,7 @@ from .. import ring
 
 # pylint:disable=protected-access
 
-class DummyPersistent(object):
+class DummyPersistent:
     _p_oid = None
     _Persistent__ring = None
     __next_oid = 0
@@ -31,7 +31,7 @@ class DummyPersistent(object):
         self._p_oid = self._next_oid()
 
     def __repr__(self): # pragma: no cover
-        return "<Dummy %r at 0x%x>" % (self._p_oid, id(self))
+        return "<Dummy {!r} at 0x{:x}>".format(self._p_oid, id(self))
 
 
 class CFFIRingTests(unittest.TestCase):

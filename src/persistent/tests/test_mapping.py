@@ -33,7 +33,7 @@ class Test_default(unittest.TestCase):
             raise AssertionError("Must not be caled")
 
         descr = self._makeOne(_test)
-        class Foo(object):
+        class Foo:
             testing = descr
         self.assertIs(Foo.testing, descr)
 
@@ -44,7 +44,7 @@ class Test_default(unittest.TestCase):
             _called_with.append(inst)
             return 'TESTING'
         descr = self._makeOne(_test)
-        class Foo(object):
+        class Foo:
             testing = descr
         foo = Foo()
         self.assertEqual(foo.testing, 'TESTING')

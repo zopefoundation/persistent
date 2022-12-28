@@ -18,7 +18,7 @@ from persistent import Persistent
 
 WeakRefMarker = object()
 
-class WeakRef(object):
+class WeakRef:
     """Persistent weak references
 
     Persistent weak references are used much like Python weak
@@ -92,10 +92,10 @@ class PersistentWeakKeyDictionary(Persistent):
         return state
 
     def __setstate__(self, state):
-        state['data'] = dict([
-            (k, v) for (k, v) in state['data']
+        state['data'] = {
+            k: v for (k, v) in state['data']
             if k() is not None
-            ])
+            }
         Persistent.__setstate__(self, state)
 
     def __setitem__(self, key, value):

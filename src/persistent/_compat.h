@@ -17,11 +17,6 @@
 
 #include "Python.h"
 
-#if PY_MAJOR_VERSION >= 3
-#define PY3K
-#endif
-
-#ifdef PY3K
 #define INTERN PyUnicode_InternFromString
 #define INTERN_INPLACE PyUnicode_InternInPlace
 #define NATIVE_CHECK_EXACT PyUnicode_CheckExact
@@ -43,6 +38,5 @@
 #define INT_FROM_LONG(x) PyInt_FromLong(x)
 #define INT_CHECK(x) PyInt_Check(x)
 #define INT_AS_LONG(x) PyInt_AS_LONG(x)
-#endif
 
 #endif

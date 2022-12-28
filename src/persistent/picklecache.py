@@ -58,7 +58,7 @@ def _sweeping_ring(f):
     return locked
 
 
-class _WeakValueDictionary(object):
+class _WeakValueDictionary:
     # Maps from OID -> Persistent object, but
     # only weakly references the Persistent object. This is similar
     # to ``weakref.WeakValueDictionary``, but is customized depending on the
@@ -146,7 +146,7 @@ class _WeakValueDictionary(object):
 # copied over by the decorator. So we make the declaration
 # of IExtendedPickleCache later.
 @implementer(IPickleCache)
-class PickleCache(object):
+class PickleCache:
 
     # Tests may modify this to add additional types
     _CACHEABLE_TYPES = (type, PersistentPy)
@@ -208,7 +208,7 @@ class PickleCache(object):
 
         value_oid = value._p_oid
         if not isinstance(oid, OID_TYPE) or not isinstance(value_oid, OID_TYPE):
-            raise TypeError('OID must be %s: key=%s _p_oid=%s' % (OID_TYPE, oid, value_oid))
+            raise TypeError('OID must be {}: key={} _p_oid={}'.format(OID_TYPE, oid, value_oid))
 
         if value_oid != oid:
             raise ValueError("Cache key does not match oid")
@@ -249,7 +249,7 @@ class PickleCache(object):
         """ See IPickleCache.
         """
         if not isinstance(oid, OID_TYPE):
-            raise TypeError('OID must be %s: %s' % (OID_TYPE, oid))
+            raise TypeError('OID must be {}: {}'.format(OID_TYPE, oid))
         if oid in self.persistent_classes:
             del self.persistent_classes[oid]
         else:

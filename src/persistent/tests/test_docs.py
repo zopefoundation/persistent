@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 ##############################################################################
 #
 # Copyright (c) 2001, 2002 Zope Foundation and Contributors.
@@ -15,9 +14,6 @@
 """
 Tests for the documentation.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 
 # disable: accessing protected members, too many methods

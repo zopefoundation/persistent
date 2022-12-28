@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 ##############################################################################
 #
 # Copyright (c) 2015 Zope Foundation and Contributors.
@@ -91,7 +90,7 @@ _OSA = object.__setattr__
 _handles = set()
 
 @implementer(IRing)
-class _CFFIRing(object):
+class _CFFIRing:
     """A ring backed by a C implementation. All operations are constant time.
 
     It is only available on platforms with ``cffi`` installed.

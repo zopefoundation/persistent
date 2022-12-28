@@ -18,8 +18,8 @@ from persistent import interfaces
 from persistent.interfaces import SERIAL_TYPE
 from persistent.timestamp import TimeStamp
 from persistent.timestamp import _ZERO
-from persistent._compat import copy_reg
-from persistent._compat import intern
+import copyreg
+from sys import intern
 from persistent._compat import use_c_impl
 
 __all__ = [
@@ -68,7 +68,7 @@ _SPECIAL_NAMES.update([intern('_Persistent' + x) for x in _SLOTS])
 # _p_* names; in practice, only __class__ and __dict__ are actually
 # going to be set on instances, as the rest of the exceptions are
 # methods called on the type
-_SPECIAL_WRITE_NAMES = set(_SPECIAL_NAMES) - set(('__class__', '__dict__'))
+_SPECIAL_WRITE_NAMES = set(_SPECIAL_NAMES) - {'__class__', '__dict__'}
 
 # Represent 8-byte OIDs as hex integer, just like
 # ZODB does.
@@ -79,13 +79,13 @@ _OID_UNPACK = _OID_STRUCT.unpack
 
 @use_c_impl
 @implementer(interfaces.IPersistent)
-class Persistent(object):
+class Persistent:
     """ Pure Python implmentation of Persistent base class
     """
     __slots__ = _SLOTS
 
     def __new__(cls, *args, **kw):
-        inst = super(Persistent, cls).__new__(cls)
+        inst = super().__new__(cls)
         # We bypass the __setattr__ implementation of this object
         # at __new__ time, just like the C implementation does. This
         # makes us compatible with subclasses that want to access
@@ -328,7 +328,7 @@ class Persistent(object):
         _ODA(self, name)
 
     def _slotnames(self, _v_exclude=True):
-        slotnames = copy_reg._slotnames(type(self))
+        slotnames = copyreg._slotnames(type(self))
         return [x for x in slotnames
                    if not x.startswith('_p_') and
                       not (x.startswith('_v_') and _v_exclude) and
@@ -383,7 +383,7 @@ class Persistent(object):
         """ See IPersistent.
         """
         gna = getattr(self, '__getnewargs__', lambda: ())
-        return (copy_reg.__newobj__,
+        return (copyreg.__newobj__,
                 (type(self),) + gna(), self.__getstate__())
 
     def _p_activate(self):
@@ -593,7 +593,7 @@ class Persistent(object):
             try:
                 return p_repr(self)
             except Exception as e:
-                p_repr_str = ' _p_repr %r' % (e,)
+                p_repr_str = ' _p_repr {!r}'.format(e)
 
         oid = _OGA(self, '_Persistent__oid')
         jar = _OGA(self, '_Persistent__jar')
@@ -604,19 +604,19 @@ class Persistent(object):
         if oid is not None:
             try:
                 if isinstance(oid, bytes) and len(oid) == 8:
-                    oid_str = ' oid 0x%x' % (_OID_UNPACK(oid)[0],)
+                    oid_str = ' oid 0x{:x}'.format(_OID_UNPACK(oid)[0])
                 else:
-                    oid_str = ' oid %r' % (oid,)
+                    oid_str = ' oid {!r}'.format(oid)
             except Exception as e:
-                oid_str = ' oid %r' % (e,)
+                oid_str = ' oid {!r}'.format(e)
 
         if jar is not None:
             try:
-                jar_str = ' in %r' % (jar,)
+                jar_str = ' in {!r}'.format(jar)
             except Exception as e:
-                jar_str = ' in %r' % (e,)
+                jar_str = ' in {!r}'.format(e)
 
-        return '<%s.%s object at 0x%x%s%s%s>' % (
+        return '<{}.{} object at 0x{:x}{}{}{}>'.format(
             # Match the C name for this exact class
             type(self).__module__ if type(self) is not Persistent else 'persistent',
             type(self).__name__ if type(self) is not Persistent else 'Persistent',

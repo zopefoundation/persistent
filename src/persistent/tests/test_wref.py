@@ -328,7 +328,7 @@ def _makeTarget(oid=b'OID'):
     return derived
 
 def _makeJar():
-    class _DB(object):
+    class _DB:
         database_name = 'testing'
     class _Jar(dict):
         db = lambda self: _DB()

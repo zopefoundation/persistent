@@ -29,9 +29,7 @@ class Test__UTC(unittest.TestCase):
 
     def test_tzname(self):
         utc = self._makeOne()
-        # datetime.timezone.utc changed the tzname in 3.6
-        # Now it is just 'UTC', but prior to that it was 'UTC+00:00'
-        self.assertEqual(utc.tzname(None)[0:3], 'UTC')
+        self.assertEqual(utc.tzname(None), 'UTC')
 
     def test_utcoffset(self):
         from datetime import timedelta
@@ -49,14 +47,7 @@ class Test__UTC(unittest.TestCase):
         self.assertEqual(utc.fromutc(source), source)
 
 
-class Test__UTCClass(Test__UTC):
-
-    def _getTargetClass(self):
-        from persistent.timestamp import _UTCClass
-        return _UTCClass
-
-
-class TimeStampTestsMixin(object):
+class TimeStampTestsMixin:
     # Tests that work for either implementation.
 
     def _getTargetClass(self):
@@ -166,7 +157,6 @@ class TimeStampTestsMixin(object):
 
     def test_comparisons_to_non_timestamps(self):
         import operator
-        from persistent._compat import PYTHON2
         # Check the corner cases when comparing non-comparable types
         ts = self._makeOne(2011, 2, 16, 14, 37, 22.0)
 
@@ -182,19 +172,9 @@ class TimeStampTestsMixin(object):
                 return True
             return False
 
-        def check_py2(op, passes): # pragma: no cover
-            if passes == 'first':
-                self.assertTrue(op(ts, None))
-                self.assertFalse(op(None, ts))
-            else:
-                self.assertFalse(op(ts, None))
-                self.assertTrue(op(None, ts))
-
-        def check_py3(op, passes):
+        def check(op, passes):
             self.assertRaises(TypeError, op, ts, None)
             self.assertRaises(TypeError, op, None, ts)
-
-        check = check_py2 if PYTHON2 else check_py3
 
         for op_name, passes in (('lt', 'second'),
                                 ('gt', 'first'),
@@ -207,7 +187,7 @@ class TimeStampTestsMixin(object):
                 check(op, passes)
 
 
-class Instant(object):
+class Instant:
     # Namespace to hold some constants.
 
     # A particular instant in time.
