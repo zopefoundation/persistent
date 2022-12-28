@@ -109,13 +109,13 @@ class PersistentMapping(IterableUserDict, persistent.Persistent):
         self.__super_update(*args, **kwargs)
         self._p_changed = 1
 
-    def setdefault(self, key, *args, **kwargs):
+    def setdefault(self, key, default=None):
         # We could inline all of UserDict's implementation into the
         # method here, but I'd rather not depend at all on the
         # implementation in UserDict (simple as it is).
         if key not in self.data:
             self._p_changed = 1
-        return self.__super_setdefault(key, *args, **kwargs)
+        return self.__super_setdefault(key, default=default)
 
     def pop(self, key, *args, **kwargs):
         self._p_changed = 1
