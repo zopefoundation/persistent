@@ -29,11 +29,6 @@ from collections import UserDict as IterableUserDict
 
 class _Persistent_Base:
 
-    # py2/3 compat
-    assertRaisesRegex = getattr(unittest.TestCase,
-                                'assertRaisesRegex',
-                                unittest.TestCase.assertRaisesRegexp)
-
     def _getTargetClass(self):
         # concrete testcase classes must override
         raise NotImplementedError()

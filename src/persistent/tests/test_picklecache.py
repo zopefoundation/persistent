@@ -60,11 +60,6 @@ def _len(seq):
 
 class PickleCacheTestMixin:
 
-    # py2/3 compat
-    assertRaisesRegex = getattr(unittest.TestCase,
-                                'assertRaisesRegex',
-                                unittest.TestCase.assertRaisesRegexp)
-
     def _getTargetClass(self):
         from persistent.picklecache import PickleCachePy as BasePickleCache
         class PickleCache(BasePickleCache):
