@@ -19,7 +19,7 @@ from setuptools import Extension
 from setuptools import find_packages
 from setuptools import setup
 
-version = '5.1.dev0'
+version = '5.1'
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -99,6 +99,7 @@ setup(name='persistent',
           "Programming Language :: Python :: 3.9",
           "Programming Language :: Python :: 3.10",
           "Programming Language :: Python :: 3.11",
+          "Programming Language :: Python :: 3.12",
           "Programming Language :: Python :: Implementation :: CPython",
           "Programming Language :: Python :: Implementation :: PyPy",
           "Framework :: ZODB",
@@ -132,6 +133,7 @@ setup(name='persistent',
           'docs': [
               'Sphinx',
               'repoze.sphinx.autointerface',
+              'sphinx_rtd_theme',
           ],
       },
       python_requires='>=3.7',

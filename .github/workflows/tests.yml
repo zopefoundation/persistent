@@ -102,7 +102,7 @@ jobs:
           - "3.9"
           - "3.10"
           - "3.11"
-          - "3.12.0-beta.4"
+          - "3.12"
         os: [ubuntu-20.04, macos-11]
         exclude:
           - os: macos-11
@@ -178,15 +178,7 @@ jobs:
           python setup.py build_ext -i
           python setup.py bdist_wheel
 
-      - name: Install persistent and dependencies (3.12.0-beta.4)
-        if: matrix.python-version == '3.12.0-beta.4'
-        run: |
-          # Install to collect dependencies into the (pip) cache.
-          # Use "--pre" here because dependencies with support for this future
-          # Python release may only be available as pre-releases
-          pip install --pre .[test]
       - name: Install persistent and dependencies
-        if: matrix.python-version != '3.12.0-beta.4'
         run: |
           # Install to collect dependencies into the (pip) cache.
           pip install .[test]
@@ -230,7 +222,6 @@ jobs:
           && startsWith(github.ref, 'refs/tags')
           && startsWith(runner.os, 'Mac')
           && !startsWith(matrix.python-version, 'pypy')
-          && !startsWith(matrix.python-version, '3.12.0-beta.4')
         env:
           TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
         run: |
@@ -249,7 +240,7 @@ jobs:
           - "3.9"
           - "3.10"
           - "3.11"
-          - "3.12.0-beta.4"
+          - "3.12"
         os: [ubuntu-20.04, macos-11]
         exclude:
           - os: macos-11
@@ -286,22 +277,7 @@ jobs:
         with:
           name: persistent-${{ runner.os }}-${{ matrix.python-version }}.whl
           path: dist/
-      - name: Install persistent 3.12.0-beta.4
-        if: ${{ startsWith(matrix.python-version, '3.12.0-beta.4') }}
-        run: |
-          pip install -U wheel setuptools
-          # coverage has a wheel on PyPI for a future python version which is
-          # not ABI compatible with the current one, so build it from sdist:
-          pip install -U --no-binary :all: coverage
-          # Unzip into src/ so that testrunner can find the .so files
-          # when we ask it to load tests from that directory. This
-          # might also save some build time?
-          unzip -n dist/persistent-*whl -d src
-          # Use "--pre" here because dependencies with support for this future
-          # Python release may only be available as pre-releases
-          pip install --pre -U -e .[test]
       - name: Install persistent
-        if: ${{ !startsWith(matrix.python-version, '3.12.0-beta.4') }}
         run: |
           pip install -U wheel setuptools
           pip install -U coverage
