@@ -20,6 +20,9 @@ coverage-command = [
     "python -c 'import os, subprocess; subprocess.check_call(\"coverage run -a -m zope.testrunner --test-path=src\", env=dict(os.environ, PURE_PYTHON=\"1\"), shell=True)'",
     "python -c 'import os, subprocess; subprocess.check_call(\"coverage run -a -m zope.testrunner --test-path=src\", env=dict(os.environ, PURE_PYTHON=\"0\"), shell=True)'",
     ]
+testenv-deps = [
+    "py37: urllib3 < 2",
+    ]
 
 [coverage]
 fail-under = 99.8
