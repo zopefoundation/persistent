@@ -319,7 +319,9 @@ jobs:
         run: |
           pip install -U wheel setuptools
           pip install -U coverage
-          pip install -U 'cffi; platform_python_implementation == "CPython"'
+          # cffi will probably have no public release until a beta or even RC
+          # version of Python 3.13, see https://github.com/python-cffi/cffi/issues/23
+          pip install -U 'cffi @ https://github.com/python-cffi/cffi/archive/refs/heads/main.zip ; platform_python_implementation == "CPython"'
           # Unzip into src/ so that testrunner can find the .so files
           # when we ask it to load tests from that directory. This
           # might also save some build time?
