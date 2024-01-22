@@ -141,8 +141,10 @@ jobs:
           pip install -U pip
           pip install -U setuptools wheel twine
           # cffi will probably have no public release until a beta or even RC
-          # version of Python 3.13.
+          # version of Python 3.13, see https://github.com/python-cffi/cffi/issues/23
           pip install -U "cffi @ https://github.com/python-cffi/cffi/archive/refs/heads/main.zip"
+          # twine has no release for 3.13, yet, see https://github.com/pypa/twine/issues/1030
+          pip install -U "twine @ https://github.com/pypa/twine/archive/refs/heads/main.zip"
 
       - name: Install Build Dependencies
         if: matrix.python-version != '3.13.0-alpha - 3.13.0'
