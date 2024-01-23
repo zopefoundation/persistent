@@ -96,7 +96,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version:
-          - "pypy-3.9"
+          - "pypy-3.10"
           - "3.7"
           - "3.8"
           - "3.9"
@@ -107,13 +107,13 @@ jobs:
         os: [ubuntu-20.04, macos-11]
         exclude:
           - os: macos-11
-            python-version: "pypy-3.9"
+            python-version: "pypy-3.10"
 
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       ###
@@ -140,12 +140,11 @@ jobs:
         run: |
           pip install -U pip
           pip install -U setuptools wheel twine
-          # cffi will probably have no public release until a beta or even RC
-          # version of Python 3.13, see https://github.com/python-cffi/cffi/issues/23
+          # cffi will probably have no public release until a Python 3.13 beta
+          # or even RC release, see https://github.com/python-cffi/cffi/issues/23
           pip install -U "cffi @ https://github.com/python-cffi/cffi/archive/refs/heads/main.zip"
           # twine has no release for 3.13, yet, see https://github.com/pypa/twine/issues/1030
           pip install -U "git+https://github.com/pypa/twine.git#egg=twine"
-
       - name: Install Build Dependencies
         if: matrix.python-version != '3.13.0-alpha - 3.13.0'
         run: |
@@ -211,7 +210,7 @@ jobs:
       - name: Upload persistent wheel (macOS x86_64)
         if: >
           startsWith(runner.os, 'Mac')
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: persistent-${{ runner.os }}-${{ matrix.python-version }}.whl
           path: dist/*x86_64.whl
@@ -220,7 +219,7 @@ jobs:
           startsWith(runner.os, 'Mac')
           && !(startsWith(matrix.python-version, 'pypy')
                || matrix.python-version == '3.7')
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           # The arm64 wheel is uploaded with a different name just so it can be
           # manually downloaded when desired. The wheel itself *cannot* be tested
@@ -230,7 +229,7 @@ jobs:
       - name: Upload persistent wheel (all other platforms)
         if: >
           !startsWith(runner.os, 'Mac')
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: persistent-${{ runner.os }}-${{ matrix.python-version }}.whl
           path: dist/*whl
@@ -256,7 +255,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version:
-          - "pypy-3.9"
+          - "pypy-3.10"
           - "3.7"
           - "3.8"
           - "3.9"
@@ -267,13 +266,13 @@ jobs:
         os: [ubuntu-20.04, macos-11]
         exclude:
           - os: macos-11
-            python-version: "pypy-3.9"
+            python-version: "pypy-3.10"
 
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       ###
@@ -296,7 +295,7 @@ jobs:
             ${{ runner.os }}-pip-
 
       - name: Download persistent wheel
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: persistent-${{ runner.os }}-${{ matrix.python-version }}.whl
           path: dist/
@@ -366,9 +365,9 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       ###
@@ -391,7 +390,7 @@ jobs:
             ${{ runner.os }}-pip-
 
       - name: Download persistent wheel
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: persistent-${{ runner.os }}-${{ matrix.python-version }}.whl
           path: dist/
@@ -417,9 +416,9 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       ###
@@ -442,7 +441,7 @@ jobs:
             ${{ runner.os }}-pip-
 
       - name: Download persistent wheel
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: persistent-${{ runner.os }}-${{ matrix.python-version }}.whl
           path: dist/
@@ -470,9 +469,9 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       ###
@@ -522,7 +521,7 @@ jobs:
           bash .manylinux.sh
 
       - name: Upload persistent wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           path: wheelhouse/*whl
           name: manylinux_${{ matrix.image }}_wheels.zip
