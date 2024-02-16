@@ -2,7 +2,7 @@
  ``persistent`` Changelog
 ==========================
 
-5.2 (unreleased)
+5.2 (2024-02-16)
 ================
 
 - Add preliminary support for Python 3.13a3.
