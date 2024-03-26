@@ -214,7 +214,7 @@ jobs:
           matrix.python-version == '3.13.0-alpha - 3.13.0'
           && startsWith(runner.os, 'Windows')
         env:
-          PIP_CONSTRAINT: %cd%\cffi_constraint.txt
+          PIP_CONSTRAINT: ${{ github.workspace }}\cffi_constraint.txt
         run: |
           # Next, build the wheel *in place*. This helps ccache, and also lets us cache the configure
           # output (pip install uses a random temporary directory, making this difficult).
