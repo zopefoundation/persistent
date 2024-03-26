@@ -16,6 +16,7 @@
 
 from persistent import Persistent
 
+
 WeakRefMarker = object()
 
 class WeakRef:

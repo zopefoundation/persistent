@@ -16,10 +16,11 @@ Tests for ``persistent._compat``
 
 """
 
-import unittest
 import os
+import unittest
 
 from persistent import _compat as compat
+
 
 class TestCOptimizationsFuncs(unittest.TestCase):
     # pylint:disable=protected-access

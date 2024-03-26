@@ -12,22 +12,22 @@
 #
 ##############################################################################
 import gc
-
 from weakref import WeakValueDictionary
 
-from zope.interface import implementer
 from zope.interface import classImplements
+from zope.interface import implementer
 
-from persistent._compat import use_c_impl
 from persistent._compat import PYPY
+from persistent._compat import use_c_impl
 from persistent.interfaces import GHOST
-from persistent.interfaces import IPickleCache
-from persistent.interfaces import IExtendedPickleCache
 from persistent.interfaces import OID_TYPE
 from persistent.interfaces import UPTODATE
+from persistent.interfaces import IExtendedPickleCache
+from persistent.interfaces import IPickleCache
 from persistent.persistence import PersistentPy
 from persistent.persistence import _estimated_size_in_24_bits
 from persistent.ring import Ring
+
 
 __all__ = [
     'PickleCache',

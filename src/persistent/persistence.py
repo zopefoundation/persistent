@@ -11,16 +11,18 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
+import copyreg
 import struct
+from sys import intern
 
 from zope.interface import implementer
+
 from persistent import interfaces
-from persistent.interfaces import SERIAL_TYPE
-from persistent.timestamp import TimeStamp
-from persistent.timestamp import _ZERO
-import copyreg
-from sys import intern
 from persistent._compat import use_c_impl
+from persistent.interfaces import SERIAL_TYPE
+from persistent.timestamp import _ZERO
+from persistent.timestamp import TimeStamp
+
 
 __all__ = [
     'Persistent',

@@ -15,6 +15,7 @@ import unittest
 
 from .. import ring
 
+
 # pylint:disable=protected-access
 
 class DummyPersistent:

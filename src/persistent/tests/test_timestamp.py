@@ -17,7 +17,6 @@ from contextlib import contextmanager
 from persistent.tests.utils import skipIfNoCExtension
 
 
-
 class Test__UTC(unittest.TestCase):
 
     def _getTargetClass(self):
@@ -157,6 +156,7 @@ class TimeStampTestsMixin:
 
     def test_comparisons_to_non_timestamps(self):
         import operator
+
         # Check the corner cases when comparing non-comparable types
         ts = self._makeOne(2011, 2, 16, 14, 37, 22.0)
 

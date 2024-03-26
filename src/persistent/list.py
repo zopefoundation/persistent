@@ -14,8 +14,10 @@
 
 """Python implementation of persistent list."""
 import sys
-import persistent
 from collections import UserList
+
+import persistent
+
 
 # The slice object you get when you write list[:]
 _SLICE_ALL = slice(None, None, None)

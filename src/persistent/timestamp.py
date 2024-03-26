@@ -14,13 +14,14 @@
 __all__ = ('TimeStamp',)
 
 import datetime
+import functools
 import math
 import struct
 import sys
-import functools
 from datetime import timezone
 
 from persistent._compat import use_c_impl
+
 
 _RAWTYPE = bytes
 _MAXINT = sys.maxsize

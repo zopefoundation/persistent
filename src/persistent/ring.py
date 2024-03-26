@@ -20,6 +20,7 @@ from zope.interface import implementer
 
 from persistent import _ring
 
+
 class IRing(Interface):
     """Conceptually, a doubly-linked list for efficiently keeping track of least-
     and most-recently used :class:`persistent.interfaces.IPersistent` objects.

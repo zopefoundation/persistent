@@ -14,8 +14,8 @@
 """Persistence Interfaces
 """
 
-from zope.interface import Interface
 from zope.interface import Attribute
+from zope.interface import Interface
 
 from persistent._compat import use_c_impl
 
