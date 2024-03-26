@@ -14,8 +14,8 @@
 import gc
 import unittest
 
-from persistent.interfaces import UPTODATE
 from persistent._compat import PYPY
+from persistent.interfaces import UPTODATE
 from persistent.tests.utils import skipIfNoCExtension
 
 
@@ -1240,9 +1240,11 @@ class CPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
     def test_inst_does_not_conform_to_IExtendedPickleCache(self):
         # Test that ``@use_c_impl`` is only applying the correct
         # interface declaration to the C implementation.
-        from persistent.interfaces import IExtendedPickleCache
-        from zope.interface.verify import verifyObject
         from zope.interface.exceptions import Invalid
+        from zope.interface.verify import verifyObject
+
+        from persistent.interfaces import IExtendedPickleCache
+
         # We don't claim to implement it.
         self.assertFalse(IExtendedPickleCache.providedBy(self._makeOne()))
         # And we don't even provide everything it asks for.

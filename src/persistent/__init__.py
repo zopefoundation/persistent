@@ -18,6 +18,7 @@ Fall back to pure Python implementations.
 
 import sys
 
+
 __all__ = [
     'IPersistent',
     'Persistent',
@@ -31,9 +32,10 @@ __all__ = [
 
 # Take care not to shadow the module names
 from persistent import interfaces as _interfaces
-from persistent import timestamp as _timestamp
 from persistent import persistence as _persistence
 from persistent import picklecache as _picklecache
+from persistent import timestamp as _timestamp
+
 
 IPersistent = _interfaces.IPersistent
 Persistent = _persistence.Persistent

@@ -13,8 +13,10 @@
 ##############################################################################
 
 """Python implementation of persistent base types."""
-import persistent
 from collections import UserDict as IterableUserDict
+
+import persistent
+
 
 class default:
 

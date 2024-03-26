@@ -16,7 +16,6 @@
 
 import unittest
 
-
 from persistent.tests.utils import TrivialJar
 from persistent.tests.utils import copy_test
 

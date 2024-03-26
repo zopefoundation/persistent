@@ -12,12 +12,13 @@
 #
 ##############################################################################
 
-import sys
 import os
+import sys
 import types
 
-from zope.interface import implementedBy
 from zope.interface import classImplements
+from zope.interface import implementedBy
+
 
 __all__ = [
     'use_c_impl',
@@ -52,9 +53,9 @@ def _c_optimizations_available():
     """
     catch = () if _c_optimizations_required() else (ImportError,)
     try:
+        from persistent import _timestamp
         from persistent import cPersistence
         from persistent import cPickleCache
-        from persistent import _timestamp
         return {
             'persistent.persistence': cPersistence,
             'persistent.picklecache': cPickleCache,

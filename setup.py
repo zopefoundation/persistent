@@ -12,12 +12,13 @@
 #
 ##############################################################################
 
-import platform
 import os
+import platform
 
 from setuptools import Extension
 from setuptools import find_packages
 from setuptools import setup
+
 
 version = '5.3.dev0'
 

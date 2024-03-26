@@ -12,13 +12,14 @@
 #
 ##############################################################################
 
+import copyreg
 import re
 import unittest
+from collections import UserDict as IterableUserDict
 
-import copyreg
 from persistent._compat import PYPY
 from persistent.tests.utils import skipIfNoCExtension
-from collections import UserDict as IterableUserDict
+
 
 # pylint:disable=R0904,W0212,E1101
 # pylint:disable=attribute-defined-outside-init,too-many-lines
@@ -45,6 +46,7 @@ class _Persistent_Base:
 
     def _makeJar(self, real_cache=False):
         from zope.interface import implementer
+
         from persistent.interfaces import IPersistentDataManager
 
         @implementer(IPersistentDataManager)
@@ -75,6 +77,7 @@ class _Persistent_Base:
 
     def _makeBrokenJar(self):
         from zope.interface import implementer
+
         from persistent.interfaces import IPersistentDataManager
 
         @implementer(IPersistentDataManager)
@@ -105,11 +108,13 @@ class _Persistent_Base:
 
     def test_class_conforms_to_IPersistent(self):
         from zope.interface.verify import verifyClass
+
         from persistent.interfaces import IPersistent
         verifyClass(IPersistent, self._getTargetClass())
 
     def test_instance_conforms_to_IPersistent(self):
         from zope.interface.verify import verifyObject
+
         from persistent.interfaces import IPersistent
         verifyObject(IPersistent, self._makeOne())
 
@@ -1141,6 +1146,7 @@ class _Persistent_Base:
 
     def test_pickle_roundtrip_simple(self):
         import pickle
+
         # XXX s.b. 'examples'
         Simple = self._get_cucumber('Simple')
         inst = Simple('testing')
@@ -1152,6 +1158,7 @@ class _Persistent_Base:
 
     def test_pickle_roundtrip_w_getnewargs_and_getstate(self):
         import pickle
+
         # XXX s.b. 'examples'
         Custom = self._get_cucumber('Custom')
         inst = Custom('x', 'y')
@@ -1163,6 +1170,7 @@ class _Persistent_Base:
 
     def test_pickle_roundtrip_w_slots_missing_slot(self):
         import pickle
+
         # XXX s.b. 'examples'
         SubSlotted = self._get_cucumber('SubSlotted')
         inst = SubSlotted('x', 'y', 'z')
@@ -1174,6 +1182,7 @@ class _Persistent_Base:
 
     def test_pickle_roundtrip_w_slots_filled_slot(self):
         import pickle
+
         # XXX s.b. 'examples'
         SubSlotted = self._get_cucumber('SubSlotted')
         inst = SubSlotted('x', 'y', 'z')
@@ -1186,6 +1195,7 @@ class _Persistent_Base:
 
     def test_pickle_roundtrip_w_slots_and_empty_dict(self):
         import pickle
+
         # XXX s.b. 'examples'
         SubSubSlotted = self._get_cucumber('SubSubSlotted')
         inst = SubSubSlotted('x', 'y', 'z')
@@ -1197,6 +1207,7 @@ class _Persistent_Base:
 
     def test_pickle_roundtrip_w_slots_and_filled_dict(self):
         import pickle
+
         # XXX s.b. 'examples'
         SubSubSlotted = self._get_cucumber('SubSubSlotted')
         inst = SubSubSlotted('x', 'y', 'z', foo='bar', baz='bam')

@@ -13,7 +13,9 @@
 ##############################################################################
 
 import os
+
 from cffi import FFI
+
 
 this_dir = os.path.dirname(os.path.abspath(__file__))
 

@@ -11,9 +11,10 @@ class ResettingJar:
     """Testing stub for _p_jar attribute.
     """
     def __init__(self):
-        from persistent import PickleCache # XXX stub it!
-        from persistent.interfaces import IPersistentDataManager
         from zope.interface import directlyProvides
+
+        from persistent import PickleCache  # XXX stub it!
+        from persistent.interfaces import IPersistentDataManager
         self.cache = self._cache = PickleCache(self)
         self.oid = 1
         self.registered = {}
@@ -39,7 +40,7 @@ class RememberingJar:
     """Testing stub for _p_jar attribute.
     """
     def __init__(self):
-        from persistent import PickleCache # XXX stub it!
+        from persistent import PickleCache  # XXX stub it!
         self.cache = PickleCache(self)
         self.oid = 1
         self.registered = {}
@@ -74,6 +75,7 @@ class RememberingJar:
 
 def copy_test(self, obj):
     import copy
+
     # Test copy.copy. Do this first, because depending on the
     # version of Python, `UserDict.copy()` may wind up
     # mutating the original object's ``data`` (due to our
@@ -95,9 +97,10 @@ def copy_test(self, obj):
 
 def skipIfNoCExtension(o):
     import unittest
-    from persistent._compat import _should_attempt_c_optimizations
+
     from persistent._compat import _c_optimizations_available
     from persistent._compat import _c_optimizations_ignored
+    from persistent._compat import _should_attempt_c_optimizations
 
     if _should_attempt_c_optimizations() and not _c_optimizations_available(): # pragma: no cover
         return unittest.expectedFailure(o)

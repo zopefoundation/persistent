@@ -18,6 +18,7 @@ Examples for overriding attribute access methods.
 
 from persistent import Persistent
 
+
 def _resettingJar():
     from persistent.tests.utils import ResettingJar
     return ResettingJar()
