@@ -245,6 +245,7 @@ jobs:
           # Use "--pre" here because dependencies with support for this future
           # Python release may only be available as pre-releases
           set PIP_CONSTRAINT=%cd%\cffi_constraint.txt
+          pip install cffi
           pip install --pre .[test]
       - name: Install persistent and dependencies
         if: matrix.python-version != '3.13.0-alpha - 3.13.0'
