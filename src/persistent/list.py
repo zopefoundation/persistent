@@ -30,9 +30,9 @@ class PersistentList(UserList, persistent.Persistent):
     as changed and automatically persisted.
 
     .. versionchanged:: 4.5.2
-       Using the `clear` method, or deleting a slice (e.g., ``del inst[:]`` or ``del inst[x:x]``)
-       now only results in marking the instance as changed if it actually removed
-       items.
+       Using the `clear` method, or deleting a slice (e.g., ``del inst[:]`` or
+       ``del inst[x:x]``) now only results in marking the instance as changed
+       if it actually removed items.
     """
     __super_getitem = UserList.__getitem__
     __super_setitem = UserList.__setitem__
@@ -67,7 +67,8 @@ class PersistentList(UserList, persistent.Persistent):
 
     if sys.version_info[:3] < (3, 7, 4):  # pragma: no cover
         # Likewise for __copy__.
-        # See https://github.com/python/cpython/commit/3645d29a1dc2102fdb0f5f0c0129ff2295bcd768
+        # See
+        # https://github.com/python/cpython/commit/3645d29a1dc2102fdb0f5f0c0129ff2295bcd768
         def __copy__(self):
             inst = self.__class__.__new__(self.__class__)
             inst.__dict__.update(self.__dict__)

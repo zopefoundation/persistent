@@ -19,6 +19,7 @@ from persistent import Persistent
 
 WeakRefMarker = object()
 
+
 class WeakRef:
     """Persistent weak references
 
@@ -84,7 +85,7 @@ class PersistentWeakKeyDictionary(Persistent):
             self.update(adict)
         # XXX 'kwargs' is pointless, because keys must be strings, but we
         #     are going to try (and fail) to wrap a WeakRef around them.
-        if kwargs: # pragma: no cover
+        if kwargs:  # pragma: no cover
             self.update(kwargs)
 
     def __getstate__(self):
@@ -96,7 +97,7 @@ class PersistentWeakKeyDictionary(Persistent):
         state['data'] = {
             k: v for (k, v) in state['data']
             if k() is not None
-            }
+        }
         Persistent.__setstate__(self, state)
 
     def __setitem__(self, key, value):

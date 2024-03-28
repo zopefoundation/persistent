@@ -32,6 +32,7 @@ STICKY = use_c_impl(2, 'STICKY', mod_name='persistent.persistence')
 
 OID_TYPE = SERIAL_TYPE = bytes
 
+
 class IPersistent(Interface):
     """Python persistent interface
 
@@ -356,6 +357,7 @@ class IPersistent(Interface):
 
 # TODO:  document conflict resolution.
 
+
 class IPersistentDataManager(Interface):
     """Provide services for managing persistent state.
 
@@ -399,13 +401,13 @@ class IPersistentDataManager(Interface):
         """
 
 # Maybe later:
-##     def mtime(object):
-##         """Return the modification time of the object.
+# def mtime(object):
+# """Return the modification time of the object.
 
-##         The modification time may not be known, in which case None
-##         is returned.  If non-None, the return value is the kind of
-##         timestamp supplied by Python's time.time().
-##         """
+# The modification time may not be known, in which case None
+# is returned.  If non-None, the return value is the kind of
+# timestamp supplied by Python's time.time().
+# """
 
 
 class IPickleCache(Interface):
@@ -510,7 +512,6 @@ class IPickleCache(Interface):
         If 'oid' is already in the cache, raise.
         """
 
-
     def invalidate(to_invalidate):
         """ Invalidate the indicated objects.
 
@@ -537,10 +538,10 @@ class IPickleCache(Interface):
 
     cache_size = Attribute('Target size of the cache')
     cache_drain_resistance = Attribute('Factor for draining cache below '
-                                        'target size')
+                                       'target size')
     cache_non_ghost_count = Attribute('Number of non-ghosts in the cache '
-                                        '(XXX how is it different from '
-                                        'ringlen?')
+                                      '(XXX how is it different from '
+                                      'ringlen?')
     cache_data = Attribute("Property:  copy of our 'data' dict")
     cache_klass_count = Attribute("Property: len of 'persistent_classes'")
 

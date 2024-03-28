@@ -61,7 +61,7 @@ def _c_optimizations_available():
             'persistent.picklecache': cPickleCache,
             'persistent.timestamp': _timestamp,
         }
-    except catch: # pragma: no cover (only Jython doesn't build extensions)
+    except catch:  # pragma: no cover (only Jython doesn't build extensions)
         return {}
 
 
@@ -93,7 +93,7 @@ def _should_attempt_c_optimizations():
     """
     if _c_optimizations_required():
         return True
-    if PYPY: # pragma: no cover
+    if PYPY:  # pragma: no cover
         return False
     return not _c_optimizations_ignored()
 
@@ -157,7 +157,8 @@ def use_c_impl(py_impl, name=None, globs=None, mod_name=None):
             return py_impl
 
         c_opts = _c_optimizations_available()
-        if not c_opts: # pragma: no cover (only Jython doesn't build extensions)
+        # only Jython doesn't build extensions:
+        if not c_opts:  # pragma: no cover
             return py_impl
 
         __traceback_info__ = c_opts
@@ -189,7 +190,7 @@ def use_c_impl(py_impl, name=None, globs=None, mod_name=None):
             v = types.FunctionType(
                 v.__code__,
                 new_globals,
-                k, # name
+                k,  # name
                 v.__defaults__,
                 v.__closure__,
             )

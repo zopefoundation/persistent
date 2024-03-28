@@ -42,7 +42,7 @@ class WeakRefTests(unittest.TestCase):
 
     def test___call___target_in_volatile(self):
         target = _makeTarget()
-        target._p_jar = jar = _makeJar()
+        target._p_jar = _makeJar()
         wref = self._makeOne(target)
         self.assertTrue(wref() is target)
 
@@ -56,20 +56,20 @@ class WeakRefTests(unittest.TestCase):
 
     def test___call___target_not_in_jar(self):
         target = _makeTarget()
-        target._p_jar = jar = _makeJar()
+        target._p_jar = _makeJar()
         wref = self._makeOne(target)
         del wref._v_ob
         self.assertTrue(wref() is None)
 
     def test___hash___w_target(self):
         target = _makeTarget()
-        target._p_jar = jar = _makeJar()
+        target._p_jar = _makeJar()
         wref = self._makeOne(target)
         self.assertEqual(hash(wref), hash(target))
 
     def test___hash___wo_target(self):
         target = _makeTarget()
-        target._p_jar = jar = _makeJar()
+        target._p_jar = _makeJar()
         wref = self._makeOne(target)
         del wref._v_ob
         self.assertRaises(TypeError, hash, wref)
@@ -84,7 +84,7 @@ class WeakRefTests(unittest.TestCase):
     def test___eq___w_both_same_target(self):
         target = _makeTarget()
         lhs = self._makeOne(target)
-        rhs_target = _makeTarget()
+        _makeTarget()
         rhs = self._makeOne(target)
         self.assertEqual(lhs, rhs)
 
@@ -97,7 +97,7 @@ class WeakRefTests(unittest.TestCase):
 
     def test___eq___w_lhs_gone_target_not_in_jar(self):
         target = _makeTarget()
-        target._p_jar = jar = _makeJar()
+        target._p_jar = _makeJar()
         lhs = self._makeOne(target)
         del lhs._v_ob
         rhs = self._makeOne(target)
@@ -109,13 +109,13 @@ class WeakRefTests(unittest.TestCase):
         jar[target._p_oid] = target
         lhs = self._makeOne(target)
         del lhs._v_ob
-        rhs_target = _makeTarget()
+        _makeTarget()
         rhs = self._makeOne(target)
         self.assertEqual(lhs, rhs)
 
     def test___eq___w_rhs_gone_target_not_in_jar(self):
         target = _makeTarget()
-        target._p_jar = jar = _makeJar()
+        target._p_jar = _makeJar()
         lhs = self._makeOne(target)
         rhs = self._makeOne(target)
         del rhs._v_ob
@@ -192,12 +192,12 @@ class PersistentWeakKeyDictionaryTests(unittest.TestCase):
         value = jar[VALUE] = _makeTarget(oid=VALUE)
         value._p_jar = jar
         key2 = _makeTarget(oid=KEY2)
-        key2._p_jar = jar # not findable
+        key2._p_jar = jar  # not findable
         kref2 = WeakRef(key2)
         del kref2._v_ob  # force a miss
         value2 = jar[VALUE2] = _makeTarget(oid=VALUE2)
         value2._p_jar = jar
-        key3 = jar[KEY3] = _makeTarget(oid=KEY3) # findable
+        key3 = jar[KEY3] = _makeTarget(oid=KEY3)  # findable
         key3._p_jar = jar
         kref3 = WeakRef(key3)
         del kref3._v_ob  # force a miss, but win in the lookup
@@ -227,6 +227,7 @@ class PersistentWeakKeyDictionaryTests(unittest.TestCase):
         value = jar['value'] = _makeTarget(oid='VALUE')
         value._p_jar = jar
         pwkd = self._makeOne(None)
+
         def _try():
             return pwkd[key]
         self.assertRaises(KeyError, _try)
@@ -248,6 +249,7 @@ class PersistentWeakKeyDictionaryTests(unittest.TestCase):
         value = jar['value'] = _makeTarget(oid='VALUE')
         value._p_jar = jar
         pwkd = self._makeOne(None)
+
         def _try():
             del pwkd[key]
         self.assertRaises(KeyError, _try)
@@ -278,7 +280,7 @@ class PersistentWeakKeyDictionaryTests(unittest.TestCase):
         self.assertTrue(key in pwkd)
 
     def test___iter___empty(self):
-        jar = _makeJar()
+        _makeJar()
         pwkd = self._makeOne(None)
         self.assertEqual(list(pwkd), [])
 
@@ -316,23 +318,29 @@ class PersistentWeakKeyDictionaryTests(unittest.TestCase):
 
 def _makeTarget(oid=b'OID'):
     from persistent import Persistent
+
     class Derived(Persistent):
         def __hash__(self):
             return hash(self._p_oid)
+
         def __eq__(self, other):
             return self._p_oid == other._p_oid
-        def __repr__(self): # pragma: no cover
+
+        def __repr__(self):  # pragma: no cover
             return 'Derived: %s' % self._p_oid
     derived = Derived()
     derived._p_oid = oid
     return derived
 
+
 def _makeJar():
     class _DB:
         database_name = 'testing'
+
     class _Jar(dict):
-        db = lambda self: _DB()
+        def db(self): return _DB()
     return _Jar()
+
 
 def test_suite():
     return unittest.defaultTestLoader.loadTestsFromName(__name__)

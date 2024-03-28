@@ -39,7 +39,6 @@ __all__ = [
 # pylint:disable=protected-access
 
 
-
 _OGA = object.__getattribute__
 _OSA = object.__setattr__
 
@@ -59,19 +58,18 @@ def _sweeping_ring(f):
 
 
 class _WeakValueDictionary:
-    # Maps from OID -> Persistent object, but
-    # only weakly references the Persistent object. This is similar
-    # to ``weakref.WeakValueDictionary``, but is customized depending on the
-    # platform. On PyPy, all objects can cheaply use a WeakRef, so that's
-    # what we actually use. On CPython, though, ``PersistentPy`` cannot be weakly
-    # referenced, so we rely on the fact that the ``id()`` of an object is its
-    # memory location, and we use ``ctypes`` to cast that integer back to
-    # the object.
+    # Maps from OID -> Persistent object, but only weakly references the
+    # Persistent object. This is similar to ``weakref.WeakValueDictionary``,
+    # but is customized depending on the platform. On PyPy, all objects can
+    # cheaply use a WeakRef, so that's what we actually use. On CPython,
+    # though, ``PersistentPy`` cannot be weakly referenced, so we rely on the
+    # fact that the ``id()`` of an object is its memory location, and we use
+    # ``ctypes`` to cast that integer back to the object.
     #
-    # To remove stale addresses, we rely on the ``ffi.gc()`` object with the exact
-    # same lifetime as the ``PersistentPy`` object. It calls us, we get the ``id``
-    # back out of the CData, and clean up.
-    if PYPY: # pragma: no cover
+    # To remove stale addresses, we rely on the ``ffi.gc()`` object with the
+    # exact same lifetime as the ``PersistentPy`` object. It calls us, we get
+    # the ``id`` back out of the CData, and clean up.
+    if PYPY:  # pragma: no cover
         def __init__(self):
             self._data = WeakValueDictionary()
 
@@ -207,8 +205,14 @@ class PickleCache:
             raise TypeError("Cache values must be persistent objects.")
 
         value_oid = value._p_oid
-        if not isinstance(oid, OID_TYPE) or not isinstance(value_oid, OID_TYPE):
-            raise TypeError('OID must be {}: key={} _p_oid={}'.format(OID_TYPE, oid, value_oid))
+        if not isinstance(
+                oid,
+                OID_TYPE) or not isinstance(
+                value_oid,
+                OID_TYPE):
+            raise TypeError(
+                'OID must be {}: key={} _p_oid={}'.format(
+                    OID_TYPE, oid, value_oid))
 
         if value_oid != oid:
             raise ValueError("Cache key does not match oid")
@@ -227,13 +231,13 @@ class PickleCache:
         if jar is None:
             raise ValueError("Cached object jar missing")
         # It also requires that it cannot be cached more than one place
-        existing_cache = getattr(jar, '_cache', None) # type: PickleCache
+        existing_cache = getattr(jar, '_cache', None)  # type: PickleCache
         if (existing_cache is not None
                 and existing_cache is not self
                 and oid in existing_cache.data):
             raise ValueError("Cache values may only be in one cache.")
 
-        if isinstance(value, type): # ZODB.persistentclass.PersistentMetaClass
+        if isinstance(value, type):  # ZODB.persistentclass.PersistentMetaClass
             self.persistent_classes[oid] = value
         else:
             self.data[oid] = value
@@ -271,7 +275,7 @@ class PickleCache:
             # accessess during sweeping, such as with an
             # overridden _p_deactivate, don't mutate the ring
             # because that could leave it inconsistent
-            return False # marker return for tests
+            return False  # marker return for tests
 
         value = self.data[oid]
 
@@ -351,7 +355,7 @@ class PickleCache:
     def reify(self, to_reify):
         """ See IPickleCache.
         """
-        if isinstance(to_reify, OID_TYPE): #bytes
+        if isinstance(to_reify, OID_TYPE):  # bytes
             to_reify = [to_reify]
         for oid in to_reify:
             value = self[oid]
@@ -430,24 +434,24 @@ class PickleCache:
     @_sweeping_ring
     def _sweep(self, target, target_size_bytes=0):
         ejected = 0
-        # If we find and eject objects that may have been weak referenced,
-        # we need to run a garbage collection to try to clear those references.
-        # Otherwise, it's highly likely that accessing those objects through those
-        # references will try to ``_p_activate()`` them, and since the jar they came
-        # from is probably closed, that will lead to an error. See
-        # https://github.com/zopefoundation/persistent/issues/149
+        # If we find and eject objects that may have been weak referenced, we
+        # need to run a garbage collection to try to clear those references.
+        # Otherwise, it's highly likely that accessing those objects through
+        # those references will try to ``_p_activate()`` them, and since the
+        # jar they came from is probably closed, that will lead to an error.
+        # See https://github.com/zopefoundation/persistent/issues/149
         had_weak_refs = False
         ring = self.ring
         for node, value in ring.iteritems():
-            if ((target or target_size_bytes) # pylint:disable=too-many-boolean-expressions
+            if ((target or target_size_bytes)
                     and (not target or self.non_ghost_count <= target)
                     and (self.total_estimated_size <= target_size_bytes
                          or not target_size_bytes)):
                 break
 
             if value._p_state == UPTODATE:
-                # The C implementation will only evict things that are specifically
-                # in the up-to-date state
+                # The C implementation will only evict things that are
+                # specifically in the up-to-date state
                 self._persistent_deactivate_ran = False
 
                 # sweeping an object out of the cache should also
@@ -456,19 +460,20 @@ class PickleCache:
                 # Also in C, if this was the last reference to the object,
                 # it removes itself from the `data` dictionary.
                 # If we're under PyPy or Jython, we need to run a GC collection
-                # to make this happen...this is only noticeable though, when
-                # we eject objects. Also, note that we can only take any of these
-                # actions if our _p_deactivate ran, in case of buggy subclasses.
-                # see _persistent_deactivate_ran.
+                # to make this happen...this is only noticeable though, when we
+                # eject objects. Also, note that we can only take any of these
+                # actions if our _p_deactivate ran, in case of buggy
+                # subclasses. see _persistent_deactivate_ran.
 
                 if not had_weak_refs:
-                    had_weak_refs |= getattr(value, '__weakref__', None) is not None
+                    had_weak_refs |= getattr(
+                        value, '__weakref__', None) is not None
 
                 value._p_deactivate()
                 if (self._persistent_deactivate_ran
-                        # Test-cases sneak in non-Persistent objects, sigh, so naturally
-                        # they don't cooperate (without this check a bunch of test_picklecache
-                        # breaks)
+                        # Test-cases sneak in non-Persistent objects, sigh, so
+                        # naturally they don't cooperate (without this check a
+                        # bunch of test_picklecache breaks)
                         or not isinstance(value, self._SWEEPABLE_TYPES)):
                     ring.delete_node(node)
                     ejected += 1
@@ -500,7 +505,7 @@ class PickleCache:
                 pass
 
 
-# This name is bound by the ``@use_c_impl`` decorator to the class defined above.
-# We make sure and list it statically, though, to help out linters.
-PickleCachePy = PickleCachePy # pylint:disable=undefined-variable,self-assigning-variable
+# This name is bound by the ``@use_c_impl`` decorator to the class defined
+# above. We make sure and list it statically, though, to help out linters.
+PickleCachePy = PickleCachePy  # noqa: F821 undefined name 'PickleCachePy'
 classImplements(PickleCachePy, IExtendedPickleCache)

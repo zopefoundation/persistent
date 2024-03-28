@@ -33,17 +33,19 @@ class Test_default(unittest.TestCase):
             raise AssertionError("Must not be caled")
 
         descr = self._makeOne(_test)
+
         class Foo:
             testing = descr
         self.assertIs(Foo.testing, descr)
 
-
     def test___get___from_instance(self):
         _called_with = []
+
         def _test(inst):
             _called_with.append(inst)
             return 'TESTING'
         descr = self._makeOne(_test)
+
         class Foo:
             testing = descr
         foo = Foo()
@@ -77,8 +79,8 @@ class PersistentMappingTests(unittest.TestCase):
     def testTheWorld(self):
         # Test constructors
         l0 = {}
-        l1 = {0:0}
-        l2 = {0:0, 1:1}
+        l1 = {0: 0}
+        l2 = {0: 0, 1: 1}
         u = self._makeOne()
         u0 = self._makeOne(l0)
         u1 = self._makeOne(l1)
@@ -93,6 +95,7 @@ class PersistentMappingTests(unittest.TestCase):
             def __init__(self, initmapping):
                 dict.__init__(self)
                 self.__data = initmapping
+
             def items(self):
                 raise AssertionError("Not called")
         self._makeOne(OtherMapping(u0))
@@ -143,7 +146,7 @@ class PersistentMappingTests(unittest.TestCase):
             eq(u2.get(i), i, "u2.get(i) == i")
             eq(u2.get(i, 5), i, "u2.get(i, 5) == i")
 
-        for i in min(u2)-1, max(u2)+1:
+        for i in min(u2) - 1, max(u2) + 1:
             eq(u2.get(i), None, "u2.get(i) == None")
             eq(u2.get(i, 5), 5, "u2.get(i, 5) == 5")
 
@@ -163,17 +166,17 @@ class PersistentMappingTests(unittest.TestCase):
         # Test __contains__
         for i in u2:
             self.assertTrue(i in u2, "i in u2")
-        for i in min(u2)-1, max(u2)+1:
+        for i in min(u2) - 1, max(u2) + 1:
             self.assertTrue(i not in u2, "i not in u2")
 
         # Test update
 
-        l = {"a":"b"}
-        u = self._makeOne(l)
+        l_ = {"a": "b"}
+        u = self._makeOne(l_)
         u.update(u2)
         for i in u:
-            self.assertTrue(i in l or i in u2, "i in l or i in u2")
-        for i in l:
+            self.assertTrue(i in l_ or i in u2, "i in l or i in u2")
+        for i in l_:
             self.assertTrue(i in u, "i in u")
         for i in u2:
             self.assertTrue(i in u, "i in u")
@@ -321,7 +324,3 @@ class Test_legacy_PersistentDict(unittest.TestCase):
     def test_PD_is_alias_to_PM(self):
         from persistent.mapping import PersistentMapping
         self.assertIs(self._getTargetClass(), PersistentMapping)
-
-
-def test_suite():
-    return unittest.defaultTestLoader.loadTestsFromName(__name__)

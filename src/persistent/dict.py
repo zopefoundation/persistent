@@ -11,6 +11,13 @@
 # FOR A PARTICULAR PURPOSE.
 #
 ##############################################################################
+from zope.deferredimport import deprecated
 
-# persistent.dict is deprecated. Use persistent.mapping
-from persistent.mapping import PersistentMapping as PersistentDict
+
+deprecated(
+    "`persistent.dict.PersistentDict` is deprecated. Use"
+    " `persistent.mapping.PersistentMapping` instead."
+    " This backward compatibility shim will be removed in persistent"
+    " version 6.",
+    PersistentDict='persistent.mapping:PersistentMapping',
+)

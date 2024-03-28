@@ -31,7 +31,7 @@ class DummyPersistent:
     def __init__(self):
         self._p_oid = self._next_oid()
 
-    def __repr__(self): # pragma: no cover
+    def __repr__(self):  # pragma: no cover
         return "<Dummy {!r} at 0x{:x}>".format(self._p_oid, id(self))
 
 
@@ -117,7 +117,6 @@ class CFFIRingTests(unittest.TestCase):
         ]
         self.assertEqual(3, len(r))
         self.assertEqual([p1, p2, p3], list(r))
-
 
         r.move_to_head(p1)
         self.assertEqual([p2, p3, p1], list(r))

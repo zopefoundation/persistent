@@ -22,22 +22,23 @@ from persistent import _ring
 
 
 class IRing(Interface):
-    """Conceptually, a doubly-linked list for efficiently keeping track of least-
-    and most-recently used :class:`persistent.interfaces.IPersistent` objects.
+    """Conceptually, a doubly-linked list for efficiently keeping track of
+    least- and most-recently used :class:`persistent.interfaces.IPersistent`
+    objects.
 
     This is meant to be used by the :class:`persistent.picklecache.PickleCache`
-    and should not be considered a public API. This interface documentation exists
-    to assist development of the picklecache and alternate implementations by
-    explaining assumptions and performance requirements.
+    and should not be considered a public API. This interface documentation
+    exists to assist development of the picklecache and alternate
+    implementations by explaining assumptions and performance requirements.
     """
 
-    def __len__(): # pylint:disable=no-method-argument
+    def __len__():  # pylint:disable=no-method-argument
         """Return the number of persistent objects stored in the ring.
 
         Should be constant time.
         """
 
-    def __contains__(object): # pylint:disable=unexpected-special-method-signature
+    def __contains__(object):
         """Answer whether the given persistent object is found in the ring.
 
         Must not rely on object equality or object hashing, but only
@@ -51,9 +52,9 @@ class IRing(Interface):
         reference to it so it can be deactivated later by the pickle
         cache. Should be constant time.
 
-        The object should not already be in the ring, but this is not necessarily
-        enforced.
-		"""
+        The object should not already be in the ring, but this is not
+        necessarily enforced.
+        """
 
     def delete(object):
         """Remove the object from the ring if it is present.
@@ -73,9 +74,9 @@ class IRing(Interface):
         allowed.
         """
 
-    def __iter__(): # pylint:disable=no-method-argument
-        """Iterate over each persistent object in the ring, in the order of least
-        recently used to most recently used.
+    def __iter__():  # pylint:disable=no-method-argument
+        """Iterate over each persistent object in the ring, in the order of
+        least recently used to most recently used.
 
         Mutating the ring while an iteration is in progress has
         undefined consequences.
@@ -89,6 +90,7 @@ _OGA = object.__getattribute__
 _OSA = object.__setattr__
 
 _handles = set()
+
 
 @implementer(IRing)
 class _CFFIRing:
@@ -111,9 +113,9 @@ class _CFFIRing:
         # or not any given object is in our ring, plus know how many there are.
         # In addition, once an object enters the ring, it must be kept alive
         # so that it can be deactivated.
-        # Note that because this is a strong reference to the
-        # persistent object, its cleanup function --- triggered by the ``ffi.gc``
-        # object it owns --- will never be fired while it is in this dict.
+        # Note that because this is a strong reference to the persistent
+        # object, its cleanup function --- triggered by the ``ffi.gc`` object
+        # it owns --- will never be fired while it is in this dict.
         self.ring_to_obj = {}
 
     def ring_node_for(self, persistent_object, create=True):
@@ -180,10 +182,10 @@ class _CFFIRing:
             pobj = ring_to_obj[current]
             yield current, pobj
 
-
     def __iter__(self):
         for _, v in self.iteritems():
             yield v
+
 
 # Export the best available implementation
 Ring = _CFFIRing

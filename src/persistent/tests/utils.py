@@ -7,9 +7,11 @@ class TrivialJar:
     def register(self, ob):
         """Does nothing"""
 
+
 class ResettingJar:
     """Testing stub for _p_jar attribute.
     """
+
     def __init__(self):
         from zope.interface import directlyProvides
 
@@ -27,7 +29,6 @@ class ResettingJar:
         obj._p_jar = self
         self.cache[obj._p_oid] = obj
 
-
     # the following methods must be implemented to be a jar
 
     def setstate(self, obj):
@@ -36,9 +37,11 @@ class ResettingJar:
         # but it suffices for the tests.
         obj.__class__.__init__(obj)
 
+
 class RememberingJar:
     """Testing stub for _p_jar attribute.
     """
+
     def __init__(self):
         from persistent import PickleCache  # XXX stub it!
         self.cache = PickleCache(self)
@@ -54,7 +57,6 @@ class RememberingJar:
         # Remember object's state for later.
         self.obj = obj
         self.remembered = obj.__getstate__()
-
 
     def fake_commit(self):
         self.remembered = self.obj.__getstate__()
@@ -102,7 +104,8 @@ def skipIfNoCExtension(o):
     from persistent._compat import _c_optimizations_ignored
     from persistent._compat import _should_attempt_c_optimizations
 
-    if _should_attempt_c_optimizations() and not _c_optimizations_available(): # pragma: no cover
+    if _should_attempt_c_optimizations(
+    ) and not _c_optimizations_available():  # pragma: no cover
         return unittest.expectedFailure(o)
     return unittest.skipIf(
         _c_optimizations_ignored() or not _c_optimizations_available(),

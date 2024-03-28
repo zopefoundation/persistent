@@ -139,6 +139,7 @@ setup(name='persistent',
       },
       python_requires='>=3.7',
       install_requires=[
+          'zope.deferredimport',
           'zope.interface',
           "cffi ; platform_python_implementation == 'CPython'",
       ],
