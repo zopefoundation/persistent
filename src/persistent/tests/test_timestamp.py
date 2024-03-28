@@ -65,7 +65,7 @@ class TimeStampTestsMixin:
                     ('1', '2', '3', '4', '5', '6'),
                     (1, 2, 3, 4, 5, 6, 7),
                     (b'123',),
-                   ]
+                    ]
         for args in BAD_ARGS:
             with self.assertRaises((TypeError, ValueError)):
                 self._makeOne(*args)
@@ -78,7 +78,7 @@ class TimeStampTestsMixin:
                     '\x00' * 4,
                     '\x00' * 5,
                     '\x00' * 7,
-                   ]
+                    ]
         for args in BAD_ARGS:
             self.assertRaises((TypeError, ValueError), self._makeOne, *args)
 
@@ -226,7 +226,8 @@ class Instant:
             self.c_int64 = ctypes.c_int64
             # win32, even on 64-bit long, has funny sizes
             self.is_32_bit_hash = self.c_int32 == ctypes.c_long
-        self.expected_hash = self.bit_32_hash if self.is_32_bit_hash else self.bit_64_hash
+        self.expected_hash = (
+            self.bit_32_hash if self.is_32_bit_hash else self.bit_64_hash)
 
     @contextmanager
     def _use_hash(self, maxint, c_long):
@@ -238,7 +239,6 @@ class Instant:
         finally:
             self.MUT._MAXINT = self.orig_maxint
             self.MUT.c_long = self.orig_c_long
-
 
     def use_32bit(self):
         return self._use_hash(self.MAX_32_BITS, self.c_int32)
@@ -293,7 +293,8 @@ class PyAndCComparisonTests(unittest.TestCase):
         # it to test matching
         yield Instant.now_ts_args
         for i in range(2000):
-            yield Instant.now_ts_args[:-1] + (Instant.now_ts_args[-1] + (i % 60.0)/100.0, )
+            yield Instant.now_ts_args[:-1] + (
+                Instant.now_ts_args[-1] + (i % 60.0) / 100.0, )
 
     def _makeC(self, *args, **kwargs):
         from persistent._compat import _c_optimizations_available as get_c
@@ -425,6 +426,7 @@ class PyAndCComparisonTests(unittest.TestCase):
         self.test_seconds_precision(seconds=6.5555555)
         self.test_seconds_precision(seconds=6.55555555)
         self.test_seconds_precision(seconds=6.555555555)
+
 
 def test_suite():
     return unittest.defaultTestLoader.loadTestsFromName(__name__)

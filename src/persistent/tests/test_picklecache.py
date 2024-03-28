@@ -24,6 +24,7 @@ from persistent.tests.utils import skipIfNoCExtension
 
 _marker = object()
 
+
 class DummyPersistent:
     _Persistent__ring = None
 
@@ -48,11 +49,12 @@ class ClosedConnection(DummyConnection):
     def __init__(self, test):
         self.test = test
 
-    def setstate(self, obj): # pragma: no cover
+    def setstate(self, obj):  # pragma: no cover
         self.test.fail("Connection is closed")
 
     def register(self, obj):
         """Does nothing."""
+
 
 def _len(seq):
     return len(list(seq))
@@ -62,8 +64,10 @@ class PickleCacheTestMixin:
 
     def _getTargetClass(self):
         from persistent.picklecache import PickleCachePy as BasePickleCache
+
         class PickleCache(BasePickleCache):
-            _CACHEABLE_TYPES = BasePickleCache._CACHEABLE_TYPES + (DummyPersistent,)
+            _CACHEABLE_TYPES = BasePickleCache._CACHEABLE_TYPES + \
+                (DummyPersistent,)
         return PickleCache
 
     def _getTargetInterface(self):
@@ -188,7 +192,6 @@ class PickleCacheTestMixin:
         with self.assertRaises(ValueError):
             cache[KEY] = uptodate
 
-
     def test___setitem___non_ghost(self):
         KEY = b'uptodate'
         cache = self._makeOne()
@@ -209,6 +212,7 @@ class PickleCacheTestMixin:
     def test___setitem___persistent_class(self):
 
         KEY = b'pclass'
+
         class pclass:
             _p_oid = KEY
             _p_jar = DummyConnection()
@@ -242,6 +246,7 @@ class PickleCacheTestMixin:
 
         KEY = b'pclass'
         cache = self._makeOne()
+
         class pclass:
             _p_oid = KEY
             _p_jar = DummyConnection()
@@ -304,7 +309,6 @@ class PickleCacheTestMixin:
         self.assertEqual(items[1][0], TWO)
         self.assertEqual(items[2][0], THREE)
 
-
     def _numbered_oid(self, i):
         return b'oid_%04d' % i
 
@@ -326,7 +330,7 @@ class PickleCacheTestMixin:
         self.assertEqual(cache.cache_non_ghost_count, 100)
 
         cache.incrgc()
-        gc.collect() # banish the ghosts who are no longer in the ring
+        gc.collect()  # banish the ghosts who are no longer in the ring
 
         self.assertEqual(cache.cache_non_ghost_count, 10)
         items = cache.lru_items()
@@ -376,14 +380,15 @@ class PickleCacheTestMixin:
         self.assertEqual(cache.cache_non_ghost_count, 100)
 
         cache.full_sweep()
-        gc.collect() # banish the ghosts who are no longer in the ring
+        gc.collect()  # banish the ghosts who are no longer in the ring
 
         self.assertEqual(cache.cache_non_ghost_count, 0)
 
         for oid in oids:
             self.assertTrue(cache.get(oid) is None)
 
-    def test_full_sweep_clears_weakrefs_in_interface(self, sweep_method='full_sweep'):
+    def test_full_sweep_clears_weakrefs_in_interface(
+            self, sweep_method='full_sweep'):
         # https://github.com/zopefoundation/persistent/issues/149
         # Sweeping the cache clears weak refs (for PyPy especially)
         # In the real world, this shows up in the interaction with
@@ -424,11 +429,13 @@ class PickleCacheTestMixin:
         Interface.changed(None)
 
     def test_incrgc_clears_weakrefs_in_interface(self):
-        self.test_full_sweep_clears_weakrefs_in_interface(sweep_method='incrgc')
+        self.test_full_sweep_clears_weakrefs_in_interface(
+            sweep_method='incrgc')
 
     def test_full_sweep_clears_weakrefs(self, sweep_method='incrgc'):
         # like test_full_sweep_clears_weakrefs_in_interface,
-        # but directly using a weakref. This is the simplest version of the test.
+        # but directly using a weakref. This is the simplest version of the
+        # test.
         from weakref import ref as WeakRef
         gc.disable()
         self.addCleanup(gc.enable)
@@ -468,7 +475,7 @@ class PickleCacheTestMixin:
         self.assertEqual(cache.cache_non_ghost_count, 100)
 
         cache.minimize()
-        gc.collect() # banish the ghosts who are no longer in the ring
+        gc.collect()  # banish the ghosts who are no longer in the ring
 
         self.assertEqual(cache.cache_non_ghost_count, 0)
 
@@ -484,7 +491,7 @@ class PickleCacheTestMixin:
         self.assertEqual(cache.cache_non_ghost_count, 1)
 
         cache.minimize()
-        gc.collect() # banish the ghosts who are no longer in the ring
+        gc.collect()  # banish the ghosts who are no longer in the ring
 
         self.assertEqual(cache.cache_non_ghost_count, 0)
 
@@ -549,6 +556,7 @@ class PickleCacheTestMixin:
 
     def test_new_ghost_w_pclass_non_ghost(self):
         KEY = b'123'
+
         class Pclass:
             _p_oid = None
             _p_jar = None
@@ -560,6 +568,7 @@ class PickleCacheTestMixin:
 
     def test_new_ghost_w_pclass_ghost(self):
         KEY = b'123'
+
         class Pclass:
             _p_oid = None
             _p_jar = None
@@ -572,13 +581,13 @@ class PickleCacheTestMixin:
     def test_invalidate_miss_single(self):
         KEY = b'123'
         cache = self._makeOne()
-        cache.invalidate(KEY) # doesn't raise
+        cache.invalidate(KEY)  # doesn't raise
 
     def test_invalidate_miss_multiple(self):
         KEY = b'123'
         KEY2 = b'456'
         cache = self._makeOne()
-        cache.invalidate([KEY, KEY2]) # doesn't raise
+        cache.invalidate([KEY, KEY2])  # doesn't raise
 
     def test_invalidate_hit_single_non_ghost(self):
         from persistent.interfaces import GHOST
@@ -614,6 +623,7 @@ class PickleCacheTestMixin:
 
     def test_debug_info_w_persistent_class(self):
         KEY = b'pclass'
+
         class pclass:
             _p_oid = KEY
             _p_jar = DummyConnection()
@@ -621,7 +631,7 @@ class PickleCacheTestMixin:
         pclass._p_state = UPTODATE
         cache[KEY] = pclass
 
-        gc.collect() # pypy vs. refcounting
+        gc.collect()  # pypy vs. refcounting
         info = cache.debug_info()
 
         self.assertEqual(len(info), 1)
@@ -641,7 +651,7 @@ class PickleCacheTestMixin:
         uptodate = self._makePersist(state=UPTODATE, oid=KEY)
         cache[KEY] = uptodate
 
-        gc.collect() # pypy vs. refcounting
+        gc.collect()  # pypy vs. refcounting
         info = cache.debug_info()
 
         self.assertEqual(len(info), 1)
@@ -653,7 +663,6 @@ class PickleCacheTestMixin:
         self.assertEqual(typ, type(uptodate).__name__)
         return uptodate, info[0]
 
-
     def test_debug_info_w_ghost(self):
         from persistent.interfaces import GHOST
 
@@ -662,7 +671,7 @@ class PickleCacheTestMixin:
         ghost = self._makePersist(state=GHOST, oid=KEY)
         cache[KEY] = ghost
 
-        gc.collect() # pypy vs. refcounting
+        gc.collect()  # pypy vs. refcounting
         info = cache.debug_info()
 
         self.assertEqual(len(info), 1)
@@ -676,8 +685,8 @@ class PickleCacheTestMixin:
 
     def test_setting_non_persistent_item(self):
         cache = self._makeOne()
-        with self.assertRaisesRegex(TypeError,
-                                    "Cache values must be persistent objects."):
+        with self.assertRaisesRegex(
+                TypeError, "Cache values must be persistent objects."):
             cache[b'12345678'] = object()
 
     def test_setting_without_jar(self):
@@ -714,14 +723,15 @@ class PickleCacheTestMixin:
 
     def test_invalidate_persistent_class_calls_p_invalidate(self):
         KEY = b'pclass'
+
         class pclass:
             _p_oid = KEY
             _p_jar = DummyConnection()
             invalidated = False
+
             @classmethod
             def _p_invalidate(cls):
                 cls.invalidated = True
-
 
         cache = self._makeOne(pclass._p_jar)
 
@@ -758,12 +768,11 @@ class PythonPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
         cache = self._makeOne(jar)
         p = self._makePersist(jar=jar)
 
-        p._p_state = 0 # non-ghost, get in the ring
+        p._p_state = 0  # non-ghost, get in the ring
         cache[p._p_oid] = p
 
         def bad_deactivate():
             "Doesn't call super, for it's own reasons, so can't be ejected"
-
 
         p._p_deactivate = bad_deactivate
 
@@ -947,6 +956,7 @@ class PythonPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
 
     def test_invalidate_hit_pclass(self):
         KEY = b'123'
+
         class Pclass:
             _p_oid = KEY
             _p_jar = DummyConnection()
@@ -978,7 +988,7 @@ class PythonPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
         self.assertEqual(cache.cache_non_ghost_count, 100)
 
         cache.full_sweep()
-        gc.collect() # banish the ghosts who are no longer in the ring
+        gc.collect()  # banish the ghosts who are no longer in the ring
 
         self.assertEqual(cache.cache_non_ghost_count, 1)
 
@@ -994,7 +1004,7 @@ class PythonPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
         self.assertEqual(cache.cache_non_ghost_count, 100)
 
         cache.full_sweep()
-        gc.collect() # banish the ghosts who are no longer in the ring
+        gc.collect()  # banish the ghosts who are no longer in the ring
 
         self.assertEqual(cache.cache_non_ghost_count, 1)
 
@@ -1007,6 +1017,7 @@ class PythonPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
         # have a _cache
         class Jar:
             was_set = False
+
             def __setattr__(self, name, value):
                 if name == '_cache':
                     object.__setattr__(self, 'was_set', True)
@@ -1083,10 +1094,10 @@ class PythonPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
 
         class MyPersistent(self._getDummyPersistentClass()):
             def _p_deactivate(self):
-                # mimic what the real persistent object does to update the cache
-                # size; if we don't get deactivated by sweeping, the cache size
-                # won't shrink so this also validates that _p_deactivate gets
-                # called when ejecting an object.
+                # mimic what the real persistent object does to update the
+                # cache size; if we don't get deactivated by sweeping, the
+                # cache size won't shrink so this also validates that
+                # _p_deactivate gets called when ejecting an object.
                 cache.update_object_size_estimation(self._p_oid, -1)
 
         cache = self._makeOne()
@@ -1095,9 +1106,11 @@ class PythonPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
         for i in range(100):
             oid = self._numbered_oid(i)
             oids.append(oid)
-            o = cache[oid] = self._makePersist(oid=oid, kind=MyPersistent, state=UPTODATE)
+            o = cache[oid] = self._makePersist(
+                oid=oid, kind=MyPersistent, state=UPTODATE)
 
-            o._Persistent__size = 0 # must start 0, ZODB sets it AFTER updating the size
+            # must start 0, ZODB sets it AFTER updating the size
+            o._Persistent__size = 0
 
             cache.update_object_size_estimation(oid, 64)
             o._Persistent__size = 2
@@ -1123,10 +1136,9 @@ class PythonPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
 
         # It also shrank the measured size of the cache,
         # though this may require a GC to be visible.
-        if PYPY: # pragma: no cover
+        if PYPY:  # pragma: no cover
             gc.collect()
         self.assertEqual(len(cache), 1)
-
 
     def test_new_ghost_obj_already_in_cache(self):
         base_result = super().test_new_ghost_obj_already_in_cache()
@@ -1165,37 +1177,36 @@ class PythonPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
             o._Persistent__size = 0
             cache.update_object_size_estimation(oid, 1)
             o._Persistent__size = 1
-            del o # leave it only in the cache
+            del o  # leave it only in the cache
 
         self.assertEqual(cache.cache_non_ghost_count, 100)
         self.assertEqual(cache.total_estimated_size, 64 * 100)
 
         cache.incrgc()
-        gc.collect() # banish the ghosts who are no longer in the ring
+        gc.collect()  # banish the ghosts who are no longer in the ring
         self.assertEqual(cache.total_estimated_size, 64 * 6)
         self.assertEqual(cache.cache_non_ghost_count, 6)
         self.assertEqual(len(cache), 6)
 
         cache.full_sweep()
-        gc.collect() # banish the ghosts who are no longer in the ring
+        gc.collect()  # banish the ghosts who are no longer in the ring
         self.assertEqual(cache.total_estimated_size, 0)
         self.assertEqual(cache.cache_non_ghost_count, 0)
         self.assertEqual(len(cache), 0)
 
     def test_interpreter_finalization_ffi_cleanup(self):
-        # When the interpreter is busy garbage collecting old objects
-        # and clearing their __dict__ in random orders, the CFFI cleanup
-        # ``ffi.gc()`` cleanup hooks we use on CPython don't
-        # raise errors.
+        # When the interpreter is busy garbage collecting old objects and
+        # clearing their __dict__ in random orders, the CFFI cleanup
+        # ``ffi.gc()`` cleanup hooks we use on CPython don't raise errors.
         #
-        # Prior to Python 3.8, when ``sys.unraisablehook`` was added,
-        # the only way to know if this test fails is to look for AttributeError
-        # on stderr.
+        # Prior to Python 3.8, when ``sys.unraisablehook`` was added, the only
+        # way to know if this test fails is to look for AttributeError on
+        # stderr.
         #
-        # But wait, it gets worse. Prior to https://foss.heptapod.net/pypy/cffi/-/issues/492
-        # (CFFI > 1.14.5, unreleased at this writing), CFFI ignores
-        # ``sys.unraisablehook``, so even on 3.8 the only way to know
-        # a failure is to watch stderr.
+        # But wait, it gets worse. Prior to
+        # https://foss.heptapod.net/pypy/cffi/-/issues/492 (CFFI > 1.14.5,
+        # unreleased at this writing), CFFI ignores ``sys.unraisablehook``, so
+        # even on 3.8 the only way to know a failure is to watch stderr.
         #
         # See https://github.com/zopefoundation/persistent/issues/150
 
@@ -1205,13 +1216,15 @@ class PythonPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
             old_hook = sys.unraisablehook
         except AttributeError:
             pass
-        else: # pragma: no cover
+        else:  # pragma: no cover
             sys.unraisablehook = unraised.append
             self.addCleanup(setattr, sys, 'unraisablehook', old_hook)
 
         cache = self._makeOne()
         oid = self._numbered_oid(42)
-        o = cache[oid] = self._makePersist(oid=oid)
+        # local variable 'o' is assigned to but never used, but needed for the
+        # test to succeed.
+        o = cache[oid] = self._makePersist(oid=oid)  # noqa: F841
         # Clear the dict, or at least part of it.
         # This is coupled to ``cleanup_hook``
         if cache.data.cleanup_hook:
@@ -1264,7 +1277,7 @@ class CPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
                 pass
 
         dummy_connection = DummyConnection()
-        dummy_connection.register(1) # for coveralls
+        dummy_connection.register(1)  # for coveralls
 
         def makePersistent(oid):
             persist = self._getDummyPersistentClass()()
@@ -1285,7 +1298,7 @@ class CPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
             o = cache[oid] = makePersistent(oid)
             cache.update_object_size_estimation(oid, 1)
             o._p_estimated_size = 1
-            del o # leave it only in the cache
+            del o  # leave it only in the cache
 
         self.assertEqual(cache.cache_non_ghost_count, 100)
         self.assertEqual(cache.total_estimated_size, 64 * 100)
@@ -1296,7 +1309,7 @@ class CPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
         self.assertEqual(len(cache), 6)
 
         cache.full_sweep()
-        gc.collect() # banish the ghosts who are no longer in the ring
+        gc.collect()  # banish the ghosts who are no longer in the ring
         self.assertEqual(cache.total_estimated_size, 0)
         self.assertEqual(cache.cache_non_ghost_count, 0)
         self.assertEqual(len(cache), 0)
@@ -1313,8 +1326,9 @@ class TestWeakValueDictionary(unittest.TestCase):
 
     @unittest.skipIf(PYPY, "PyPy doesn't have the cleanup_hook")
     def test_cleanup_hook_gc(self):
-        # A more targeted test than ``test_interpreter_finalization_ffi_cleanup``
-        # See https://github.com/zopefoundation/persistent/issues/150
+        # A more targeted test than
+        # ``test_interpreter_finalization_ffi_cleanup`` See
+        # https://github.com/zopefoundation/persistent/issues/150
         wvd = self._makeOne()
 
         class cdata:
@@ -1328,6 +1342,7 @@ class TestWeakValueDictionary(unittest.TestCase):
 
 def test_suite():
     return unittest.defaultTestLoader.loadTestsFromName(__name__)
+
 
 if __name__ == '__main__':
     unittest.main()

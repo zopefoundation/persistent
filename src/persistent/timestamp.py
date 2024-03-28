@@ -37,7 +37,7 @@ try:
     # Make sure to overflow and wraparound just
     # like the C code does.
     from ctypes import c_long
-except ImportError: # pragma: no cover
+except ImportError:  # pragma: no cover
     # XXX: This is broken on 64-bit windows, where
     # sizeof(long) != sizeof(Py_ssize_t)
     # sizeof(long) == 4, sizeof(Py_ssize_t) == 8
@@ -45,8 +45,10 @@ except ImportError: # pragma: no cover
     # win32 platforms, but then that breaks PyPy3 64 bit for an unknown
     # reason.
     c_long = None
+
     def _wraparound(x):
-        return int(((x + (_MAXINT + 1)) & ((_MAXINT << 1) + 1)) - (_MAXINT + 1))
+        return int(((x + (_MAXINT + 1)) & ((_MAXINT << 1) + 1))
+                   - (_MAXINT + 1))
 else:
     def _wraparound(x):
         return c_long(x).value
@@ -57,21 +59,25 @@ def _UTC():
 
 
 def _makeUTC(y, mo, d, h, mi, s):
-    s = round(s, 6) # microsecond precision, to match the C implementation
+    s = round(s, 6)  # microsecond precision, to match the C implementation
     usec, sec = math.modf(s)
     sec = int(sec)
     usec = int(usec * 1e6)
     return datetime.datetime(y, mo, d, h, mi, sec, usec, tzinfo=_UTC())
 
+
 _EPOCH = _makeUTC(1970, 1, 1, 0, 0, 0)
 
-_TS_SECOND_BYTES_BIAS = 60.0 / (1<<16) / (1<<16)
+_TS_SECOND_BYTES_BIAS = 60.0 / (1 << 16) / (1 << 16)
+
 
 def _makeRaw(year, month, day, hour, minute, second):
     a = (((year - 1900) * 12 + month - 1) * 31 + day - 1)
     a = (a * 24 + hour) * 60 + minute
-    b = int(second / _TS_SECOND_BYTES_BIAS) # Don't round() this; the C version just truncates
+    # Don't round() this; the C version just truncates
+    b = int(second / _TS_SECOND_BYTES_BIAS)
     return struct.pack('>II', a, b)
+
 
 def _parseRaw(octets):
     a, b = struct.unpack('>II', octets)
@@ -82,7 +88,6 @@ def _parseRaw(octets):
     year = a // (60 * 24 * 31 * 12) + 1900
     second = b * _TS_SECOND_BYTES_BIAS
     return (year, month, day, hour, minute, second)
-
 
 
 @use_c_impl
@@ -100,11 +105,12 @@ class TimeStamp:
                 raise TypeError('Raw must be 8 octets')
             self._raw = raw
         elif len(args) == 6:
-            self._raw = _makeRaw(*args) # pylint:disable=no-value-for-parameter
-            # Note that we don't preserve the incoming arguments in self._elements,
-            # we derive them from the raw value. This is because the incoming
-            # seconds value could have more precision than would survive
-            # in the raw data, so we must be consistent.
+            self._raw = _makeRaw(
+                *args)  # pylint:disable=no-value-for-parameter
+            # Note that we don't preserve the incoming arguments in
+            # self._elements, we derive them from the raw value. This is
+            # because the incoming seconds value could have more precision than
+            # would survive in the raw data, so we must be consistent.
         else:
             raise TypeError('Pass either a single 8-octet arg '
                             'or 5 integers and a float')
@@ -185,7 +191,7 @@ class TimeStamp:
 
         x = _wraparound(x)
 
-        if x == -1: # pragma: no cover
+        if x == -1:  # pragma: no cover
             # The C version has this condition, but it's not clear
             # why; it's also not immediately obvious what bytestring
             # would generate this---hence the no-cover
@@ -199,6 +205,6 @@ class TimeStamp:
             return NotImplemented
 
 
-# This name is bound by the ``@use_c_impl`` decorator to the class defined above.
-# We make sure and list it statically, though, to help out linters.
-TimeStampPy = TimeStampPy # pylint:disable=undefined-variable,self-assigning-variable
+# This name is bound by the ``@use_c_impl`` decorator to the class defined
+# above. We make sure and list it statically, though, to help out linters.
+TimeStampPy = TimeStampPy  # noqa: F821 undefined name 'TimeStampPy'

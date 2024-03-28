@@ -59,20 +59,24 @@ class _Persistent_Base:
             # Set this to a value to have our `setstate`
             # set the _p_serial of the object
             setstate_sets_serial = None
+
             def __init__(self):
                 self._loaded = []
                 self._registered = []
+
             def setstate(self, obj):
                 self._loaded.append(obj._p_oid)
                 if self.setstate_calls_object is not None:
                     obj.__setstate__(self.setstate_calls_object)
                 if self.setstate_sets_serial is not None:
                     obj._p_serial = self.setstate_sets_serial
+
             def register(self, obj):
                 self._registered.append(obj._p_oid)
 
         jar = _Jar()
-        jar._cache = self._makeRealCache(jar) if real_cache else self._makeCache(jar)
+        jar._cache = self._makeRealCache(
+            jar) if real_cache else self._makeCache(jar)
         return jar
 
     def _makeBrokenJar(self):
@@ -84,9 +88,11 @@ class _Persistent_Base:
         class _BrokenJar:
             def __init__(self):
                 self.called = 0
+
             def register(self, ob):
                 self.called += 1
                 raise NotImplementedError()
+
             def setstate(self, ob):
                 raise NotImplementedError()
 
@@ -100,8 +106,9 @@ class _Persistent_Base:
             inst = klass()
         else:
             inst = self._makeOne()
-        jar = self._makeJar(real_cache=real_cache) if not broken_jar else self._makeBrokenJar()
-        jar._cache.new_ghost(OID, inst) # assigns _p_jar, _p_oid
+        jar = self._makeJar(
+            real_cache=real_cache) if not broken_jar else self._makeBrokenJar()
+        jar._cache.new_ghost(OID, inst)  # assigns _p_jar, _p_oid
         # Be sure it really returned a ghost.
         assert inst._p_status == 'ghost'
         return inst, jar, OID
@@ -119,7 +126,7 @@ class _Persistent_Base:
         verifyObject(IPersistent, self._makeOne())
 
     def test_instance_cannot_be_weakly_referenced(self):
-        if PYPY: # pragma: no cover
+        if PYPY:  # pragma: no cover
             self.skipTest('On PyPy, everything can be weakly referenced')
         import weakref
         inst = self._makeOne()
@@ -143,6 +150,7 @@ class _Persistent_Base:
 
     def test_del_jar_while_in_cache(self):
         inst, _, OID = self._makeOneWithJar()
+
         def _test():
             del inst._p_jar
         self.assertRaises(ValueError, _test)
@@ -189,7 +197,7 @@ class _Persistent_Base:
         inst._p_jar = jar
         self.assertEqual(inst._p_status, 'saved')
         self.assertTrue(inst._p_jar is jar)
-        inst._p_jar = jar # reassign only to same DM
+        inst._p_jar = jar  # reassign only to same DM
 
     def test_assign_p_jar_not_in_cache_allowed(self):
         jar = self._makeJar()
@@ -232,6 +240,7 @@ class _Persistent_Base:
     def test_assign_p_oid_w_new_oid_w_jar(self):
         inst, jar, OID = self._makeOneWithJar()
         new_OID = b'\x02' * 8
+
         def _test():
             inst._p_oid = new_OID
         self.assertRaises(ValueError, _test)
@@ -240,7 +249,7 @@ class _Persistent_Base:
         jar = self._makeJar()
         inst = self._makeOne()
         inst._p_jar = jar
-        inst._p_oid = 1 # anything goes
+        inst._p_oid = 1  # anything goes
         inst._p_oid = 42
         self.assertEqual(inst._p_oid, 42)
 
@@ -277,24 +286,28 @@ class _Persistent_Base:
 
     def test_assign_p_serial_w_invalid_type(self):
         inst = self._makeOne()
+
         def _test():
             inst._p_serial = object()
         self.assertRaises(ValueError, _test)
 
     def test_assign_p_serial_w_None(self):
         inst = self._makeOne()
+
         def _test():
             inst._p_serial = None
         self.assertRaises(ValueError, _test)
 
     def test_assign_p_serial_too_short(self):
         inst = self._makeOne()
+
         def _test():
             inst._p_serial = b'\x01\x02\x03'
         self.assertRaises(ValueError, _test)
 
     def test_assign_p_serial_too_long(self):
         inst = self._makeOne()
+
         def _test():
             inst._p_serial = b'\x01\x02\x03' * 3
         self.assertRaises(ValueError, _test)
@@ -369,7 +382,7 @@ class _Persistent_Base:
         inst, jar, OID = self._makeOneWithJar()
         inst._p_deactivate()
         inst._p_changed = False
-        self.assertEqual(inst._p_status, 'ghost') # ??? this is what C does
+        self.assertEqual(inst._p_status, 'ghost')  # ??? this is what C does
         self.assertEqual(list(jar._loaded), [])
         self.assertEqual(list(jar._registered), [])
 
@@ -384,7 +397,7 @@ class _Persistent_Base:
 
     def test_assign_p_changed_true_from_saved(self):
         inst, jar, OID = self._makeOneWithJar()
-        inst._p_activate() # XXX
+        inst._p_activate()  # XXX
         jar._loaded[:] = []
         inst._p_changed = True
         self.assertEqual(inst._p_status, 'changed')
@@ -436,7 +449,7 @@ class _Persistent_Base:
 
     def test_assign_p_changed_none_when_sticky(self):
         inst, jar, OID = self._makeOneWithJar()
-        inst._p_activate() # XXX
+        inst._p_activate()  # XXX
         inst._p_changed = False
         inst._p_sticky = True
         inst._p_changed = None
@@ -489,7 +502,7 @@ class _Persistent_Base:
 
     def test_delete_p_changed_when_sticky(self):
         inst, jar, OID = self._makeOneWithJar()
-        inst._p_activate() # XXX
+        inst._p_activate()  # XXX
         inst._p_changed = False
         inst._p_sticky = True
         del inst._p_changed
@@ -499,28 +512,30 @@ class _Persistent_Base:
 
     def test_assign_p_sticky_true_when_ghost(self):
         inst, jar, OID = self._makeOneWithJar()
-        inst._p_deactivate() # XXX
+        inst._p_deactivate()  # XXX
+
         def _test():
             inst._p_sticky = True
         self.assertRaises(ValueError, _test)
 
     def test_assign_p_sticky_false_when_ghost(self):
         inst, jar, OID = self._makeOneWithJar()
-        inst._p_deactivate() # XXX
+        inst._p_deactivate()  # XXX
+
         def _test():
             inst._p_sticky = False
         self.assertRaises(ValueError, _test)
 
     def test_assign_p_sticky_true_non_ghost(self):
         inst, jar, OID = self._makeOneWithJar()
-        inst._p_activate() # XXX
+        inst._p_activate()  # XXX
         inst._p_changed = False
         inst._p_sticky = True
         self.assertTrue(inst._p_sticky)
 
     def test_assign_p_sticky_false_non_ghost(self):
         inst, jar, OID = self._makeOneWithJar()
-        inst._p_activate() # XXX
+        inst._p_activate()  # XXX
         inst._p_changed = False
         inst._p_sticky = False
         self.assertFalse(inst._p_sticky)
@@ -549,7 +564,7 @@ class _Persistent_Base:
 
     def test__p_status_saved(self):
         inst, jar, OID = self._makeOneWithJar()
-        inst._p_activate() # XXX
+        inst._p_activate()  # XXX
         inst._p_changed = False
         self.assertEqual(inst._p_status, 'saved')
 
@@ -610,7 +625,7 @@ class _Persistent_Base:
 
     def test__p_state_saved(self):
         inst, jar, OID = self._makeOneWithJar()
-        inst._p_activate() # XXX
+        inst._p_activate()  # XXX
         inst._p_changed = False
         self.assertEqual(inst._p_state, 0)
 
@@ -649,6 +664,7 @@ class _Persistent_Base:
 
     def test_assign_p_estimated_size_negative(self):
         inst = self._makeOne()
+
         def _test():
             inst._p_estimated_size = -1
         self.assertRaises(ValueError, _test)
@@ -677,7 +693,7 @@ class _Persistent_Base:
                  '_p_estimated_size',
                  '_p_sticky',
                  '_p_status',
-                ]
+                 ]
         inst, jar, OID = self._makeOneWithJar()
         self._clearMRU(jar)
         for name in NAMES:
@@ -737,7 +753,7 @@ class _Persistent_Base:
             def __getattribute__(self, name):
                 if name == 'magic':
                     return 42
-                return super().__getattribute__(name) # pragma: no cover
+                return super().__getattribute__(name)  # pragma: no cover
 
         self.assertEqual(getattr(Base(), 'magic'), 42)
 
@@ -756,7 +772,7 @@ class _Persistent_Base:
                  ('_p_serial', SERIAL),
                  ('_p_estimated_size', 0),
                  ('_p_sticky', False),
-                ]
+                 ]
         self._clearMRU(jar)
         for name, value in NAMES:
             setattr(inst, name, value)
@@ -864,7 +880,7 @@ class _Persistent_Base:
     def test___delattr___p__names(self):
         NAMES = ['_p_changed',
                  '_p_serial',
-                ]
+                 ]
         inst, jar, OID = self._makeOneWithJar()
         self._clearMRU(jar)
         jar._registered = []
@@ -876,6 +892,7 @@ class _Persistent_Base:
     def test___delattr__normal_name_from_unsaved(self):
         class Derived(self._getTargetClass()):
             normal = 'before'
+
             def __init__(self):
                 self.__dict__['normal'] = 'after'
         inst = Derived()
@@ -889,10 +906,11 @@ class _Persistent_Base:
         inst._p_deactivate()
         self._clearMRU(jar)
         jar._registered = []
+
         def _test():
             delattr(inst, 'normal')
         self.assertRaises(AttributeError, _test)
-        self.assertEqual(inst._p_status, 'changed') # ??? this is what C does
+        self.assertEqual(inst._p_status, 'changed')  # ??? this is what C does
         self._checkMRU(jar, [OID])
         self.assertEqual(jar._registered, [OID])
         self.assertEqual(getattr(inst, 'normal', None), 'before')
@@ -903,6 +921,7 @@ class _Persistent_Base:
     def test___delattr__normal_name_from_saved(self, real_cache=False):
         class Derived(self._getTargetClass()):
             normal = 'before'
+
             def __init__(self):
                 self.__dict__['normal'] = 'after'
         inst, jar, OID = self._makeOneWithJar(Derived, real_cache=real_cache)
@@ -920,6 +939,7 @@ class _Persistent_Base:
     def test___delattr__normal_name_from_changed(self, real_cache=False):
         class Derived(self._getTargetClass()):
             normal = 'before'
+
             def __init__(self):
                 self.__dict__['normal'] = 'after'
         inst, jar, OID = self._makeOneWithJar(Derived, real_cache=real_cache)
@@ -959,6 +979,7 @@ class _Persistent_Base:
     def test___getstate___derived_w_slots_in_base_and_derived(self):
         class Base(self._getTargetClass()):
             __slots__ = ('foo',)
+
         class Derived(Base):
             __slots__ = ('baz', 'qux',)
         inst = Derived()
@@ -971,6 +992,7 @@ class _Persistent_Base:
     def test___getstate___derived_w_slots_in_base_but_not_derived(self):
         class Base(self._getTargetClass()):
             __slots__ = ('foo',)
+
         class Derived(Base):
             pass
         inst = Derived()
@@ -982,7 +1004,7 @@ class _Persistent_Base:
 
     def test___setstate___empty(self):
         inst = self._makeOne()
-        inst.__setstate__(None) # doesn't raise, but doesn't change anything
+        inst.__setstate__(None)  # doesn't raise, but doesn't change anything
 
     def test___setstate___nonempty(self):
         from persistent.persistence import _INITIAL_SERIAL
@@ -1021,6 +1043,7 @@ class _Persistent_Base:
     def test___setstate___derived_w_slots_in_base_classes(self):
         class Base(self._getTargetClass()):
             __slots__ = ('foo',)
+
         class Derived(Base):
             __slots__ = ('baz', 'qux',)
         inst = Derived()
@@ -1032,6 +1055,7 @@ class _Persistent_Base:
     def test___setstate___derived_w_slots_in_base_but_not_derived(self):
         class Base(self._getTargetClass()):
             __slots__ = ('foo',)
+
         class Derived(Base):
             pass
         inst = Derived()
@@ -1047,7 +1071,8 @@ class _Persistent_Base:
             inst1 = Derived()
             inst2 = Derived()
             key1 = 'key'
-            key2 = 'ke'; key2 += 'y'  # construct in a way that won't intern the literal
+            key2 = 'ke'
+            key2 += 'y'  # construct in a way that won't intern the literal
             self.assertFalse(key1 is key2)
             inst1.__setstate__({key1: 1})
             inst2.__setstate__({key2: 2})
@@ -1058,7 +1083,8 @@ class _Persistent_Base:
             inst1 = Derived()
             inst2 = Derived()
             key1 = 'key'
-            key2 = 'ke'; key2 += 'y'  # construct in a way that won't intern the literal
+            key2 = 'ke'
+            key2 += 'y'  # construct in a way that won't intern the literal
             self.assertFalse(key1 is key2)
             state1 = IterableUserDict({key1: 1})
             state2 = IterableUserDict({key2: 2})
@@ -1125,6 +1151,7 @@ class _Persistent_Base:
         class Derived(self._getTargetClass()):
             def __getnewargs__(self):
                 return ('a', 'b')
+
             def __getstate__(self):
                 return {'foo': 'bar'}
         inst = Derived()
@@ -1220,7 +1247,7 @@ class _Persistent_Base:
 
     def test__p_activate_from_unsaved(self):
         inst = self._makeOne()
-        inst._p_activate() # noop w/o jar
+        inst._p_activate()  # noop w/o jar
         self.assertEqual(inst._p_status, 'unsaved')
 
     def test__p_activate_from_ghost(self):
@@ -1232,14 +1259,14 @@ class _Persistent_Base:
     def test__p_activate_from_saved(self):
         inst, jar, OID = self._makeOneWithJar()
         inst._p_changed = False
-        inst._p_activate() # noop from 'saved' state
+        inst._p_activate()  # noop from 'saved' state
         self.assertEqual(inst._p_status, 'saved')
 
     def test__p_activate_only_sets_state_once(self):
         inst, jar, OID = self._makeOneWithJar()
         # No matter how many times we call _p_activate, it
         # only sets state once, the first time
-        inst._p_invalidate() # make it a ghost
+        inst._p_invalidate()  # make it a ghost
         self.assertEqual(list(jar._loaded), [])
 
         inst._p_activate()
@@ -1248,7 +1275,8 @@ class _Persistent_Base:
         inst._p_activate()
         self.assertEqual(list(jar._loaded), [OID])
 
-    def test__p_activate_leaves_object_in_saved_even_if_object_mutated_self(self):
+    def test__p_activate_leaves_object_in_saved_even_if_object_mutated_self(
+            self):
         # If the object's __setstate__ set's attributes
         # when called by p_activate, the state is still
         # 'saved' when done. Furthemore, the object is not
@@ -1256,11 +1284,12 @@ class _Persistent_Base:
 
         class WithSetstate(self._getTargetClass()):
             state = None
+
             def __setstate__(self, state):
                 self.state = state
 
         inst, jar, OID = self._makeOneWithJar(klass=WithSetstate)
-        inst._p_invalidate() # make it a ghost
+        inst._p_invalidate()  # make it a ghost
         self.assertEqual(inst._p_status, 'ghost')
 
         jar.setstate_calls_object = 42
@@ -1282,6 +1311,7 @@ class _Persistent_Base:
     def test__p_deactivate_from_unsaved_w_dict(self):
         class Derived(self._getTargetClass()):
             normal = 'before'
+
             def __init__(self):
                 self.__dict__['normal'] = 'after'
         inst = Derived()
@@ -1309,6 +1339,7 @@ class _Persistent_Base:
     def test__p_deactivate_from_saved_w_dict(self):
         class Derived(self._getTargetClass()):
             normal = 'before'
+
             def __init__(self):
                 self.__dict__['normal'] = 'after'
         inst, jar, OID = self._makeOneWithJar(Derived)
@@ -1348,7 +1379,7 @@ class _Persistent_Base:
 
     def test__p_deactivate_when_sticky(self):
         inst, jar, OID = self._makeOneWithJar()
-        inst._p_activate() # XXX
+        inst._p_activate()  # XXX
         inst._p_changed = False
         inst._p_sticky = True
         inst._p_deactivate()
@@ -1364,6 +1395,7 @@ class _Persistent_Base:
     def test__p_invalidate_from_unsaved_w_dict(self):
         class Derived(self._getTargetClass()):
             normal = 'before'
+
             def __init__(self):
                 self.__dict__['normal'] = 'after'
         inst = Derived()
@@ -1392,6 +1424,7 @@ class _Persistent_Base:
     def test__p_invalidate_from_saved_w_dict(self):
         class Derived(self._getTargetClass()):
             normal = 'before'
+
             def __init__(self):
                 self.__dict__['normal'] = 'after'
         inst, jar, OID = self._makeOneWithJar(Derived)
@@ -1418,6 +1451,7 @@ class _Persistent_Base:
     def test__p_invalidate_from_changed_w_dict(self):
         class Derived(self._getTargetClass()):
             normal = 'before'
+
             def __init__(self):
                 self.__dict__['normal'] = 'after'
         inst, jar, OID = self._makeOneWithJar(Derived)
@@ -1475,11 +1509,12 @@ class _Persistent_Base:
         # should be always released.
         class Derived(self._getTargetClass()):
             __slots__ = ('myattr1', 'myattr2', '__dict__')
+
             def __new__(cls):
                 obj = cls.__base__.__new__(cls)
                 obj.myattr1 = 'value1'
                 obj.myattr2 = 'value2'
-                obj.foo = 'foo1' # .foo & .bar are in __dict__
+                obj.foo = 'foo1'  # .foo & .bar are in __dict__
                 obj.bar = 'bar2'
                 return obj
         inst, jar, OID = self._makeOneWithJar(Derived)
@@ -1518,10 +1553,9 @@ class _Persistent_Base:
         self.assertEqual(inst._p_status, 'ghost')
         self.assertRaises(NotImplementedError, inst._p_activate)
 
-
     def test__p_invalidate_from_sticky(self):
         inst, jar, OID = self._makeOneWithJar()
-        inst._p_activate() # XXX
+        inst._p_activate()  # XXX
         inst._p_changed = False
         inst._p_sticky = True
         self.assertEqual(inst._p_status, 'sticky')
@@ -1535,7 +1569,7 @@ class _Persistent_Base:
             def __init__(self):
                 self.normal = 'value'
         inst, jar, OID = self._makeOneWithJar(Derived)
-        inst._p_activate() # XXX
+        inst._p_activate()  # XXX
         inst._p_changed = False
         inst._p_sticky = True
         inst._p_invalidate()
@@ -1554,7 +1588,7 @@ class _Persistent_Base:
                  '_p_estimated_size',
                  '_p_sticky',
                  '_p_status',
-                ]
+                 ]
         inst, jar, OID = self._makeOneWithJar()
         inst._p_deactivate()
         for name in NAMES:
@@ -1603,7 +1637,7 @@ class _Persistent_Base:
     def test__p_delattr_w__p__names(self):
         NAMES = ['_p_changed',
                  '_p_serial',
-                ]
+                 ]
         inst, jar, OID = self._makeOneWithJar()
         inst._p_changed = True
         jar._loaded = []
@@ -1640,6 +1674,7 @@ class _Persistent_Base:
         p._p_jar = self._makeBrokenJar()
         self.assertEqual(p._p_state, 0)
         self.assertEqual(p._p_jar.called, 0)
+
         def _try():
             p._p_changed = 1
         self.assertRaises(NotImplementedError, _try)
@@ -1668,6 +1703,7 @@ class _Persistent_Base:
         class P(self._getTargetClass()):
             def __init__(self):
                 self.x = 0
+
             def inc(self):
                 self.x += 1
         p = P()
@@ -1679,12 +1715,16 @@ class _Persistent_Base:
     def test_w_diamond_inheritance(self):
         class A(self._getTargetClass()):
             pass
+
         class B(self._getTargetClass()):
             pass
+
         class C(A, B):
             pass
+
         class D:
             pass
+
         class E(D, B):
             pass
         # no raise
@@ -1693,23 +1733,30 @@ class _Persistent_Base:
     def test_w_alternate_metaclass(self):
         class alternateMeta(type):
             pass
+
         class alternate:
             __metaclass__ = alternateMeta
+
         class mixedMeta(alternateMeta, type):
             pass
         # no raise
+
         class mixed1(alternate, self._getTargetClass()):
             pass
+
         class mixed2(self._getTargetClass(), alternate):
             pass
 
     def test_setattr_in_subclass_is_not_called_creating_an_instance(self):
         class subclass(self._getTargetClass()):
             _v_setattr_called = False
+
             def __setattr__(self, name, value):
                 raise AssertionError("Should not be called")
         inst = subclass()
-        self.assertEqual(object.__getattribute__(inst, '_v_setattr_called'), False)
+        self.assertEqual(
+            object.__getattribute__(
+                inst, '_v_setattr_called'), False)
 
     def test_can_set__p_attrs_if_subclass_denies_setattr(self):
         # ZODB defines a PersistentBroken subclass that only lets us
@@ -1734,12 +1781,12 @@ class _Persistent_Base:
     def test_p_invalidate_calls_p_deactivate(self):
         class P(self._getTargetClass()):
             deactivated = False
+
             def _p_deactivate(self):
                 self.deactivated = True
         p = P()
         p._p_invalidate()
         self.assertTrue(p.deactivated)
-
 
     def test_new_ghost_success_not_already_ghost_dict(self):
         # https://github.com/zopefoundation/persistent/issues/49
@@ -1747,6 +1794,7 @@ class _Persistent_Base:
         # its flags, it doesn't destroy the state.
         from persistent.interfaces import GHOST
         from persistent.interfaces import UPTODATE
+
         class TestPersistent(self._getTargetClass()):
             pass
         KEY = b'123'
@@ -1769,6 +1817,7 @@ class _Persistent_Base:
         # its flags, it doesn't destroy the state.
         from persistent.interfaces import GHOST
         from persistent.interfaces import UPTODATE
+
         class TestPersistent(self._getTargetClass()):
             __slots__ = ('set_by_new', '__weakref__')
         KEY = b'123'
@@ -1802,7 +1851,8 @@ class _Persistent_Base:
     def test_repr_no_oid_no_jar(self):
         p = self._makeOne()
         result = self._normalized_repr(p)
-        self.assertEqual(result, '<persistent.Persistent object at 0xdeadbeef>')
+        self.assertEqual(
+            result, '<persistent.Persistent object at 0xdeadbeef>')
 
     def test_repr_no_oid_in_jar(self):
         p = self._makeOne()
@@ -1825,7 +1875,9 @@ class _Persistent_Base:
         result = self._normalized_repr(p)
         self.assertEqual(
             result,
-            "<persistent.Persistent object at 0xdeadbeef oid " + self._HEX_OID + ">")
+            "<persistent.Persistent object at 0xdeadbeef oid " +
+            self._HEX_OID +
+            ">")
 
     def test_64bit_oid(self):
         import struct
@@ -1839,8 +1891,8 @@ class _Persistent_Base:
         result = self._normalized_repr(p)
         self.assertEqual(
             result,
-            '<persistent.Persistent object at 0xdeadbeef oid 0x8000000000000000>'
-        )
+            '<persistent.Persistent object at 0xdeadbeef oid'
+            ' 0x8000000000000000>')
 
     def test_repr_no_oid_repr_jar_raises_exception(self):
         p = self._makeOne()
@@ -1854,8 +1906,8 @@ class _Persistent_Base:
         result = self._normalized_repr(p)
         self.assertEqual(
             result,
-            "<persistent.Persistent object at 0xdeadbeef in Exception('jar repr failed')>")
-
+            "<persistent.Persistent object at 0xdeadbeef in"
+            " Exception('jar repr failed')>")
 
     def test_repr_oid_raises_exception_no_jar(self):
         p = self._makeOne()
@@ -1870,7 +1922,9 @@ class _Persistent_Base:
         result = self._normalized_repr(p)
         self.assertEqual(
             result,
-            "<persistent.Persistent object at 0xdeadbeef oid " + self._HEX_OID + ">")
+            "<persistent.Persistent object at 0xdeadbeef oid " +
+            self._HEX_OID +
+            ">")
 
         # Anything other than 8 bytes, though, we do.
         p._p_oid = BadOID(b'1234567')
@@ -1878,8 +1932,8 @@ class _Persistent_Base:
         result = self._normalized_repr(p)
         self.assertEqual(
             result,
-            "<persistent.Persistent object at 0xdeadbeef oid Exception('oid repr failed')>")
-
+            "<persistent.Persistent object at 0xdeadbeef oid"
+            " Exception('oid repr failed')>")
 
     def test_repr_oid_and_jar_raise_exception(self):
         p = self._makeOne()
@@ -1895,12 +1949,11 @@ class _Persistent_Base:
 
         p._p_jar = Jar()
 
-
         result = self._normalized_repr(p)
         self.assertEqual(
             result,
-            "<persistent.Persistent object at 0xdeadbeef oid Exception('oid repr failed')"
-            " in Exception('jar repr failed')>")
+            "<persistent.Persistent object at 0xdeadbeef oid"
+            " Exception('oid repr failed') in Exception('jar repr failed')>")
 
     def test_repr_no_oid_repr_jar_raises_baseexception(self):
         p = self._makeOne()
@@ -1942,7 +1995,9 @@ class _Persistent_Base:
         result = self._normalized_repr(p)
         self.assertEqual(
             result,
-            "<persistent.Persistent object at 0xdeadbeef oid " + self._HEX_OID + " in <SomeJar>>")
+            "<persistent.Persistent object at 0xdeadbeef oid " +
+            self._HEX_OID +
+            " in <SomeJar>>")
 
     def test__p_repr(self):
         class P(self._getTargetClass()):
@@ -1966,8 +2021,9 @@ class _Persistent_Base:
         result = self._normalized_repr(p)
         self.assertEqual(
             result,
-            "<persistent.tests.test_persistence.P object at 0xdeadbeef oid " + self._HEX_OID
-            + " _p_repr Exception('_p_repr failed')>")
+            "<persistent.tests.test_persistence.P object at 0xdeadbeef oid " +
+            self._HEX_OID +
+            " _p_repr Exception('_p_repr failed')>")
 
         class Jar:
             def __repr__(self):
@@ -1977,8 +2033,9 @@ class _Persistent_Base:
         result = self._normalized_repr(p)
         self.assertEqual(
             result,
-            "<persistent.tests.test_persistence.P object at 0xdeadbeef oid " + self._HEX_OID
-            + " in <SomeJar> _p_repr Exception('_p_repr failed')>")
+            "<persistent.tests.test_persistence.P object at 0xdeadbeef oid " +
+            self._HEX_OID +
+            " in <SomeJar> _p_repr Exception('_p_repr failed')>")
 
     def test__p_repr_in_instance_ignored(self):
         class P(self._getTargetClass()):
@@ -1986,8 +2043,9 @@ class _Persistent_Base:
         p = P()
         p._p_repr = lambda: "Instance"
         result = self._normalized_repr(p)
-        self.assertEqual(result,
-                         '<persistent.tests.test_persistence.P object at 0xdeadbeef>')
+        self.assertEqual(
+            result,
+            '<persistent.tests.test_persistence.P object at 0xdeadbeef>')
 
     def test__p_repr_baseexception(self):
         class P(self._getTargetClass()):
@@ -1997,11 +2055,12 @@ class _Persistent_Base:
         with self.assertRaisesRegex(BaseException, '_p_repr failed'):
             repr(p)
 
+
 class PyPersistentTests(unittest.TestCase, _Persistent_Base):
 
     def _getTargetClass(self):
         from persistent.persistence import PersistentPy
-        assert PersistentPy.__module__ == 'persistent.persistence', PersistentPy.__module__
+        self.assertEqual(PersistentPy.__module__, 'persistent.persistence')
         return PersistentPy
 
     def _makeCache(self, jar):
@@ -2011,8 +2070,10 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
                 self._jar = jar
                 self._mru = []
                 self._data = {}
+
             def mru(self, oid):
                 self._mru.append(oid)
+
             def new_ghost(self, oid, obj):
                 obj._p_jar = self._jar
                 obj._p_oid = oid
@@ -2025,10 +2086,13 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
                 # flags.
                 object.__setattr__(obj, '_Persistent__flags', None)
                 self._data[oid] = obj
+
             def get(self, oid):
                 return self._data.get(oid)
+
             def __delitem__(self, oid):
                 del self._data[oid]
+
             def update_object_size_estimation(self, oid, new_size):
                 pass
 
@@ -2076,12 +2140,15 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
     def test_accessed_invalidated_with_jar_and_oid_but_no_cache(self):
         # This scenario arises in ZODB tests where the jar is faked
         KEY = b'123'
+
         class Jar:
             accessed = False
+
             def __getattr__(self, name):
                 if name == '_cache':
                     self.accessed = True
                 raise AttributeError(name)
+
             def register(self, *args):
                 pass
         c1 = self._makeOne()
@@ -2098,7 +2165,7 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
         self.assertTrue(c1._p_jar.accessed)
 
         c1._p_jar.accessed = False
-        c1._Persistent__flags = None # coverage
+        c1._Persistent__flags = None  # coverage
         c1._p_invalidate_deactivate_helper()
         self.assertTrue(c1._p_jar.accessed)
 
@@ -2133,10 +2200,10 @@ class CPersistentTests(unittest.TestCase, _Persistent_Base):
         return get_c()['persistent.persistence'].Persistent
 
     def _checkMRU(self, jar, value):
-        pass # Figure this out later
+        pass  # Figure this out later
 
     def _clearMRU(self, jar):
-        pass # Figure this out later
+        pass  # Figure this out later
 
     def _makeCache(self, jar):
         from persistent._compat import _c_optimizations_available as get_c
@@ -2159,6 +2226,7 @@ class Test_simple_new(unittest.TestCase):
         TO_CREATE = [type, list, tuple, object, dict]
         for typ in TO_CREATE:
             self.assertTrue(isinstance(self._callFUT(typ), typ))
+
 
 def test_suite():
     return unittest.defaultTestLoader.loadTestsFromName(__name__)
