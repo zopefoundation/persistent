@@ -17,8 +17,6 @@ from persistent.tests.utils import TrivialJar
 from persistent.tests.utils import copy_test
 
 
-# pylint:disable=blacklisted-name, protected-access
-
 class Test_default(unittest.TestCase):
 
     def _getTargetClass(self):

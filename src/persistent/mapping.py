@@ -141,7 +141,7 @@ class PersistentMapping(IterableUserDict, persistent.Persistent):
     # ``data`` when we have ``_container`` instead
 
     @default
-    def data(self):  # pylint:disable=method-hidden
+    def data(self):
         # We don't want to cause a write on read, so we're careful not to
         # do anything that would cause us to become marked as changed, however,
         # if we're modified, then the saved record will have data, not

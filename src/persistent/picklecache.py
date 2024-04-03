@@ -34,11 +34,6 @@ __all__ = [
     'PickleCachePy',
 ]
 
-# We're tightly coupled to the PersistentPy implementation and access
-# its internals.
-# pylint:disable=protected-access
-
-
 _OGA = object.__getattribute__
 _OSA = object.__setattr__
 

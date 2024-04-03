@@ -105,8 +105,7 @@ class TimeStamp:
                 raise TypeError('Raw must be 8 octets')
             self._raw = raw
         elif len(args) == 6:
-            self._raw = _makeRaw(
-                *args)  # pylint:disable=no-value-for-parameter
+            self._raw = _makeRaw(*args)
             # Note that we don't preserve the incoming arguments in
             # self._elements, we derive them from the raw value. This is
             # because the incoming seconds value could have more precision than
@@ -162,7 +161,6 @@ class TimeStamp:
         """
         if not isinstance(other, self.__class__):
             raise ValueError()
-        # pylint:disable=protected-access
         if self._raw > other._raw:
             return self
         a, b = struct.unpack('>II', other._raw)

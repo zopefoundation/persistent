@@ -24,8 +24,6 @@ l0 = []
 l1 = [0]
 l2 = [0, 1]
 
-# pylint:disable=protected-access
-
 
 class OtherList:
     def __init__(self, initlist):
