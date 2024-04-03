@@ -20,7 +20,8 @@ def print_dict(d):
     d = sorted(d.items())
     print('{%s}' % (', '.join(
         [('{!r}: {!r}'.format(k, v)) for (k, v) in d]
-        )))
+    )))
+
 
 def cmpattrs(self, other, *attrs):
     result = 0
@@ -31,6 +32,7 @@ def cmpattrs(self, other, *attrs):
         rhs = getattr(other, attr, None)
         result += lhs != rhs
     return result
+
 
 class Simple(Persistent):
     def __init__(self, name, **kw):

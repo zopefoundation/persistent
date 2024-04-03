@@ -54,13 +54,13 @@ class PersistentMapping(IterableUserDict, persistent.Persistent):
     __super_pop = IterableUserDict.pop
     __super_popitem = IterableUserDict.popitem
 
-
-    # Be sure to make a deep copy of our ``data`` (See PersistentList.)
-    # See https://github.com/python/cpython/commit/3645d29a1dc2102fdb0f5f0c0129ff2295bcd768
+    # Be sure to make a deep copy of our ``data`` (See PersistentList.) See
+    # https://github.com/python/cpython/commit/3645d29a1dc2102fdb0f5f0c0129ff2295bcd768
     # This was fixed in CPython 3.7.4, but we can't rely on that because it
-    # doesn't handle our old ``_container`` appropriately (it goes directly
-    # to ``self.__dict__``, bypassing the descriptor). The code here was initially
+    # doesn't handle our old ``_container`` appropriately (it goes directly to
+    # ``self.__dict__``, bypassing the descriptor). The code here was initially
     # based on the version found in 3.7.4.
+
     def __copy__(self):
         inst = self.__class__.__new__(self.__class__)
         inst.__dict__.update(self.__dict__)
@@ -141,7 +141,7 @@ class PersistentMapping(IterableUserDict, persistent.Persistent):
     # ``data`` when we have ``_container`` instead
 
     @default
-    def data(self): # pylint:disable=method-hidden
+    def data(self):  # pylint:disable=method-hidden
         # We don't want to cause a write on read, so we're careful not to
         # do anything that would cause us to become marked as changed, however,
         # if we're modified, then the saved record will have data, not

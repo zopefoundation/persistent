@@ -23,6 +23,7 @@ def _resettingJar():
     from persistent.tests.utils import ResettingJar
     return ResettingJar()
 
+
 def _rememberingJar():
     from persistent.tests.utils import RememberingJar
     return RememberingJar()
@@ -31,18 +32,20 @@ def _rememberingJar():
 class OverridesGetattr(Persistent):
     """Example of overriding __getattr__
     """
+
     def __getattr__(self, name):
         """Get attributes that can't be gotten the usual way
         """
         # Don't pretend we have any special attributes.
         if name.startswith("__") and name.endswrith("__"):
-            raise AttributeError(name) # pragma: no cover
+            raise AttributeError(name)  # pragma: no cover
         return name.upper(), self._p_changed
 
 
 class VeryPrivate(Persistent):
     """Example of overriding __getattribute__, __setattr__, and __delattr__
     """
+
     def __init__(self, **kw):
         self.__dict__['__secret__'] = kw.copy()
 
@@ -77,7 +80,6 @@ class VeryPrivate(Persistent):
             raise AttributeError(name)
 
         return meth.__get__(self, self.__class__)
-
 
     def __setattr__(self, name, value):
         """Set an attribute value

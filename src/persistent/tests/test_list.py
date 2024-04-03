@@ -26,11 +26,14 @@ l2 = [0, 1]
 
 # pylint:disable=protected-access
 
+
 class OtherList:
     def __init__(self, initlist):
         self.__data = initlist
+
     def __len__(self):
         return len(self.__data)
+
     def __getitem__(self, i):
         return self.__data[i]
 
@@ -170,9 +173,9 @@ class TestPList(unittest.TestCase):
 
         # Test __add__, __radd__, __mul__ and __rmul__
 
-        #self.assertTrue(u1 + [] == [] + u1 == u1, "u1 + [] == [] + u1 == u1")
+        # self.assertTrue(u1 + [] == [] + u1 == u1, "u1 + [] == [] + u1 == u1")
         self.assertTrue(u1 + [1] == u2, "u1 + [1] == u2")
-        #self.assertTrue([-1] + u1 == [-1, 0], "[-1] + u1 == [-1, 0]")
+        # self.assertTrue([-1] + u1 == [-1, 0], "[-1] + u1 == [-1, 0]")
         self.assertTrue(u2 == u2*1 == 1*u2, "u2 == u2*1 == 1*u2")
         self.assertTrue(u2+u2 == u2*2 == 2*u2, "u2+u2 == u2*2 == 2*u2")
         self.assertTrue(u2+u2+u2 == u2*3 == 3*u2, "u2+u2+u2 == u2*3 == 3*u2")
@@ -208,7 +211,6 @@ class TestPList(unittest.TestCase):
         eq(u.count(0), 3, "u.count(0) == 3")
         eq(u.count(1), 3, "u.count(1) == 3")
         eq(u.count(2), 0, "u.count(2) == 0")
-
 
         # Test index
 
@@ -387,10 +389,3 @@ class TestPList(unittest.TestCase):
         inst = self._makeOne()
         inst.append(42)
         copy_test(self, inst)
-
-
-def test_suite():
-    return unittest.defaultTestLoader.loadTestsFromName(__name__)
-
-if __name__ == '__main__':
-    unittest.main()

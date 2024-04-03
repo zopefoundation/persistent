@@ -34,7 +34,7 @@ class TestCOptimizationsFuncs(unittest.TestCase):
         if self.env_val is not self:
             # Reset to what it was to begin with.
             os.environ['PURE_PYTHON'] = self.env_val
-        else: # pragma: no cover
+        else:  # pragma: no cover
             # It wasn't present before, make sure it's not present now.
             os.environ.pop('PURE_PYTHON', None)
 
@@ -90,7 +90,8 @@ class TestCOptimizationsFuncs(unittest.TestCase):
                 ('Yes', False)
         ):
             self._set_env(val)
-            self.assertEqual(expected, compat._should_attempt_c_optimizations())
+            self.assertEqual(
+                expected, compat._should_attempt_c_optimizations())
 
     def test_should_attempt_pypy(self):
         compat.PYPY = True
@@ -103,4 +104,5 @@ class TestCOptimizationsFuncs(unittest.TestCase):
         ):
             __traceback_info__ = val
             self._set_env(val)
-            self.assertEqual(expected, compat._should_attempt_c_optimizations())
+            self.assertEqual(
+                expected, compat._should_attempt_c_optimizations())

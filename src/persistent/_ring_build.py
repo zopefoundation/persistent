@@ -53,7 +53,7 @@ source = """
 #define cffi_ring_add(ring, elt) ring_add((CPersistentRing*)ring, (CPersistentRing*)elt)
 #define cffi_ring_del(elt) ring_del((CPersistentRing*)elt)
 #define cffi_ring_move_to_head(ring, elt) ring_move_to_head((CPersistentRing*)ring, (CPersistentRing*)elt)
-"""
+"""   # noqa: E501 line too long
 
 ffi.set_source('persistent._ring',
                source,
