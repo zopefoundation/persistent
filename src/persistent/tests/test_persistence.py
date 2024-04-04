@@ -21,13 +21,6 @@ from persistent._compat import PYPY
 from persistent.tests.utils import skipIfNoCExtension
 
 
-# pylint:disable=R0904,W0212,E1101
-# pylint:disable=attribute-defined-outside-init,too-many-lines
-# pylint:disable=blacklisted-name,useless-object-inheritance
-# Hundreds of unused jar and OID vars make this useless
-# pylint:disable=unused-variable
-
-
 class _Persistent_Base:
 
     def _getTargetClass(self):

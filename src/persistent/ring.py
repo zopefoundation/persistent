@@ -12,9 +12,6 @@
 #
 ##############################################################################
 
-# pylint:disable=inherit-non-class,no-self-argument,redefined-builtin,c-extension-no-member
-# pylint:disable=protected-access
-
 from zope.interface import Interface
 from zope.interface import implementer
 
@@ -32,7 +29,7 @@ class IRing(Interface):
     implementations by explaining assumptions and performance requirements.
     """
 
-    def __len__():  # pylint:disable=no-method-argument
+    def __len__():
         """Return the number of persistent objects stored in the ring.
 
         Should be constant time.
@@ -74,7 +71,7 @@ class IRing(Interface):
         allowed.
         """
 
-    def __iter__():  # pylint:disable=no-method-argument
+    def __iter__():
         """Iterate over each persistent object in the ring, in the order of
         least recently used to most recently used.
 

@@ -29,14 +29,6 @@ __all__ = [
     'PersistentPy',
 ]
 
-# We use implementation details of PickleCachePy
-# pylint:disable=protected-access
-# we have lots of not-quite-correct continuation indentation.
-# TODO: Fix that in a whitespace-only commit.
-# pylint:disable=bad-continuation
-# There are a few places we need to work with exact types.
-# pylint:disable=unidiomatic-typecheck
-
 _INITIAL_SERIAL = _ZERO
 
 
@@ -346,7 +338,6 @@ class Persistent:
         if idict is not None:
             # TODO: Convert to a dictionary comprehension, avoid the
             # intermediate list.
-            # pylint:disable=consider-using-dict-comprehension
             d = dict([x for x in idict.items()
                       if not x[0].startswith('_p_') and
                       not x[0].startswith('_v_')])
@@ -588,7 +579,6 @@ class Persistent:
         return None
 
     def __repr__(self):
-        # pylint:disable=broad-except
         p_repr_str = ''
         p_repr = getattr(type(self), '_p_repr', None)
         if p_repr is not None:

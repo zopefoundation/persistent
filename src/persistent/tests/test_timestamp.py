@@ -211,7 +211,6 @@ class Instant:
     def __init__(self):
         from persistent import timestamp as MUT
         self.MUT = MUT
-        # pylint:disable=protected-access
         self.orig_maxint = MUT._MAXINT
 
         self.is_32_bit_hash = self.orig_maxint == self.MAX_32_BITS
@@ -231,7 +230,6 @@ class Instant:
 
     @contextmanager
     def _use_hash(self, maxint, c_long):
-        # pylint:disable=protected-access
         try:
             self.MUT._MAXINT = maxint
             self.MUT.c_long = c_long

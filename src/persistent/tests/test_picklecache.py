@@ -19,9 +19,6 @@ from persistent.interfaces import UPTODATE
 from persistent.tests.utils import skipIfNoCExtension
 
 
-# pylint:disable=protected-access,too-many-lines,too-many-public-methods
-# pylint:disable=attribute-defined-outside-init,redefined-outer-name
-
 _marker = object()
 
 

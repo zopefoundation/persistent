@@ -23,7 +23,7 @@ from persistent import _compat as compat
 
 
 class TestCOptimizationsFuncs(unittest.TestCase):
-    # pylint:disable=protected-access
+
     def setUp(self):
         self.env_val = os.environ.get('PURE_PYTHON', self)
         self.orig_pypy = compat.PYPY
