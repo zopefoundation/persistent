@@ -1,0 +1,71 @@
+[build-system]
+requires = [
+    "setuptools",
+    "wheel",
+    "cffi ; platform_python_implementation == 'CPython'",
+    "cffi @ git+https://github.com/python-cffi/cffi.git ; platform_python_implementation == 'CPython' and python_version >= '3.13a0'",
+]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "persistent"
+version = "5.3.dev0"
+dynamic = ["readme"]
+authors = [
+    {name = "Zope Foundation and Contributors", email = "zodb-dev@zope.org"},
+]
+description = "Translucent persistent objects"
+requires-python = ">=3.7"
+license = {text = "ZPL 2.1"}
+classifiers = [
+    "Development Status :: 6 - Mature",
+    "License :: OSI Approved :: Zope Public License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Framework :: ZODB",
+    "Topic :: Database",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: Unix",
+]
+dependencies = [
+    "zope.deferredimport",
+    "zope.interface",
+    "cffi ; platform_python_implementation == 'CPython'",
+    "cffi @ git+https://github.com/python-cffi/cffi.git ; platform_python_implementation == 'CPython' and python_version >= '3.13a0'",
+]
+
+[project.urls]
+documentation = "https://persistent.readthedocs.io"
+repository = "https://github.com/zopefoundation/persistent/"
+issue_tracker = "https://github.com/zopefoundation/persistent/issues"
+changelog = "https://github.com/zopefoundation/persistent/blob/master/CHANGES.rst"
+
+[project.optional-dependencies]
+test = [
+    "zope.testrunner",
+    "manuel",
+]
+testing = []   # backward-compatibility
+docs = [
+    "Sphinx",
+    "repoze.sphinx.autointerface",
+    "sphinx_rtd_theme",
+]
+
+
+[tool.setuptools.dynamic]
+readme = {file = ["README.rst", "CHANGES.rst"]}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["persistent"]

@@ -12,25 +12,10 @@
 #
 ##############################################################################
 
-import os
 import platform
 
 from setuptools import Extension
-from setuptools import find_packages
 from setuptools import setup
-
-
-version = '5.3.dev0'
-
-here = os.path.abspath(os.path.dirname(__file__))
-
-
-def _read_file(filename):
-    with open(os.path.join(here, filename)) as f:
-        return f.read()
-
-
-README = (_read_file('README.rst') + '\n\n' + _read_file('CHANGES.rst'))
 
 
 define_macros = (
@@ -86,64 +71,8 @@ else:
         'src/persistent/ring.h',
     ]
 
-setup(name='persistent',
-      version=version,
-      description='Translucent persistent objects',
-      long_description=README,
-      classifiers=[
-          "Development Status :: 6 - Mature",
-          "License :: OSI Approved :: Zope Public License",
-          "Programming Language :: Python",
-          "Programming Language :: Python :: 3",
-          "Programming Language :: Python :: 3.7",
-          "Programming Language :: Python :: 3.8",
-          "Programming Language :: Python :: 3.9",
-          "Programming Language :: Python :: 3.10",
-          "Programming Language :: Python :: 3.11",
-          "Programming Language :: Python :: 3.12",
-          "Programming Language :: Python :: Implementation :: CPython",
-          "Programming Language :: Python :: Implementation :: PyPy",
-          "Framework :: ZODB",
-          "Topic :: Database",
-          "Topic :: Software Development :: Libraries :: Python Modules",
-          "Operating System :: Microsoft :: Windows",
-          "Operating System :: Unix",
-      ],
-      author="Zope Foundation and Contributors",
-      author_email="zodb-dev@zope.org",
-      url="https://github.com/zopefoundation/persistent/",
-      project_urls={
-        'Documentation': 'https://persistent.readthedocs.io',
-        'Issue Tracker': 'https://github.com/zopefoundation/persistent/issues',
-        'Sources': 'https://github.com/zopefoundation/persistent',
-      },
-      license="ZPL 2.1",
-      packages=find_packages('src'),
-      package_dir={'': 'src'},
-      include_package_data=True,
-      zip_safe=False,
+setup(
       ext_modules=ext_modules,
       cffi_modules=['src/persistent/_ring_build.py:ffi'],
       headers=headers,
-      extras_require={
-          'test': [
-              'zope.testrunner',
-              'manuel',
-          ],
-          'testing': (),
-          'docs': [
-              'Sphinx',
-              'repoze.sphinx.autointerface',
-              'sphinx_rtd_theme',
-          ],
-      },
-      python_requires='>=3.7',
-      install_requires=[
-          'zope.deferredimport',
-          'zope.interface',
-          "cffi ; platform_python_implementation == 'CPython'",
-      ],
-      setup_requires=[
-          "cffi ; platform_python_implementation == 'CPython'",
-      ],
-      entry_points={})
+)
