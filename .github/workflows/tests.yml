@@ -207,6 +207,8 @@ jobs:
       - name: Install persistent and dependencies (3.13.0-alpha - 3.13.0)
         if: matrix.python-version == '3.13.0-alpha - 3.13.0'
         run: |
+          # Remove this hack once 'cffi' has a release supporting Python 3.13.
+          pip install -e "git+https://github.com/python-cffi/cffi.git#egg=cffi"
           # Install to collect dependencies into the (pip) cache.
           # Use "--pre" here because dependencies with support for this future
           # Python release may only be available as pre-releases
