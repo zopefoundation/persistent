@@ -345,7 +345,7 @@ jobs:
           unzip -n dist/persistent-*whl -d src
           # Use "--pre" here because dependencies with support for this future
           # Python release may only be available as pre-releases
-          txt pip install --pre -U -e .[test]
+          pip install --pre -U -e .[test]
       - name: Install persistent
         if: ${{ !startsWith(matrix.python-version, '3.13.0-alpha - 3.13.0') }}
         run: |
