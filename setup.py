@@ -32,6 +32,12 @@ def _read_file(filename):
 
 README = (_read_file('README.rst') + '\n\n' + _read_file('CHANGES.rst'))
 
+PY313_CFFI_GH_DEP = (
+    "cffi @ git+https://github.com/python-cffi/cffi.git ; "
+    "platform_python_implementation == 'CPython' and "
+    "python_version >= '3.13a0'"
+)
+
 
 define_macros = (
     # We currently use macros like PyBytes_AS_STRING
@@ -142,8 +148,10 @@ setup(name='persistent',
           'zope.deferredimport',
           'zope.interface',
           "cffi ; platform_python_implementation == 'CPython'",
+          PY313_CFFI_GH_DEP,
       ],
       setup_requires=[
           "cffi ; platform_python_implementation == 'CPython'",
+          PY313_CFFI_GH_DEP,
       ],
       entry_points={})
