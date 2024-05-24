@@ -162,14 +162,14 @@ jobs:
         if: matrix.python-version == '3.13'
         run: |
           pip install -U pip
-          pip install -U setuptools wheel twine
+          pip install -U "setuptools<69" wheel twine
           # Remove this hack once 'cffi' has a release supporting Python 3.13.
           pip install -e "git+https://github.com/python-cffi/cffi.git#egg=cffi"
       - name: Install Build Dependencies
         if: matrix.python-version != '3.13'
         run: |
           pip install -U pip
-          pip install -U setuptools wheel twine
+          pip install -U "setuptools<69" wheel twine
           pip install cffi
 
       - name: Build persistent (macOS x86_64, Python 3.8+)
@@ -254,14 +254,14 @@ jobs:
         with:
           name: persistent-${{ runner.os }}-${{ matrix.python-version }}.whl
           path: dist/*whl
-      - name: Publish package to PyPI (mac)
-        # We cannot 'uses: pypa/gh-action-pypi-publish@v1.4.1' because
-        # that's apparently a container action, and those don't run on
-        # the Mac.
+      - name: Publish package to PyPI (Non-Linux)
+        # We cannot use pypa/gh-action-pypi-publish because that
+        # is a container action, and those don't run on macOS
+        # or Windows GHA runners.
         if: >
           github.event_name == 'push'
           && startsWith(github.ref, 'refs/tags')
-          && startsWith(runner.os, 'Mac')
+          && !startsWith(runner.os, 'Linux')
           && !startsWith(matrix.python-version, 'pypy')
           && !startsWith(matrix.python-version, '3.13')
         env:
@@ -346,7 +346,7 @@ jobs:
       - name: Install persistent 3.13 ${{ matrix.python-version }}
         if: matrix.python-version == '3.13'
         run: |
-          pip install -U wheel setuptools
+          pip install -U wheel "setuptools<69"
           # Remove this hack once 'cffi' has a release supporting Python 3.13.
           pip install -e "git+https://github.com/python-cffi/cffi.git#egg=cffi"
           # coverage might have a wheel on PyPI for a future python version which is
@@ -362,7 +362,7 @@ jobs:
       - name: Install persistent
         if: matrix.python-version != '3.13'
         run: |
-          pip install -U wheel setuptools
+          pip install -U wheel "setuptools<69"
           pip install -U coverage
           pip install -U 'cffi; platform_python_implementation == "CPython"'
           # Unzip into src/ so that testrunner can find the .so files
@@ -634,5 +634,5 @@ jobs:
         with:
           user: __token__
           password: ${{ secrets.TWINE_PASSWORD }}
-          skip_existing: true
-          packages_dir: wheelhouse/
+          skip-existing: true
+          packages-dir: wheelhouse/
