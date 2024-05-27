@@ -1,7 +1,7 @@
 # Generated from:
 # https://github.com/zopefoundation/meta/tree/master/config/c-code
 [run]
-source = persistent
+source = src/persistent
 # New in 5.0; required for the GHA coveralls submission.
 relative_files = True
 branch = true
