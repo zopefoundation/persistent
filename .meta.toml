@@ -28,7 +28,7 @@ testenv-deps = [
 fail-under = 99.8
 
 [coverage-run]
-source = src/persistent
+source = "src/persistent"
 additional-config = [
     "omit =",
     "     src/persistent/_ring_build.py",
