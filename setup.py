@@ -20,7 +20,7 @@ from setuptools import find_packages
 from setuptools import setup
 
 
-version = '5.3.dev0'
+version = '6.0'
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -33,7 +33,7 @@ def _read_file(filename):
 README = (_read_file('README.rst') + '\n\n' + _read_file('CHANGES.rst'))
 
 PY313_CFFI_GH_DEP = (
-    "cffi @ git+https://github.com/python-cffi/cffi.git ; "
+    "cffi >= 1.17.0rc1; "
     "platform_python_implementation == 'CPython' and "
     "python_version >= '3.13a0'"
 )
