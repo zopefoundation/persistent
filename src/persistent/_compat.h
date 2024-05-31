@@ -29,14 +29,4 @@
 #define INT_AS_LONG(x) PyLong_AsLong(x)
 #define CAPI_CAPSULE_NAME "persistent.cPersistence.CAPI"
 
-#else
-#define INTERN PyString_InternFromString
-#define INTERN_INPLACE PyString_InternInPlace
-#define NATIVE_CHECK_EXACT PyString_CheckExact
-#define NATIVE_FROM_STRING_AND_SIZE PyString_FromStringAndSize
-
-#define INT_FROM_LONG(x) PyInt_FromLong(x)
-#define INT_CHECK(x) PyInt_Check(x)
-#define INT_AS_LONG(x) PyInt_AS_LONG(x)
-
 #endif
