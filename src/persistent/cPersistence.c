@@ -16,6 +16,9 @@ static char CP_module__doc__[] =
   "Defines Persistent mixin class for persistent objects.";
 
 
+#include <stdint.h>
+#include <inttypes.h>
+
 #define PY_SSIZE_T_CLEAN
 #include "cPersistence.h"
 #include "structmember.h"
@@ -38,22 +41,32 @@ struct ccobject_head_struct
     CACHE_HEAD
 };
 
-#include <stdint.h>
-#include <inttypes.h>
-
 /* Strings initialized by init_strings() below. */
-static PyObject *py_keys, *py_setstate, *py___dict__, *py_timeTime;
-static PyObject *py__p_changed, *py__p_deactivate;
-static PyObject *py___getattr__, *py___setattr__, *py___delattr__;
+static PyObject *py_keys;
+static PyObject *py_setstate;
+static PyObject *py___dict__;
+static PyObject *py_timeTime;
+static PyObject *py__p_changed;
+static PyObject *py__p_deactivate;
+static PyObject *py___getattr__;
+static PyObject *py___setattr__;
+static PyObject *py___delattr__;
 static PyObject *py___slotnames__;
-static PyObject *py___getnewargs__, *py___getstate__;
-static PyObject *py_unsaved, *py_ghost, *py_saved, *py_changed, *py_sticky;
+static PyObject *py___getnewargs__;
+static PyObject *py___getstate__;
+static PyObject *py_unsaved;
+static PyObject *py_ghost;
+static PyObject *py_saved;
+static PyObject *py_changed;
+static PyObject *py_sticky;
+static PyObject *py_register;
+static PyObject *py_readCurrent;
 
 static int
 init_strings(void)
 {
 #define INIT_STRING(S)                              \
-  if (!(py_ ## S = INTERN(#S)))  \
+  if (!(py_ ## S = PyUnicode_InternFromString(#S))) \
     return -1;
   INIT_STRING(keys);
   INIT_STRING(setstate);
@@ -72,6 +85,8 @@ init_strings(void)
   INIT_STRING(saved);
   INIT_STRING(changed);
   INIT_STRING(sticky);
+  INIT_STRING(register);
+  INIT_STRING(readCurrent);
 #undef INIT_STRING
   return 0;
 }
@@ -271,11 +286,8 @@ changed(cPersistentObject *self)
         && self->jar)
     {
         PyObject *meth, *arg, *result;
-        static PyObject *s_register;
 
-        if (s_register == NULL)
-            s_register = INTERN("register");
-        meth = PyObject_GetAttr((PyObject *)self->jar, s_register);
+        meth = PyObject_GetAttr((PyObject *)self->jar, py_register);
         if (meth == NULL)
             return -1;
         arg = PyTuple_New(1);
@@ -306,13 +318,9 @@ readCurrent(cPersistentObject *self)
         self->state == cPersistent_STICKY_STATE)
         && self->jar && self->oid)
     {
-        static PyObject *s_readCurrent=NULL;
         PyObject *r;
 
-        if (s_readCurrent == NULL)
-            s_readCurrent = INTERN("readCurrent");
-
-        r = PyObject_CallMethodObjArgs(self->jar, s_readCurrent, self, NULL);
+        r = PyObject_CallMethodObjArgs(self->jar, py_readCurrent, self, NULL);
         if (r == NULL)
             return -1;
 
@@ -621,9 +629,9 @@ pickle___setstate__(PyObject *self, PyObject *state)
             while (PyDict_Next(state, &i, &d_key, &d_value)) {
                 /* normally the keys for instance attributes are
                    interned.  we should try to do that here. */
-                if (NATIVE_CHECK_EXACT(d_key)) {
+                if (PyUnicode_CheckExact(d_key)) {
                     Py_INCREF(d_key);
-                    INTERN_INPLACE(&d_key);
+                    PyUnicode_InternInPlace(&d_key);
                     Py_DECREF(d_key);
                 }
                 if (PyObject_SetItem(*dict, d_key, d_value) < 0)
@@ -666,9 +674,9 @@ pickle___setstate__(PyObject *self, PyObject *state)
                     return NULL;
                 }
 
-                if (NATIVE_CHECK_EXACT(d_key)) {
+                if (PyUnicode_CheckExact(d_key)) {
                     Py_INCREF(d_key);
-                    INTERN_INPLACE(&d_key);
+                    PyUnicode_InternInPlace(&d_key);
                     Py_DECREF(d_key);
                 }
                 Py_DECREF(item);
@@ -1287,13 +1295,13 @@ Per_get_mtime(cPersistentObject *self)
 static PyObject *
 Per_get_state(cPersistentObject *self)
 {
-    return INT_FROM_LONG(self->state);
+    return PyLong_FromLong(self->state);
 }
 
 static PyObject *
 Per_get_estimated_size(cPersistentObject *self)
 {
-    return INT_FROM_LONG(_estimated_size_in_bytes(self->estimated_size));
+    return PyLong_FromLong(_estimated_size_in_bytes(self->estimated_size));
 }
 
 static int
@@ -1301,9 +1309,9 @@ Per_set_estimated_size(cPersistentObject *self, PyObject *v)
 {
     if (v)
     {
-        if (INT_CHECK(v))
+        if (PyLong_Check(v))
         {
-            long lv = INT_AS_LONG(v);
+            long lv = PyLong_AsLong(v);
             if (lv < 0)
             {
                 PyErr_SetString(PyExc_ValueError,

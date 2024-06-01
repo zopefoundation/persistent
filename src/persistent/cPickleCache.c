@@ -113,28 +113,22 @@ static char cPickleCache_doc_string[] =
 /* Python string objects to speed lookups; set by module init. */
 static PyObject *py__p_changed;
 static PyObject *py__p_deactivate;
+static PyObject *py__p_invalidate;
 static PyObject *py__p_jar;
 static PyObject *py__p_oid;
 
 static int
 define_static_strings(void)
 {
-    py__p_changed = INTERN("_p_changed");
-    if (!py__p_changed)
-        return -1;
-
-    py__p_deactivate = INTERN("_p_deactivate");
-    if (!py__p_deactivate)
-        return -1;
-
-    py__p_jar = INTERN("_p_jar");
-    if (!py__p_jar)
-        return -1;
-
-    py__p_oid = INTERN("_p_oid");
-    if (!py__p_oid)
-        return -1;
-
+#define INIT_STRING(S)                              \
+  if (!(py_ ## S = PyUnicode_InternFromString(#S))) \
+    return -1;
+    INIT_STRING(_p_changed);
+    INIT_STRING(_p_deactivate);
+    INIT_STRING(_p_invalidate);
+    INIT_STRING(_p_jar);
+    INIT_STRING(_p_oid);
+#undef INIT_STRING
     return 0;
 }
 
@@ -409,26 +403,11 @@ cc_minimize(ccobject *self, PyObject *args)
 static int
 _invalidate(ccobject *self, PyObject *key)
 {
-    static PyObject *_p_invalidate = NULL;
     PyObject *meth, *v;
 
     v = PyDict_GetItem(self->data, key);
     if (v == NULL)
         return 0;
-
-    if (_p_invalidate == NULL)
-    {
-        _p_invalidate = INTERN("_p_invalidate");
-        if (_p_invalidate == NULL)
-        {
-            /* It doesn't make any sense to ignore this error, but
-                the caller ignores all errors.
-
-                TODO: and why does it do that? This should be fixed
-            */
-            return -1;
-        }
-    }
 
     if (v->ob_refcnt <= 1 && PyType_Check(v))
     {
@@ -442,7 +421,7 @@ _invalidate(ccobject *self, PyObject *key)
         return PyDict_DelItem(self->data, key);
     }
 
-    meth = PyObject_GetAttr(v, _p_invalidate);
+    meth = PyObject_GetAttr(v, py__p_invalidate);
     if (meth == NULL)
         return -1;
 
@@ -724,7 +703,7 @@ cc_ringlen(ccobject *self)
     for (here = self->ring_home.r_next; here != &self->ring_home;
         here = here->r_next)
         c++;
-    return INT_FROM_LONG(c);
+    return PyLong_FromLong(c);
 }
 
 static PyObject *
