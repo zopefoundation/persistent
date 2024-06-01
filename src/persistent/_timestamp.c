@@ -39,7 +39,7 @@ static char timestamp_module_doc[] =
 static PyObject *TimeStamp_FromDate(PyObject*, int, int, int, int, int, double);
 static PyObject *TimeStamp_FromString(PyObject*, const char *);
 static PyObject* _get_module(PyTypeObject *typeobj);
-static int _get_gmoff(PyTypeObject* type, double* target);
+static int _get_gmoff(PyObject* module, double* target);
 
 
 /* A magic constant having the value 0.000000013969839. When an
@@ -335,9 +335,14 @@ static PyObject *
 TimeStamp_timeTime(TimeStamp *self)
 {
     PyObject* obj_self = (PyObject*)self;
+    PyObject* module;
     double gmoff;
 
-    if (_get_gmoff(Py_TYPE(obj_self), &gmoff) < 0)
+    module = _get_module(Py_TYPE(obj_self));
+    if (module == NULL)
+        return NULL;
+
+    if (_get_gmoff(module, &gmoff) < 0)
         return NULL;
 
     TimeStampParts p;
@@ -639,14 +644,9 @@ _get_module(PyTypeObject *typeobj)
 }
 
 static int
-_get_gmoff(PyTypeObject* type, double* target)
+_get_gmoff(PyObject* module, double* target)
 {
-    PyObject* module = _get_module(type);
-    if (module == NULL)
-        return -1;
-
-    timestamp_module_state* state;
-    state = (timestamp_module_state*)PyModule_GetState(module);
+    timestamp_module_state* state = PyModule_GetState(module);
     if (state == NULL)
         return -1;
 
