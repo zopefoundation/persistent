@@ -1411,7 +1411,9 @@ CC_module_exec(PyObject* module)
     state->cc_type = &CC_type_def;
 #endif
 
-    /* This leaks a reference to CC_type_def, but it doesn't matter. */
+    /* We hold one ref to the type in module state;  the module dict
+     * holds another.
+     */
     if (PyModule_AddObject(
             module, "PickleCache", (PyObject*)state->cc_type) < 0)
         return -1;

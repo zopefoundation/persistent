@@ -1804,6 +1804,7 @@ CP_module_exec(PyObject* module)
 
     state->per_type = (PyTypeObject*)PyType_FromModuleAndSpec(
             module, &Per_type_spec, NULL);
+
     /* ugly hack:  'ghostify' wants to check wheter subclasses have
      * overriden 'tp_new', and expects to be able to find the original version
      * on .&Per_type_def'.
