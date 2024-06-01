@@ -91,6 +91,7 @@ init_strings(void)
   return 0;
 }
 
+static cPersistenceCAPIstruct* _get_capi_struct(PyTypeObject *typeobj);
 static PyObject* _get_copyreg_slotnames(PyTypeObject *typeobj);
 static PyObject* _get_copyreg___newobj__(PyTypeObject *typeobj);
 
@@ -793,6 +794,7 @@ Per__getstate__(cPersistentObject *self)
 static void
 Per_dealloc(cPersistentObject *self)
 {
+    cPersistenceCAPIstruct* capi_struct;
     PyObject_GC_UnTrack((PyObject *)self);
     if (self->state >= 0)
     {
@@ -811,7 +813,11 @@ Per_dealloc(cPersistentObject *self)
     }
 
     if (self->cache)
-        cPersistenceCAPI->percachedel(self->cache, self->oid);
+    {
+        capi_struct = _get_capi_struct(Py_TYPE((PyObject*)self));
+        if (capi_struct != NULL)
+            capi_struct->percachedel(self->cache, self->oid);
+    }
     Py_XDECREF(self->cache);
     Py_XDECREF(self->jar);
     Py_XDECREF(self->oid);
@@ -821,20 +827,13 @@ Per_dealloc(cPersistentObject *self)
 static int
 Per_traverse(cPersistentObject *self, visitproc visit, void *arg)
 {
-    int err;
+#if USE_HEAP_ALLOCATED_TYPE
+    Py_VISIT(Py_TYPE((PyObject*)self));
+#endif
+    Py_VISIT(self->jar);
+    Py_VISIT(self->oid);
+    Py_VISIT(self->cache);
 
-#define VISIT(SLOT)                             \
-    if (SLOT) {                                   \
-        err = visit((PyObject *)(SLOT), arg);       \
-        if (err)                                    \
-        return err;                               \
-    }
-
-    VISIT(self->jar);
-    VISIT(self->oid);
-    VISIT(self->cache);
-
-#undef VISIT
     return 0;
 }
 
@@ -991,7 +990,9 @@ Per_setattro(cPersistentObject *self, PyObject *name, PyObject *v)
     {
         if (unghostify(self) < 0)
             goto Done;
+
         accessed(self);
+
         if (strncmp(s, "_v_", 3) != 0
             && self->state != cPersistent_CHANGED_STATE)
             {
@@ -1675,22 +1676,6 @@ Per_setstate(cPersistentObject *self)
 }
 
 
-static cPersistenceCAPIstruct
-truecPersistenceCAPI = {
-    &Per_type_def,
-    (getattrofunc)Per_getattro,         /*tp_getattr with object key*/
-    (setattrofunc)Per_setattro,         /*tp_setattr with object key*/
-    changed,
-    accessed,
-    ghostify,
-    (intfunctionwithpythonarg)Per_setstate,
-    NULL, /* The percachedel slot is initialized in cPickleCache.c when
-            the module is loaded.  It uses a function in a different
-            shared library. */
-    readCurrent
-};
-
-
 /*
  *  Module methods
  */
@@ -1723,8 +1708,7 @@ static PyMethodDef CP_module_methods[] =
  */
 
 typedef struct {
-    PyTypeObject* per_type;
-    PyObject* capi;
+    cPersistenceCAPIstruct capi_struct;
     PyObject *copyreg_slotnames;
     PyObject *copyreg___newobj__;
 } CP_module_state;
@@ -1733,8 +1717,7 @@ static int
 CP_module_traverse(PyObject *module, visitproc visit, void *arg)
 {
     CP_module_state* state = PyModule_GetState(module);
-    Py_VISIT(state->per_type);
-    Py_VISIT(state->capi);
+    Py_VISIT(state->capi_struct.per_type);
     Py_VISIT(state->copyreg_slotnames);
     Py_VISIT(state->copyreg___newobj__);
     return 0;
@@ -1744,8 +1727,7 @@ static int
 CP_module_clear(PyObject *module)
 {
     CP_module_state* state = PyModule_GetState(module);
-    Py_CLEAR(state->per_type);
-    Py_CLEAR(state->capi);
+    Py_CLEAR(state->capi_struct.per_type);
     Py_CLEAR(state->copyreg_slotnames);
     Py_CLEAR(state->copyreg___newobj__);
     return 0;
@@ -1767,6 +1749,17 @@ _get_module(PyTypeObject *typeobj)
     PyErr_SetString(PyExc_TypeError, "_get_module: called w/ non-type");
     return NULL;
 #endif
+}
+
+static cPersistenceCAPIstruct*
+_get_capi_struct(PyTypeObject *typeobj)
+{
+    PyObject* module = _get_module(typeobj);
+    if (module == NULL)
+        return NULL;
+
+    CP_module_state* state = PyModule_GetState(module);
+    return &(state->capi_struct);
 }
 
 static PyObject*
@@ -1794,15 +1787,31 @@ _get_copyreg___newobj__(PyTypeObject *typeobj)
 static int
 CP_module_exec(PyObject* module)
 {
-    CP_module_state* state = PyModule_GetState(module);
+    PyObject *capi;
     PyObject *copy_reg;
+    CP_module_state* state = PyModule_GetState(module);
+    cPersistenceCAPIstruct* capi_struct = &(state->capi_struct);
 
+    /* TODO:  figure out why this can't go away, at least for heap type */
     ((PyObject*)&Per_type_def)->ob_type = &PyType_Type;
     Per_type_def.tp_new = PyType_GenericNew;
 
+    capi_struct->getattro = (getattrofunc)Per_getattro;
+    capi_struct->setattro = (setattrofunc)Per_setattro;
+    capi_struct->changed = changed;
+    capi_struct->accessed = accessed;
+    capi_struct->ghostify = ghostify;
+    capi_struct->setstate = (intfunctionwithpythonarg)Per_setstate,
+    /* The percachedel slot is initialized in cPickleCache.c when
+     * the module is loaded.  It uses a function in a different shared
+     * library.
+     */
+    capi_struct->percachedel = NULL,
+    capi_struct->readCurrent = readCurrent;
+
 #if USE_HEAP_ALLOCATED_TYPE
 
-    state->per_type = (PyTypeObject*)PyType_FromModuleAndSpec(
+    capi_struct->per_type = (PyTypeObject*)PyType_FromModuleAndSpec(
             module, &Per_type_spec, NULL);
 
     /* ugly hack:  'ghostify' wants to check wheter subclasses have
@@ -1812,28 +1821,25 @@ CP_module_exec(PyObject* module)
      * With heap types, the version we set above gets replaced, so copy it
      * back.
      */
-    Per_type_def.tp_new = state->per_type->tp_new;
+    Per_type_def.tp_new = capi_struct->per_type->tp_new;
 
 #else
     if (PyType_Ready(&Per_type_def) < 0)
         return -1;
 
-    state->per_type = &Per_type_def;
+    capi_struct->per_type = &Per_type_def;
 
 #endif
 
     if (PyModule_AddObject(
-            module, "Persistent", (PyObject*)state->per_type) < 0)
+            module, "Persistent", (PyObject*)capi_struct->per_type) < 0)
         return -1;
 
-    cPersistenceCAPI = &truecPersistenceCAPI;
-    Py_INCREF(state->per_type);
-    cPersistenceCAPI->pertype = (PyTypeObject*)state->per_type;
-    state->capi = PyCapsule_New(cPersistenceCAPI, CAPI_CAPSULE_NAME, NULL);
-    if (!state->capi)
+    capi = PyCapsule_New(capi_struct, CAPI_CAPSULE_NAME, NULL);
+    if (!capi)
         return -1;
 
-    if (PyModule_AddObject(module, "CAPI", state->capi) < 0)
+    if (PyModule_AddObject(module, "CAPI", capi) < 0)
         return -1;
 
     if (PyModule_AddIntConstant(module, "GHOST", cPersistent_GHOST_STATE) < 0)
@@ -1862,8 +1868,8 @@ CP_module_exec(PyObject* module)
         return -1;
     }
 
-    state-> copyreg___newobj__ = PyObject_GetAttrString(
-        copy_reg, "__newobj__");
+    state->copyreg___newobj__ = PyObject_GetAttrString(
+            copy_reg, "__newobj__");
     if (!state->copyreg___newobj__)
     {
         Py_DECREF(copy_reg);

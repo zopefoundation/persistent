@@ -92,7 +92,6 @@ static char cPickleCache_doc_string[] =
   "\n"
   "$Id$\n";
 
-#define DONT_USE_CPERSISTENCECAPI
 #include "cPersistence.h"
 #include "structmember.h"
 #include <time.h>
@@ -101,12 +100,12 @@ static char cPickleCache_doc_string[] =
 
 #if PY_VERSION_HEX < 0x030b0000
 #define USE_HEAP_ALLOCATED_TYPE 0
-#define USE_STATIC_MOD_INIT 1
-#define USE_MULTIPHASE_MOD_INIT 0
+#define USE_STATIC_MODULE_INIT 1
+#define USE_MULTIPHASE_MODULE_INIT 0
 #else
 #define USE_HEAP_ALLOCATED_TYPE 1
-#define USE_STATIC_MOD_INIT 0
-#define USE_MULTIPHASE_MOD_INIT 1
+#define USE_STATIC_MODULE_INIT 0
+#define USE_MULTIPHASE_MODULE_INIT 1
 #endif
 
 
@@ -131,21 +130,7 @@ define_static_strings(void)
 #undef INIT_STRING
     return 0;
 }
-
-static cPersistenceCAPIstruct *cPersistenceCAPI;
-
-static int
-init_cpersistence_capi(percachedelfunc func)
-{
-    cPersistenceCAPI = (cPersistenceCAPIstruct *)PyCapsule_Import(
-        CAPI_CAPSULE_NAME, 0
-    );
-    if (!cPersistenceCAPI)
-        return -1;
-
-    cPersistenceCAPI->percachedel = func;
-    return 0;
-}
+static cPersistenceCAPIstruct* _get_capi_struct(PyTypeObject* type);
 
 /* This object is the pickle cache.  The CACHE_HEAD macro guarantees
    that layout of this struct is the same as the start of
@@ -543,7 +528,12 @@ cc_klass_items(ccobject *self)
 static PyObject *
 cc_debug_info(ccobject *self)
 {
-    PyObject *l,*k,*v;
+    PyObject* obj_self = (PyObject*)self;
+    cPersistenceCAPIstruct* cPersistenceCAPI =
+                _get_capi_struct(Py_TYPE(obj_self));
+    PyObject *l;
+    PyObject *k;
+    PyObject *v;
     Py_ssize_t p = 0;
 
     l = PyList_New(0);
@@ -556,7 +546,7 @@ cc_debug_info(ccobject *self)
             v = Py_BuildValue("Oi", k, v->ob_refcnt);
 
         else if (! PyType_Check(v) &&
-                PER_TypeCheck(v)
+                PyObject_TypeCheck(v, cPersistenceCAPI->per_type)
                 )
             v = Py_BuildValue("Oisi",
                             k, v->ob_refcnt, v->ob_type->tp_name,
@@ -740,7 +730,12 @@ cc_update_object_size_estimation(ccobject *self, PyObject *args)
 static PyObject*
 cc_new_ghost(ccobject *self, PyObject *args)
 {
-    PyObject *tmp, *key, *v;
+    PyObject* obj_self = (PyObject*)self;
+    cPersistenceCAPIstruct* cPersistenceCAPI =
+                _get_capi_struct(Py_TYPE(obj_self));
+    PyObject *tmp;
+    PyObject *key;
+    PyObject *v;
 
     if (!PyArg_ParseTuple(args, "OO:new_ghost", &key, &v))
         return NULL;
@@ -750,7 +745,7 @@ cc_new_ghost(ccobject *self, PyObject *args)
     {
         /* Its a persistent class, such as a ZClass. Thats ok. */
     }
-    else if (! PER_TypeCheck(v))
+    else if (! PyObject_TypeCheck(v, cPersistenceCAPI->per_type))
     {
         /* If it's not an instance of a persistent class, (ie Python
             classes that derive from persistent.Persistent, BTrees,
@@ -1063,6 +1058,9 @@ cc_subscript(ccobject *self, PyObject *key)
 static int
 cc_add_item(ccobject *self, PyObject *key, PyObject *v)
 {
+    PyObject* obj_self = (PyObject*)self;
+    cPersistenceCAPIstruct* cPersistenceCAPI =
+                _get_capi_struct(Py_TYPE(obj_self));
     int result;
     PyObject *oid, *object_again, *jar;
     cPersistentObject *p;
@@ -1072,7 +1070,7 @@ cc_add_item(ccobject *self, PyObject *key, PyObject *v)
     {
         /* Its a persistent class, such as a ZClass. Thats ok. */
     }
-    else if (! PER_TypeCheck(v))
+    else if (! PyObject_TypeCheck(v, cPersistenceCAPI->per_type))
     {
         /* If it's not an instance of a persistent class, (ie Python
             classes that derive from persistent.Persistent, BTrees,
@@ -1366,9 +1364,11 @@ static PyTypeObject CC_type_def =
 /*
  *  Module initialization
  */
+static struct PyModuleDef CC_module_def;
 
 typedef struct {
     PyTypeObject* cc_type;
+    cPersistenceCAPIstruct* capi_struct;
 } CC_module_state;
 
 static int
@@ -1376,6 +1376,7 @@ CC_module_traverse(PyObject *module, visitproc visit, void *arg)
 {
     CC_module_state* state = PyModule_GetState(module);
     Py_VISIT(state->cc_type);
+    Py_VISIT(state->capi_struct->per_type);
     return 0;
 }
 
@@ -1384,13 +1385,62 @@ CC_module_clear(PyObject *module)
 {
     CC_module_state* state = PyModule_GetState(module);
     Py_CLEAR(state->cc_type);
+    Py_CLEAR(state->capi_struct->per_type);
     return 0;
+}
+
+static int
+init_cpersistence_capi(PyObject* module, percachedelfunc func)
+{
+    CC_module_state* state = PyModule_GetState(module);
+    state->capi_struct = (cPersistenceCAPIstruct *)PyCapsule_Import(
+        CAPI_CAPSULE_NAME, 0
+    );
+    if (state->capi_struct == NULL)
+        return -1;
+
+    state->capi_struct->percachedel = func;
+    return 0;
+}
+
+static PyObject*
+_get_module(PyTypeObject *typeobj)
+{
+#if USE_STATIC_MODULE_INIT
+    return PyState_FindModule(&CC_module_def);
+#else
+    if (PyType_Check(typeobj)) {
+        /* Only added in Python 3.9 */
+        return PyType_GetModule(typeobj);
+    }
+
+    PyErr_SetString(PyExc_TypeError, "_get_module: called w/ non-type");
+    return NULL;
+#endif
+}
+
+static cPersistenceCAPIstruct*
+_get_capi_struct(PyTypeObject* type)
+{
+    PyObject* module = _get_module(type);
+    if (module == NULL)
+        return NULL;
+
+    CC_module_state* state = PyModule_GetState(module);
+    if (state == NULL)
+        return NULL;
+
+    return state->capi_struct;
 }
 
 static int
 CC_module_exec(PyObject* module)
 {
     CC_module_state* state = PyModule_GetState(module);
+
+    if (init_cpersistence_capi(
+            module, (percachedelfunc)cc_oid_unreferenced) < 0)
+        return -1;
 
     if (PyModule_AddStringConstant(module, "cache_variant", "stiff/c") < 0)
         return -1;
@@ -1421,7 +1471,7 @@ CC_module_exec(PyObject* module)
     return 0;
 }
 
-#if USE_MULTIPHASE_MOD_INIT
+#if USE_MULTIPHASE_MODULE_INIT
 /* Slot definitions for multi-phase initialization
  *
  * See: https://docs.python.org/3/c-api/module.html#multi-phase-initialization
@@ -1441,7 +1491,7 @@ static struct PyModuleDef CC_module_def =
     .m_size                 = sizeof(CC_module_state),
     .m_traverse             = CC_module_traverse,
     .m_clear                = CC_module_clear,
-#if USE_MULTIPHASE_MOD_INIT
+#if USE_MULTIPHASE_MODULE_INIT
     .m_slots                = CC_module_slots,
 #endif
 };
@@ -1452,10 +1502,7 @@ CC_module_init(void)
     if (define_static_strings() < 0)
         return NULL;
 
-    if (init_cpersistence_capi((percachedelfunc)cc_oid_unreferenced) < 0)
-        return NULL;
-
-#if USE_STATIC_MOD_INIT
+#if USE_STATIC_MODULE_INIT
 
     PyObject* module = PyModule_Create(&CC_module_def);
     if (module == NULL)
