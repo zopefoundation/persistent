@@ -521,11 +521,6 @@ static PyType_Spec TimeStamp_type_spec = {
  *  Module functions
  */
 
-typedef struct {
-    PyTypeObject* timestamp_type;
-    double gmoff;
-} timestamp_module_state;
-
 PyObject *
 TimeStamp_FromString(PyObject* module, const char *buf)
 {
@@ -635,6 +630,27 @@ TimeStamp_TimeStamp(PyObject *module, PyObject *args)
 
 static struct PyModuleDef timestamp_module_def;
 
+typedef struct {
+    PyTypeObject* timestamp_type;
+    double gmoff;
+} timestamp_module_state;
+
+static int
+timestamp_module_traverse(PyObject *module, visitproc visit, void *arg)
+{
+    timestamp_module_state* state = PyModule_GetState(module);
+    Py_VISIT(state->timestamp_type);
+    return 0;
+}
+
+static int
+timestamp_module_clear(PyObject *module)
+{
+    timestamp_module_state* state = PyModule_GetState(module);
+    Py_CLEAR(state->timestamp_type);
+    return 0;
+}
+
 static PyObject*
 _get_module(PyTypeObject *typeobj)
 {
@@ -729,6 +745,8 @@ static struct PyModuleDef timestamp_module_def =
     .m_name                     = "_timestamp",
     .m_doc                      = timestamp_module_doc,
     .m_size                     = sizeof(timestamp_module_state),
+    .m_traverse                 = timestamp_module_traverse,
+    .m_clear                    = timestamp_module_clear,
     .m_methods                  = timestamp_module_functions,
 #if USE_MULTIPHASE_MOD_INIT
     .m_slots                    = timestamp_module_slots,
