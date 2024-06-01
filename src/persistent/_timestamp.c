@@ -40,6 +40,7 @@ static PyObject *TimeStamp_FromDate(PyObject*, int, int, int, int, int, double);
 static PyObject *TimeStamp_FromString(PyObject*, const char *);
 static PyObject* _get_module(PyTypeObject *typeobj);
 static int _get_gmoff(PyObject* module, double* target);
+static PyTypeObject* _get_timestamp_type(PyObject* module);
 
 
 /* A magic constant having the value 0.000000013969839. When an
@@ -529,11 +530,14 @@ PyObject *
 TimeStamp_FromString(PyObject* module, const char *buf)
 {
     /* buf must be exactly 8 characters */
+    PyTypeObject* timestamp_type;
     TimeStamp *ts;
-    timestamp_module_state* state;
 
-    state = (timestamp_module_state*)PyModule_GetState(module);
-    ts = (TimeStamp *)PyObject_New(TimeStamp, state->timestamp_type);
+    timestamp_type = _get_timestamp_type(module);
+    if (timestamp_type == NULL)
+        return NULL;
+
+    ts = (TimeStamp *)PyObject_New(TimeStamp, timestamp_type);
     memcpy(ts->data, buf, 8);
     return (PyObject *)ts;
 }
@@ -555,8 +559,8 @@ TimeStamp_FromDate(
     double sec)
 {
 
+    PyTypeObject* timestamp_type;
     TimeStamp *ts = NULL;
-    timestamp_module_state* state;
     unsigned int years_since_base;
     unsigned int months_since_base;
     unsigned int days_since_base;
@@ -577,8 +581,12 @@ TimeStamp_FromDate(
     return PyErr_Format(PyExc_ValueError,
                 "second must be between 0 and 59: %f", sec);
     */
-    state = (timestamp_module_state*)PyModule_GetState(module);
-    ts = (TimeStamp *)PyObject_New(TimeStamp, state->timestamp_type);
+    timestamp_type = _get_timestamp_type(module);
+    if (timestamp_type == NULL)
+        return NULL;
+
+    ts = (TimeStamp *)PyObject_New(TimeStamp, timestamp_type);
+
     /* months come in 1-based, hours and minutes come in 0-based */
     /* The base time is Jan 1, 00:00 of TS_BASE_YEAR */
     years_since_base = year - TS_BASE_YEAR;
@@ -652,6 +660,16 @@ _get_gmoff(PyObject* module, double* target)
 
     *target = state->gmoff;
     return 0;
+}
+
+static PyTypeObject*
+_get_timestamp_type(PyObject* module)
+{
+    timestamp_module_state* state = PyModule_GetState(module);
+    if (state == NULL)
+        return NULL;
+
+    return state->timestamp_type;
 }
 
 static PyMethodDef timestamp_module_functions[] =
