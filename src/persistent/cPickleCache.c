@@ -99,6 +99,16 @@ static char cPickleCache_doc_string[] =
 #include <stddef.h>
 #undef Py_FindMethod
 
+#if PY_VERSION_HEX < 0x030b0000
+#define USE_HEAP_ALLOCATED_TYPE 0
+#define USE_STATIC_MOD_INIT 1
+#define USE_MULTIPHASE_MOD_INIT 0
+#else
+#define USE_HEAP_ALLOCATED_TYPE 1
+#define USE_STATIC_MOD_INIT 0
+#define USE_MULTIPHASE_MOD_INIT 1
+#endif
+
 
 /* Python string objects to speed lookups; set by module init. */
 static PyObject *py__p_changed;
@@ -106,7 +116,42 @@ static PyObject *py__p_deactivate;
 static PyObject *py__p_jar;
 static PyObject *py__p_oid;
 
+static int
+define_static_strings(void)
+{
+    py__p_changed = INTERN("_p_changed");
+    if (!py__p_changed)
+        return -1;
+
+    py__p_deactivate = INTERN("_p_deactivate");
+    if (!py__p_deactivate)
+        return -1;
+
+    py__p_jar = INTERN("_p_jar");
+    if (!py__p_jar)
+        return -1;
+
+    py__p_oid = INTERN("_p_oid");
+    if (!py__p_oid)
+        return -1;
+
+    return 0;
+}
+
 static cPersistenceCAPIstruct *cPersistenceCAPI;
+
+static int
+init_cpersistence_capi(percachedelfunc func)
+{
+    cPersistenceCAPI = (cPersistenceCAPIstruct *)PyCapsule_Import(
+        CAPI_CAPSULE_NAME, 0
+    );
+    if (!cPersistenceCAPI)
+        return -1;
+
+    cPersistenceCAPI->percachedel = func;
+    return 0;
+}
 
 /* This object is the pickle cache.  The CACHE_HEAD macro guarantees
    that layout of this struct is the same as the start of
@@ -1235,13 +1280,6 @@ cc_ass_sub(ccobject *self, PyObject *key, PyObject *v)
         return cc_del_item(self, key);
 }
 
-static PyMappingMethods cc_as_mapping =
-{
-    (lenfunc)cc_length,             /* mp_length */
-    (binaryfunc)cc_subscript,       /* mp_subscript */
-    (objobjargproc)cc_ass_sub,      /* mp_ass_subscript */
-};
-
 static PyObject *
 cc_cache_data(ccobject *self, void *context)
 {
@@ -1269,6 +1307,9 @@ static PyMemberDef cc_members[] =
     {NULL}
 };
 
+static char cc__name__[] = "persistent.PickleCache";
+static char cc__doc__[] = "Cache holding pickles";
+
 /* This module is compiled as a shared library.  Some compilers don't
    allow addresses of Python objects defined in other libraries to be
    used in static initializers here.  The DEFERRED_ADDRESS macro is
@@ -1278,104 +1319,179 @@ static PyMemberDef cc_members[] =
 */
 #define DEFERRED_ADDRESS(ADDR) 0
 
-static PyTypeObject Cctype =
-{
-    PyVarObject_HEAD_INIT(DEFERRED_ADDRESS(&PyType_Type), 0)
-    "persistent.PickleCache",           /* tp_name */
-    sizeof(ccobject),                   /* tp_basicsize */
-    0,                                  /* tp_itemsize */
-    (destructor)cc_dealloc,             /* tp_dealloc */
-    0,                                  /* tp_print */
-    0,                                  /* tp_getattr */
-    0,                                  /* tp_setattr */
-    0,                                  /* tp_compare */
-    0,                                  /* tp_repr */
-    0,                                  /* tp_as_number */
-    0,                                  /* tp_as_sequence */
-    &cc_as_mapping,                     /* tp_as_mapping */
-    0,                                  /* tp_hash */
-    0,                                  /* tp_call */
-    0,                                  /* tp_str */
-    0,                                  /* tp_getattro */
-    0,                                  /* tp_setattro */
-    0,                                  /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT |
-    Py_TPFLAGS_BASETYPE |
-    Py_TPFLAGS_HAVE_GC,                 /* tp_flags */
-    0,                                  /* tp_doc */
-    (traverseproc)cc_traverse,          /* tp_traverse */
-    (inquiry)cc_clear,                  /* tp_clear */
-    0,                                  /* tp_richcompare */
-    0,                                  /* tp_weaklistoffset */
-    0,                                  /* tp_iter */
-    0,                                  /* tp_iternext */
-    cc_methods,                         /* tp_methods */
-    cc_members,                         /* tp_members */
-    cc_getsets,                         /* tp_getset */
-    0,                                  /* tp_base */
-    0,                                  /* tp_dict */
-    0,                                  /* tp_descr_get */
-    0,                                  /* tp_descr_set */
-    0,                                  /* tp_dictoffset */
-    (initproc)cc_init,                  /* tp_init */
+#if USE_HEAP_ALLOCATED_TYPE
+
+/*
+ *  Heap type: PickleCache
+ */
+
+static PyType_Slot CC_type_slots[] = {
+    {Py_tp_doc,             cc__doc__},
+    {Py_tp_init,            cc_init},
+    {Py_mp_length,          (lenfunc)cc_length},
+    {Py_mp_subscript,       (binaryfunc)cc_subscript},
+    {Py_mp_ass_subscript,   (objobjargproc)cc_ass_sub},
+    {Py_tp_traverse,        cc_traverse},
+    {Py_tp_clear,           cc_clear},
+    {Py_tp_dealloc,         cc_dealloc},
+    {Py_tp_methods,         cc_methods},
+    {Py_tp_members,         cc_members},
+    {Py_tp_getset,          cc_getsets},
+    {0,                     NULL}
 };
 
-static struct PyModuleDef moduledef =
+static PyType_Spec CC_type_spec = {
+    .name       = cc__name__,
+    .basicsize  = sizeof(ccobject),
+    .flags      = Py_TPFLAGS_DEFAULT |
+                  Py_TPFLAGS_BASETYPE |
+                  Py_TPFLAGS_HAVE_GC,
+    .slots      = CC_type_slots
+};
+
+#else
+
+/*
+ *  Static type: PickleCache
+ */
+static PyMappingMethods cc_as_mapping =
+{
+    (lenfunc)cc_length,             /* mp_length */
+    (binaryfunc)cc_subscript,       /* mp_subscript */
+    (objobjargproc)cc_ass_sub,      /* mp_ass_subscript */
+};
+
+static PyTypeObject CC_type_def =
+{
+    PyVarObject_HEAD_INIT(DEFERRED_ADDRESS(&PyType_Type), 0)
+    .tp_name                = cc__name__,
+    .tp_doc                 = cc__doc__,
+    .tp_basicsize           = sizeof(ccobject),
+    .tp_flags               = Py_TPFLAGS_DEFAULT |
+                              Py_TPFLAGS_BASETYPE |
+                              Py_TPFLAGS_HAVE_GC,
+    .tp_new                 = DEFERRED_ADDRESS(&PyType_GenericNew),
+    .tp_init                = (initproc)cc_init,
+    .tp_as_mapping          = &cc_as_mapping,
+    .tp_traverse            = (traverseproc)cc_traverse,
+    .tp_clear               = (inquiry)cc_clear,
+    .tp_dealloc             = (destructor)cc_dealloc,
+    .tp_methods             = cc_methods,
+    .tp_members             = cc_members,
+    .tp_getset              = cc_getsets,
+};
+
+#endif
+
+
+/*
+ *  Module initialization
+ */
+
+typedef struct {
+    PyTypeObject* cc_type;
+} CC_module_state;
+
+static int
+CC_module_traverse(PyObject *module, visitproc visit, void *arg)
+{
+    CC_module_state* state = PyModule_GetState(module);
+    Py_VISIT(state->cc_type);
+    return 0;
+}
+
+static int
+CC_module_clear(PyObject *module)
+{
+    CC_module_state* state = PyModule_GetState(module);
+    Py_CLEAR(state->cc_type);
+    return 0;
+}
+
+static int
+CC_module_exec(PyObject* module)
+{
+    CC_module_state* state = PyModule_GetState(module);
+
+    if (PyModule_AddStringConstant(module, "cache_variant", "stiff/c") < 0)
+        return -1;
+
+#if USE_HEAP_ALLOCATED_TYPE
+
+    state->cc_type = (PyTypeObject*) PyType_FromModuleAndSpec(
+            module, &CC_type_spec, NULL);
+
+#else
+
+    ((PyObject*)&CC_type_def)->ob_type = &PyType_Type;
+    CC_type_def.tp_new = &PyType_GenericNew;
+
+    if (PyType_Ready(&CC_type_def) < 0)
+        return -1;
+
+    state->cc_type = &CC_type_def;
+#endif
+
+    /* This leaks a reference to CC_type_def, but it doesn't matter. */
+    if (PyModule_AddObject(
+            module, "PickleCache", (PyObject*)state->cc_type) < 0)
+        return -1;
+
+    return 0;
+}
+
+#if USE_MULTIPHASE_MOD_INIT
+/* Slot definitions for multi-phase initialization
+ *
+ * See: https://docs.python.org/3/c-api/module.html#multi-phase-initialization
+ * and: https://peps.python.org/pep-0489
+ */
+static PyModuleDef_Slot CC_module_slots[] = {
+    {Py_mod_exec,       CC_module_exec},
+    {0,                 NULL}
+};
+#endif
+
+static struct PyModuleDef CC_module_def =
 {
     PyModuleDef_HEAD_INIT,
-    "cPickleCache",                     /* m_name */
-    cPickleCache_doc_string,            /* m_doc */
-    -1,                                 /* m_size */
-    NULL,                               /* m_methods */
-    NULL,                               /* m_reload */
-    NULL,                               /* m_traverse */
-    NULL,                               /* m_clear */
-    NULL,                               /* m_free */
+    .m_name                 = "cPickleCache",
+    .m_doc                  = cPickleCache_doc_string,
+    .m_size                 = sizeof(CC_module_state),
+    .m_traverse             = CC_module_traverse,
+    .m_clear                = CC_module_clear,
+#if USE_MULTIPHASE_MOD_INIT
+    .m_slots                = CC_module_slots,
+#endif
 };
 
 static PyObject*
-module_init(void)
+CC_module_init(void)
 {
-  PyObject *module;
-
-    ((PyObject*)&Cctype)->ob_type = &PyType_Type;
-    Cctype.tp_new = &PyType_GenericNew;
-    if (PyType_Ready(&Cctype) < 0)
-    {
-        return NULL;
-    }
-
-    module = PyModule_Create(&moduledef);
-
-    cPersistenceCAPI = (cPersistenceCAPIstruct *)PyCapsule_Import(CAPI_CAPSULE_NAME, 0);
-    if (!cPersistenceCAPI)
-        return NULL;
-    cPersistenceCAPI->percachedel = (percachedelfunc)cc_oid_unreferenced;
-
-    py__p_changed = INTERN("_p_changed");
-    if (!py__p_changed)
-        return NULL;
-    py__p_deactivate = INTERN("_p_deactivate");
-    if (!py__p_deactivate)
-        return NULL;
-    py__p_jar = INTERN("_p_jar");
-    if (!py__p_jar)
-        return NULL;
-    py__p_oid = INTERN("_p_oid");
-    if (!py__p_oid)
+    if (define_static_strings() < 0)
         return NULL;
 
-    if (PyModule_AddStringConstant(module, "cache_variant", "stiff/c") < 0)
+    if (init_cpersistence_capi((percachedelfunc)cc_oid_unreferenced) < 0)
         return NULL;
 
-    /* This leaks a reference to Cctype, but it doesn't matter. */
-    if (PyModule_AddObject(module, "PickleCache", (PyObject *)&Cctype) < 0)
+#if USE_STATIC_MOD_INIT
+
+    PyObject* module = PyModule_Create(&CC_module_def);
+    if (module == NULL)
+        return NULL;
+
+    if (CC_module_exec(module) < 0)
         return NULL;
 
     return module;
+
+#else
+    return PyModuleDef_Init(&CC_module_def);
+#endif
 }
 
-PyMODINIT_FUNC PyInit_cPickleCache(void)
+PyMODINIT_FUNC
+PyInit_cPickleCache(void)
 {
-    return module_init();
+    return CC_module_init();
 }
