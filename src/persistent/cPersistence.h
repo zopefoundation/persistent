@@ -95,7 +95,7 @@ typedef struct {
 typedef void (*percachedelfunc)(PerCache *, PyObject *);
 
 typedef struct {
-    PyTypeObject *per_type;
+    PyTypeObject *pertype;
     getattrofunc getattro;
     setattrofunc setattro;
     int (*changed)(cPersistentObject*);
@@ -106,11 +106,11 @@ typedef struct {
     int (*readCurrent)(cPersistentObject*);
 } cPersistenceCAPIstruct;
 
-#define cPersistenceType cPersistenceCAPI->per_type
+#define cPersistenceType cPersistenceCAPI->pertype
 
 #define cPersistanceModuleName "cPersistence"
 
-#define PER_TypeCheck(O) PyObject_TypeCheck((O), cPersistenceCAPI->per_type)
+#define PER_TypeCheck(O) PyObject_TypeCheck((O), cPersistenceCAPI->pertype)
 
 #define PER_USE_OR_RETURN(O,R) {if((O)->state==cPersistent_GHOST_STATE && cPersistenceCAPI->setstate((PyObject*)(O)) < 0) return (R); else if ((O)->state==cPersistent_UPTODATE_STATE) (O)->state=cPersistent_STICKY_STATE;}
 

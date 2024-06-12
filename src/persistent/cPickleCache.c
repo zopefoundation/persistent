@@ -546,7 +546,7 @@ cc_debug_info(ccobject *self)
             v = Py_BuildValue("Oi", k, v->ob_refcnt);
 
         else if (! PyType_Check(v) &&
-                PyObject_TypeCheck(v, cPersistenceCAPI->per_type)
+                PyObject_TypeCheck(v, cPersistenceCAPI->pertype)
                 )
             v = Py_BuildValue("Oisi",
                             k, v->ob_refcnt, v->ob_type->tp_name,
@@ -745,7 +745,7 @@ cc_new_ghost(ccobject *self, PyObject *args)
     {
         /* Its a persistent class, such as a ZClass. Thats ok. */
     }
-    else if (! PyObject_TypeCheck(v, cPersistenceCAPI->per_type))
+    else if (! PyObject_TypeCheck(v, cPersistenceCAPI->pertype))
     {
         /* If it's not an instance of a persistent class, (ie Python
             classes that derive from persistent.Persistent, BTrees,
@@ -1070,7 +1070,7 @@ cc_add_item(ccobject *self, PyObject *key, PyObject *v)
     {
         /* Its a persistent class, such as a ZClass. Thats ok. */
     }
-    else if (! PyObject_TypeCheck(v, cPersistenceCAPI->per_type))
+    else if (! PyObject_TypeCheck(v, cPersistenceCAPI->pertype))
     {
         /* If it's not an instance of a persistent class, (ie Python
             classes that derive from persistent.Persistent, BTrees,
@@ -1376,7 +1376,7 @@ CC_module_traverse(PyObject *module, visitproc visit, void *arg)
 {
     CC_module_state* state = PyModule_GetState(module);
     Py_VISIT(state->cc_type);
-    Py_VISIT(state->capi_struct->per_type);
+    Py_VISIT(state->capi_struct->pertype);
     return 0;
 }
 
@@ -1385,7 +1385,7 @@ CC_module_clear(PyObject *module)
 {
     CC_module_state* state = PyModule_GetState(module);
     Py_CLEAR(state->cc_type);
-    Py_CLEAR(state->capi_struct->per_type);
+    Py_CLEAR(state->capi_struct->pertype);
     return 0;
 }
 

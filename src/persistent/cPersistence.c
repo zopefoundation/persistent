@@ -1717,7 +1717,7 @@ static int
 CP_module_traverse(PyObject *module, visitproc visit, void *arg)
 {
     CP_module_state* state = PyModule_GetState(module);
-    Py_VISIT(state->capi_struct.per_type);
+    Py_VISIT(state->capi_struct.pertype);
     Py_VISIT(state->copyreg_slotnames);
     Py_VISIT(state->copyreg___newobj__);
     return 0;
@@ -1727,7 +1727,7 @@ static int
 CP_module_clear(PyObject *module)
 {
     CP_module_state* state = PyModule_GetState(module);
-    Py_CLEAR(state->capi_struct.per_type);
+    Py_CLEAR(state->capi_struct.pertype);
     Py_CLEAR(state->copyreg_slotnames);
     Py_CLEAR(state->copyreg___newobj__);
     return 0;
@@ -1811,7 +1811,7 @@ CP_module_exec(PyObject* module)
 
 #if USE_HEAP_ALLOCATED_TYPE
 
-    capi_struct->per_type = (PyTypeObject*)PyType_FromModuleAndSpec(
+    capi_struct->pertype = (PyTypeObject*)PyType_FromModuleAndSpec(
             module, &Per_type_spec, NULL);
 
     /* ugly hack:  'ghostify' wants to check wheter subclasses have
@@ -1821,18 +1821,18 @@ CP_module_exec(PyObject* module)
      * With heap types, the version we set above gets replaced, so copy it
      * back.
      */
-    Per_type_def.tp_new = capi_struct->per_type->tp_new;
+    Per_type_def.tp_new = capi_struct->pertype->tp_new;
 
 #else
     if (PyType_Ready(&Per_type_def) < 0)
         return -1;
 
-    capi_struct->per_type = &Per_type_def;
+    capi_struct->pertype = &Per_type_def;
 
 #endif
 
     if (PyModule_AddObject(
-            module, "Persistent", (PyObject*)capi_struct->per_type) < 0)
+            module, "Persistent", (PyObject*)capi_struct->pertype) < 0)
         return -1;
 
     capi = PyCapsule_New(capi_struct, CAPI_CAPSULE_NAME, NULL);
