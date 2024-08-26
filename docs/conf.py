@@ -32,3 +32,6 @@ exclude_patterns = []
 
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
+
+# Example configuration for intersphinx: refer to the Python standard library.
+intersphinx_mapping = {'python': ('https://docs.python.org/3/', None)}
