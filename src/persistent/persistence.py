@@ -585,7 +585,7 @@ class Persistent:
             try:
                 return p_repr(self)
             except Exception as e:
-                p_repr_str = ' _p_repr {!r}'.format(e)
+                p_repr_str = f' _p_repr {e!r}'
 
         oid = _OGA(self, '_Persistent__oid')
         jar = _OGA(self, '_Persistent__jar')
@@ -596,17 +596,17 @@ class Persistent:
         if oid is not None:
             try:
                 if isinstance(oid, bytes) and len(oid) == 8:
-                    oid_str = ' oid 0x{:x}'.format(_OID_UNPACK(oid)[0])
+                    oid_str = f' oid 0x{_OID_UNPACK(oid)[0]:x}'
                 else:
-                    oid_str = ' oid {!r}'.format(oid)
+                    oid_str = f' oid {oid!r}'
             except Exception as e:
-                oid_str = ' oid {!r}'.format(e)
+                oid_str = f' oid {e!r}'
 
         if jar is not None:
             try:
-                jar_str = ' in {!r}'.format(jar)
+                jar_str = f' in {jar!r}'
             except Exception as e:
-                jar_str = ' in {!r}'.format(e)
+                jar_str = f' in {e!r}'
 
         cls = self.__class__
         return '<{}.{} object at 0x{:x}{}{}{}>'.format(

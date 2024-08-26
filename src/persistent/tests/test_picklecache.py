@@ -202,9 +202,9 @@ class PickleCacheTestMixin:
         self.assertEqual(_len(cache.klass_items()), 0)
         self.assertEqual(items[0][0], KEY)
         self.assertEqual(cache.ringlen(), 1)
-        self.assertTrue(items[0][1] is uptodate)
-        self.assertTrue(cache[KEY] is uptodate)
-        self.assertTrue(cache.get(KEY) is uptodate)
+        self.assertIs(items[0][1], uptodate)
+        self.assertIs(cache[KEY], uptodate)
+        self.assertIs(cache.get(KEY), uptodate)
 
     def test___setitem___persistent_class(self):
 
@@ -263,7 +263,7 @@ class PickleCacheTestMixin:
         cache[KEY] = uptodate
 
         del cache[KEY]
-        self.assertTrue(cache.get(KEY, self) is self)
+        self.assertIs(cache.get(KEY, self), self)
 
     def test___delitem___w_ghost(self):
         from persistent.interfaces import GHOST
@@ -275,7 +275,7 @@ class PickleCacheTestMixin:
         cache[KEY] = ghost
 
         del cache[KEY]
-        self.assertTrue(cache.get(KEY, self) is self)
+        self.assertIs(cache.get(KEY, self), self)
 
     def test___delitem___w_remaining_object(self):
         cache = self._makeOne()
@@ -288,8 +288,8 @@ class PickleCacheTestMixin:
         cache[UPTODATE] = uptodate
 
         del cache[UPTODATE]
-        self.assertTrue(cache.get(UPTODATE, self) is self)
-        self.assertTrue(cache.get(REMAINS, self) is remains)
+        self.assertIs(cache.get(UPTODATE, self), self)
+        self.assertIs(cache.get(REMAINS, self), remains)
 
     def test_lruitems(self):
         cache = self._makeOne()
@@ -382,7 +382,7 @@ class PickleCacheTestMixin:
         self.assertEqual(cache.cache_non_ghost_count, 0)
 
         for oid in oids:
-            self.assertTrue(cache.get(oid) is None)
+            self.assertIsNone(cache.get(oid))
 
     def test_full_sweep_clears_weakrefs_in_interface(
             self, sweep_method='full_sweep'):
@@ -477,7 +477,7 @@ class PickleCacheTestMixin:
         self.assertEqual(cache.cache_non_ghost_count, 0)
 
         for oid in oids:
-            self.assertTrue(cache.get(oid) is None)
+            self.assertIsNone(cache.get(oid))
 
     def test_minimize_turns_into_ghosts(self):
         from persistent.interfaces import GHOST
@@ -533,7 +533,7 @@ class PickleCacheTestMixin:
         cache = self._makeOne(jar)
         candidate = self._makePersist(oid=None, jar=None)
         cache.new_ghost(KEY, candidate)
-        self.assertTrue(cache.get(KEY) is candidate)
+        self.assertIs(cache.get(KEY), candidate)
         self.assertEqual(candidate._p_oid, KEY)
         self.assertEqual(candidate._p_jar, jar)
         self.assertEqual(candidate._p_state, GHOST)
@@ -546,7 +546,7 @@ class PickleCacheTestMixin:
         cache = self._makeOne(jar)
         candidate = self._makePersist(oid=None, jar=None, state=UPTODATE)
         cache.new_ghost(KEY, candidate)
-        self.assertTrue(cache.get(KEY) is candidate)
+        self.assertIs(cache.get(KEY), candidate)
         self.assertEqual(candidate._p_oid, KEY)
         self.assertEqual(candidate._p_jar, jar)
         self.assertEqual(candidate._p_state, GHOST)
@@ -559,7 +559,7 @@ class PickleCacheTestMixin:
             _p_jar = None
         cache = self._makeOne()
         cache.new_ghost(KEY, Pclass)
-        self.assertTrue(cache.get(KEY) is Pclass)
+        self.assertIs(cache.get(KEY), Pclass)
         self.assertEqual(Pclass._p_oid, KEY)
         return cache, Pclass, KEY
 
@@ -571,7 +571,7 @@ class PickleCacheTestMixin:
             _p_jar = None
         cache = self._makeOne()
         cache.new_ghost(KEY, Pclass)
-        self.assertTrue(cache.get(KEY) is Pclass)
+        self.assertIs(cache.get(KEY), Pclass)
         self.assertEqual(Pclass._p_oid, KEY)
         return cache, Pclass, KEY
 
@@ -989,9 +989,9 @@ class PythonPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
 
         self.assertEqual(cache.cache_non_ghost_count, 1)
 
-        self.assertTrue(cache.get(oids[0]) is not None)
+        self.assertIsNotNone(cache.get(oids[0]))
         for oid in oids[1:]:
-            self.assertTrue(cache.get(oid) is None)
+            self.assertIsNone(cache.get(oid))
 
     def test_full_sweep_w_changed(self):
         from persistent.interfaces import CHANGED
@@ -1005,9 +1005,9 @@ class PythonPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
 
         self.assertEqual(cache.cache_non_ghost_count, 1)
 
-        self.assertTrue(cache.get(oids[0]) is not None)
+        self.assertIsNotNone(cache.get(oids[0]))
         for oid in oids[1:]:
-            self.assertTrue(cache.get(oid) is None)
+            self.assertIsNone(cache.get(oid))
 
     def test_init_with_cacheless_jar(self):
         # Sometimes ZODB tests pass objects that don't
@@ -1084,7 +1084,7 @@ class PythonPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
         self.assertEqual(cache.ringlen(), 1)
         items = cache.lru_items()
         self.assertEqual(items[0][0], KEY)
-        self.assertTrue(items[0][1] is candidate)
+        self.assertIs(items[0][1], candidate)
         self.assertEqual(candidate._p_state, UPTODATE)
 
     def test_cache_garbage_collection_bytes_also_deactivates_object(self):
@@ -1125,8 +1125,8 @@ class PythonPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
         # verify the change worked as expected
         self.assertEqual(cache.cache_size_bytes, 1)
         # verify our entrance assumption is fulfilled
-        self.assertTrue(cache.cache_size > 100)
-        self.assertTrue(cache.total_estimated_size > 1)
+        self.assertGreater(cache.cache_size, 100)
+        self.assertGreater(cache.total_estimated_size, 1)
         # A gc shrinks the bytes
         cache.incrgc()
         self.assertEqual(cache.total_estimated_size, 0)

@@ -248,7 +248,7 @@ class PickleCache:
         """ See IPickleCache.
         """
         if not isinstance(oid, OID_TYPE):
-            raise TypeError('OID must be {}: {}'.format(OID_TYPE, oid))
+            raise TypeError(f'OID must be {OID_TYPE}: {oid}')
         if oid in self.persistent_classes:
             del self.persistent_classes[oid]
         else:

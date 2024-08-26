@@ -26,25 +26,25 @@ class WeakRefTests(unittest.TestCase):
     def test_ctor_target_wo_jar(self):
         target = _makeTarget()
         wref = self._makeOne(target)
-        self.assertTrue(wref._v_ob is target)
+        self.assertIs(wref._v_ob, target)
         self.assertEqual(wref.oid, b'OID')
-        self.assertTrue(wref.dm is None)
-        self.assertFalse('database_name' in wref.__dict__)
+        self.assertIsNone(wref.dm)
+        self.assertNotIn('database_name', wref.__dict__)
 
     def test_ctor_target_w_jar(self):
         target = _makeTarget()
         target._p_jar = jar = _makeJar()
         wref = self._makeOne(target)
-        self.assertTrue(wref._v_ob is target)
+        self.assertIs(wref._v_ob, target)
         self.assertEqual(wref.oid, b'OID')
-        self.assertTrue(wref.dm is jar)
+        self.assertIs(wref.dm, jar)
         self.assertEqual(wref.database_name, 'testing')
 
     def test___call___target_in_volatile(self):
         target = _makeTarget()
         target._p_jar = _makeJar()
         wref = self._makeOne(target)
-        self.assertTrue(wref() is target)
+        self.assertIs(wref(), target)
 
     def test___call___target_in_jar(self):
         target = _makeTarget()
@@ -52,14 +52,14 @@ class WeakRefTests(unittest.TestCase):
         jar[target._p_oid] = target
         wref = self._makeOne(target)
         del wref._v_ob
-        self.assertTrue(wref() is target)
+        self.assertIs(wref(), target)
 
     def test___call___target_not_in_jar(self):
         target = _makeTarget()
         target._p_jar = _makeJar()
         wref = self._makeOne(target)
         del wref._v_ob
-        self.assertTrue(wref() is None)
+        self.assertIsNone(wref())
 
     def test___hash___w_target(self):
         target = _makeTarget()
@@ -151,7 +151,7 @@ class PersistentWeakKeyDictionaryTests(unittest.TestCase):
         value = jar['value'] = _makeTarget(oid='VALUE')
         value._p_jar = jar
         pwkd = self._makeOne({key: value})
-        self.assertTrue(pwkd[key] is value)
+        self.assertIs(pwkd[key], value)
 
     def test_ctor_w_adict_as_items(self):
         jar = _makeJar()
@@ -160,7 +160,7 @@ class PersistentWeakKeyDictionaryTests(unittest.TestCase):
         value = jar['value'] = _makeTarget(oid='VALUE')
         value._p_jar = jar
         pwkd = self._makeOne([(key, value)])
-        self.assertTrue(pwkd[key] is value)
+        self.assertIs(pwkd[key], value)
 
     def test___getstate___empty(self):
         pwkd = self._makeOne(None)
@@ -206,9 +206,9 @@ class PersistentWeakKeyDictionaryTests(unittest.TestCase):
         pwkd = self._makeOne(None)
         pwkd.__setstate__({'data':
                            [(kref, value), (kref2, value2), (kref3, value3)]})
-        self.assertTrue(pwkd[key] is value)
-        self.assertTrue(pwkd.get(key2) is None)
-        self.assertTrue(pwkd[key3] is value3)
+        self.assertIs(pwkd[key], value)
+        self.assertIsNone(pwkd.get(key2))
+        self.assertIs(pwkd[key3], value3)
 
     def test___setitem__(self):
         jar = _makeJar()
@@ -218,7 +218,7 @@ class PersistentWeakKeyDictionaryTests(unittest.TestCase):
         value._p_jar = jar
         pwkd = self._makeOne(None)
         pwkd[key] = value
-        self.assertTrue(pwkd[key] is value)
+        self.assertIs(pwkd[key], value)
 
     def test___getitem___miss(self):
         jar = _makeJar()
@@ -240,7 +240,7 @@ class PersistentWeakKeyDictionaryTests(unittest.TestCase):
         value._p_jar = jar
         pwkd = self._makeOne([(key, value)])
         del pwkd[key]
-        self.assertTrue(pwkd.get(key) is None)
+        self.assertIsNone(pwkd.get(key))
 
     def test___delitem___miss(self):
         jar = _makeJar()
@@ -261,14 +261,14 @@ class PersistentWeakKeyDictionaryTests(unittest.TestCase):
         value = jar['value'] = _makeTarget(oid='VALUE')
         value._p_jar = jar
         pwkd = self._makeOne(None)
-        self.assertTrue(pwkd.get(key, value) is value)
+        self.assertIs(pwkd.get(key, value), value)
 
     def test___contains___miss(self):
         jar = _makeJar()
         key = jar['key'] = _makeTarget(oid='KEY')
         key._p_jar = jar
         pwkd = self._makeOne(None)
-        self.assertFalse(key in pwkd)
+        self.assertNotIn(key, pwkd)
 
     def test___contains___hit(self):
         jar = _makeJar()
@@ -277,7 +277,7 @@ class PersistentWeakKeyDictionaryTests(unittest.TestCase):
         value = jar['value'] = _makeTarget(oid='VALUE')
         value._p_jar = jar
         pwkd = self._makeOne([(key, value)])
-        self.assertTrue(key in pwkd)
+        self.assertIn(key, pwkd)
 
     def test___iter___empty(self):
         _makeJar()
@@ -302,7 +302,7 @@ class PersistentWeakKeyDictionaryTests(unittest.TestCase):
         source = self._makeOne([(key, value)])
         target = self._makeOne(None)
         target.update(source)
-        self.assertTrue(target[key] is value)
+        self.assertIs(target[key], value)
 
     def test_update_w_dict(self):
         jar = _makeJar()
@@ -313,7 +313,7 @@ class PersistentWeakKeyDictionaryTests(unittest.TestCase):
         source = dict([(key, value)])
         target = self._makeOne(None)
         target.update(source)
-        self.assertTrue(target[key] is value)
+        self.assertIs(target[key], value)
 
 
 def _makeTarget(oid=b'OID'):
