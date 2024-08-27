@@ -189,7 +189,7 @@ class _Persistent_Base:
         inst = self._makeOne()
         inst._p_jar = jar
         self.assertEqual(inst._p_status, 'saved')
-        self.assertTrue(inst._p_jar is jar)
+        self.assertIs(inst._p_jar, jar)
         inst._p_jar = jar  # reassign only to same DM
 
     def test_assign_p_jar_not_in_cache_allowed(self):
@@ -1066,42 +1066,42 @@ class _Persistent_Base:
             key1 = 'key'
             key2 = 'ke'
             key2 += 'y'  # construct in a way that won't intern the literal
-            self.assertFalse(key1 is key2)
+            self.assertIsNot(key1, key2)
             inst1.__setstate__({key1: 1})
             inst2.__setstate__({key2: 2})
             key1 = list(inst1.__dict__.keys())[0]
             key2 = list(inst2.__dict__.keys())[0]
-            self.assertTrue(key1 is key2)
+            self.assertIs(key1, key2)
 
             inst1 = Derived()
             inst2 = Derived()
             key1 = 'key'
             key2 = 'ke'
             key2 += 'y'  # construct in a way that won't intern the literal
-            self.assertFalse(key1 is key2)
+            self.assertIsNot(key1, key2)
             state1 = IterableUserDict({key1: 1})
             state2 = IterableUserDict({key2: 2})
             k1 = list(state1.keys())[0]
             k2 = list(state2.keys())[0]
-            self.assertFalse(k1 is k2)  # verify
+            self.assertIsNot(k1, k2)  # verify
             inst1.__setstate__(state1)
             inst2.__setstate__(state2)
             key1 = list(inst1.__dict__.keys())[0]
             key2 = list(inst2.__dict__.keys())[0]
-            self.assertTrue(key1 is key2)
+            self.assertIs(key1, key2)
 
     def test___setstate___doesnt_fail_on_non_string_keys(self):
         class Derived(self._getTargetClass()):
             pass
         inst1 = Derived()
         inst1.__setstate__({1: 2})
-        self.assertTrue(1 in inst1.__dict__)
+        self.assertIn(1, inst1.__dict__)
 
         class MyStr(str):
             pass
         mystr = MyStr('mystr')
         inst1.__setstate__({mystr: 2})
-        self.assertTrue(mystr in inst1.__dict__)
+        self.assertIn(mystr, inst1.__dict__)
 
     def test___setstate___doesnt_fail_on_non_dict(self):
         class Derived(self._getTargetClass()):
@@ -1116,7 +1116,7 @@ class _Persistent_Base:
     def test___reduce__(self):
         inst = self._makeOne()
         first, second, third = inst.__reduce__()
-        self.assertTrue(first is copyreg.__newobj__)
+        self.assertIs(first, copyreg.__newobj__)
         self.assertEqual(second, (self._getTargetClass(),))
         self.assertEqual(third, None)
 
@@ -1126,7 +1126,7 @@ class _Persistent_Base:
                 return ('a', 'b')
         inst = Derived()
         first, second, third = inst.__reduce__()
-        self.assertTrue(first is copyreg.__newobj__)
+        self.assertIs(first, copyreg.__newobj__)
         self.assertEqual(second, (Derived, 'a', 'b'))
         self.assertEqual(third, {})
 
@@ -1136,7 +1136,7 @@ class _Persistent_Base:
                 return {}
         inst = Derived()
         first, second, third = inst.__reduce__()
-        self.assertTrue(first is copyreg.__newobj__)
+        self.assertIs(first, copyreg.__newobj__)
         self.assertEqual(second, (Derived,))
         self.assertEqual(third, {})
 
@@ -1149,7 +1149,7 @@ class _Persistent_Base:
                 return {'foo': 'bar'}
         inst = Derived()
         first, second, third = inst.__reduce__()
-        self.assertTrue(first is copyreg.__newobj__)
+        self.assertIs(first, copyreg.__newobj__)
         self.assertEqual(second, (Derived, 'a', 'b'))
         self.assertEqual(third, {'foo': 'bar'})
 
@@ -1702,8 +1702,8 @@ class _Persistent_Base:
         p = P()
         p.inc()
         p.inc()
-        self.assertTrue('x' in p.__dict__)
-        self.assertTrue(p._p_jar is None)
+        self.assertIn('x', p.__dict__)
+        self.assertIsNone(p._p_jar)
 
     def test_w_diamond_inheritance(self):
         class A(self._getTargetClass()):
@@ -2218,7 +2218,7 @@ class Test_simple_new(unittest.TestCase):
     def test_w_type(self):
         TO_CREATE = [type, list, tuple, object, dict]
         for typ in TO_CREATE:
-            self.assertTrue(isinstance(self._callFUT(typ), typ))
+            self.assertIsInstance(self._callFUT(typ), typ)
 
 
 def test_suite():

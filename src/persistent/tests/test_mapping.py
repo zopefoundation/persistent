@@ -71,8 +71,8 @@ class PersistentMappingTests(unittest.TestCase):
         m.foo = 'bar'
         m._v_baz = 'qux'
         state = m.__getstate__()
-        self.assertTrue('foo' in state)
-        self.assertFalse('_v_baz' in state)
+        self.assertIn('foo', state)
+        self.assertNotIn('_v_baz', state)
 
     def testTheWorld(self):
         # Test constructors
@@ -163,9 +163,9 @@ class PersistentMappingTests(unittest.TestCase):
 
         # Test __contains__
         for i in u2:
-            self.assertTrue(i in u2, "i in u2")
+            self.assertIn(i, u2, "i in u2")
         for i in min(u2) - 1, max(u2) + 1:
-            self.assertTrue(i not in u2, "i not in u2")
+            self.assertNotIn(i, u2, "i not in u2")
 
         # Test update
 
@@ -175,9 +175,9 @@ class PersistentMappingTests(unittest.TestCase):
         for i in u:
             self.assertTrue(i in l_ or i in u2, "i in l or i in u2")
         for i in l_:
-            self.assertTrue(i in u, "i in u")
+            self.assertIn(i, u, "i in u")
         for i in u2:
-            self.assertTrue(i in u, "i in u")
+            self.assertIn(i, u, "i in u")
 
         # Test setdefault
 
@@ -186,13 +186,13 @@ class PersistentMappingTests(unittest.TestCase):
 
         x = u2.setdefault(5, 5)
         eq(x, 5, "u2.setdefault(5, 5) == 5")
-        self.assertTrue(5 in u2, "5 in u2")
+        self.assertIn(5, u2, "5 in u2")
 
         # Test pop
 
         x = u2.pop(1)
         eq(x, 1, "u2.pop(1) == 1")
-        self.assertTrue(1 not in u2, "1 not in u2")
+        self.assertNotIn(1, u2, "1 not in u2")
 
         with self.assertRaises(KeyError):
             u2.pop(1)
@@ -204,8 +204,8 @@ class PersistentMappingTests(unittest.TestCase):
 
         items = list(u2.items())
         key, value = u2.popitem()
-        self.assertTrue((key, value) in items, "key, value in items")
-        self.assertTrue(key not in u2, "key not in u2")
+        self.assertIn((key, value), items, "key, value in items")
+        self.assertNotIn(key, u2, "key not in u2")
 
         # Test clear
 
