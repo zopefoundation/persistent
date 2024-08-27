@@ -30,7 +30,7 @@ class DummyPersistent:
         self._p_oid = self._next_oid()
 
     def __repr__(self):  # pragma: no cover
-        return "<Dummy {!r} at 0x{:x}>".format(self._p_oid, id(self))
+        return f"<Dummy {self._p_oid!r} at 0x{id(self):x}>"
 
 
 class CFFIRingTests(unittest.TestCase):
@@ -76,11 +76,11 @@ class CFFIRingTests(unittest.TestCase):
         r.add(p)
         r.delete(p)
         self.assertEqual(0, len(r))
-        self.assertFalse(p in r)
+        self.assertNotIn(p, r)
 
         r.delete(p)
         self.assertEqual(0, len(r))
-        self.assertFalse(p in r)
+        self.assertNotIn(p, r)
 
     def test_delete_from_wrong_ring(self):
         r1 = self._makeOne()

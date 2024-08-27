@@ -147,7 +147,7 @@ class TimeStampTestsMixin:
         ts1 = self._makeOne(SERIAL1)
         ts2 = self._makeOne(SERIAL2)
         later = ts2.laterThan(ts1)
-        self.assertTrue(later is ts2)
+        self.assertIs(later, ts2)
 
     def test_repr(self):
         SERIAL = b'\x01' * 8
@@ -378,25 +378,25 @@ class PyAndCComparisonTests(unittest.TestCase):
         big_c = self._makeC(b'\x01\x00\x00\x00\x00\x00\x00\x00')
         big_py = self._makePy(b'\x01\x00\x00\x00\x00\x00\x00\x00')
 
-        self.assertTrue(small_py < big_py)
-        self.assertTrue(small_py <= big_py)
+        self.assertLess(small_py, big_py)
+        self.assertLessEqual(small_py, big_py)
 
-        self.assertTrue(small_py < big_c)
-        self.assertTrue(small_py <= big_c)
-        self.assertTrue(small_py <= small_c)
+        self.assertLess(small_py, big_c)
+        self.assertLessEqual(small_py, big_c)
+        self.assertLessEqual(small_py, small_c)
 
-        self.assertTrue(small_c < big_c)
-        self.assertTrue(small_c <= big_c)
+        self.assertLess(small_c, big_c)
+        self.assertLessEqual(small_c, big_c)
 
-        self.assertTrue(small_c <= big_py)
-        self.assertTrue(big_c > small_py)
-        self.assertTrue(big_c >= big_py)
+        self.assertLessEqual(small_c, big_py)
+        self.assertGreater(big_c, small_py)
+        self.assertGreaterEqual(big_c, big_py)
 
-        self.assertFalse(big_c == small_py)
-        self.assertFalse(small_py == big_c)
+        self.assertNotEqual(big_c, small_py)
+        self.assertNotEqual(small_py, big_c)
 
-        self.assertTrue(big_c != small_py)
-        self.assertTrue(small_py != big_c)
+        self.assertNotEqual(big_c, small_py)
+        self.assertNotEqual(small_py, big_c)
 
     def test_seconds_precision(self, seconds=6.123456789):
         # https://github.com/zopefoundation/persistent/issues/41

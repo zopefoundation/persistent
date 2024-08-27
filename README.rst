@@ -5,9 +5,6 @@
 .. image:: https://github.com/zopefoundation/persistent/actions/workflows/tests.yml/badge.svg
         :target: https://github.com/zopefoundation/persistent/actions/workflows/tests.yml
 
-.. image:: https://ci.appveyor.com/api/projects/status/github/zopefoundation/persistent?branch=master&svg=true
-        :target: https://ci.appveyor.com/project/mgedmin/persistent
-
 .. image:: https://coveralls.io/repos/github/zopefoundation/persistent/badge.svg?branch=master
         :target: https://coveralls.io/github/zopefoundation/persistent?branch=master
 
