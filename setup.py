@@ -118,9 +118,10 @@ setup(name='persistent',
       author_email="zodb-dev@zope.org",
       url="https://github.com/zopefoundation/persistent/",
       project_urls={
-        'Documentation': 'https://persistent.readthedocs.io',
-        'Issue Tracker': 'https://github.com/zopefoundation/persistent/issues',
-        'Sources': 'https://github.com/zopefoundation/persistent',
+          'Documentation': 'https://persistent.readthedocs.io',
+          'Issue Tracker': 'https://github.com/zopefoundation/'
+                           'persistent/issues',
+          'Sources': 'https://github.com/zopefoundation/persistent',
       },
       license="ZPL 2.1",
       packages=find_packages('src'),

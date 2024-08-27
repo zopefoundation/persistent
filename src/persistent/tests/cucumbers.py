@@ -19,7 +19,7 @@ from persistent import Persistent
 def print_dict(d):
     d = sorted(d.items())
     print('{%s}' % (', '.join(
-        [('{!r}: {!r}'.format(k, v)) for (k, v) in d]
+        [(f'{k!r}: {v!r}') for (k, v) in d]
     )))
 
 
