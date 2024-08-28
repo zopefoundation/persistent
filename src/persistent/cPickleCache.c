@@ -1376,7 +1376,6 @@ CC_module_traverse(PyObject *module, visitproc visit, void *arg)
 {
     CC_module_state* state = PyModule_GetState(module);
     Py_VISIT(state->cc_type);
-    Py_VISIT(state->capi_struct->pertype);
     return 0;
 }
 
@@ -1385,7 +1384,6 @@ CC_module_clear(PyObject *module)
 {
     CC_module_state* state = PyModule_GetState(module);
     Py_CLEAR(state->cc_type);
-    Py_CLEAR(state->capi_struct->pertype);
     return 0;
 }
 
@@ -1400,7 +1398,6 @@ init_cpersistence_capi(PyObject* module, percachedelfunc func)
         return -1;
 
     state->capi_struct->percachedel = func;
-    Py_INCREF(state->capi_struct->pertype);
     return 0;
 }
 
