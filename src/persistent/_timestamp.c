@@ -201,29 +201,7 @@ TimeStamp_traverse(PyObject *self, visitproc visit, void *arg)
     Py_VISIT(Py_TYPE(self));
     return 0;
 }
-
-static int
-TimeStamp_clear(PyObject *self)
-{
-    return 0;
-}
 #endif
-
-static void
-TimeStamp_dealloc(PyObject *self)
-{
-    PyTypeObject *type = Py_TYPE(self);
-
-#if USE_HEAP_ALLOCATED_TYPE
-    PyObject_GC_UnTrack(self);
-#endif
-
-    type->tp_free(self);
-
-#if USE_HEAP_ALLOCATED_TYPE
-    Py_DECREF(type);
-#endif
-}
 
 static PyObject*
 TimeStamp_richcompare(TimeStamp *self, TimeStamp *other, int op)
@@ -509,7 +487,6 @@ static PyTypeObject TimeStamp_type_def =
     .tp_repr            = (reprfunc)TimeStamp_repr,
     .tp_hash            = (hashfunc)TimeStamp_hash,
     .tp_richcompare     = (richcmpfunc)TimeStamp_richcompare,
-    .tp_dealloc         = TimeStamp_dealloc,
     .tp_methods         = TimeStamp_methods,
 };
 
@@ -526,8 +503,6 @@ static PyType_Slot TimeStamp_type_slots[] = {
     {Py_tp_hash,        TimeStamp_hash},
     {Py_tp_richcompare, TimeStamp_richcompare},
     {Py_tp_traverse,    TimeStamp_traverse},
-    {Py_tp_clear,       TimeStamp_clear},
-    {Py_tp_dealloc,     TimeStamp_dealloc},
     {Py_tp_methods,     TimeStamp_methods},
     {0,                 NULL}
 };
@@ -559,7 +534,7 @@ TimeStamp_FromString(PyObject* module, const char *buf)
     if (timestamp_type == NULL)
         return NULL;
 
-    ts = (TimeStamp *)PyObject_New(TimeStamp, timestamp_type);
+    ts = (TimeStamp *)timestamp_type->tp_alloc(timestamp_type, 0);
     memcpy(ts->data, buf, 8);
     return (PyObject *)ts;
 }
@@ -607,7 +582,7 @@ TimeStamp_FromDate(
     if (timestamp_type == NULL)
         return NULL;
 
-    ts = (TimeStamp *)PyObject_New(TimeStamp, timestamp_type);
+    ts = (TimeStamp *)timestamp_type->tp_alloc(timestamp_type, 0);
 
     /* months come in 1-based, hours and minutes come in 0-based */
     /* The base time is Jan 1, 00:00 of TS_BASE_YEAR */
