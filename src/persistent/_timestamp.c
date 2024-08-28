@@ -195,15 +195,22 @@ typedef struct
 } TimeStamp;
 
 #if USE_HEAP_ALLOCATED_TYPE
-static void
-TimeStamp_traverse(TimeStamp *self, visitproc visit, void *arg)
+static int
+TimeStamp_traverse(PyObject *self, visitproc visit, void *arg)
 {
-    Py_VISIT(Py_TYPE((PyObject*)self));
+    Py_VISIT(Py_TYPE(self));
+    return 0;
+}
+
+static int
+TimeStamp_clear(PyObject *self)
+{
+    return 0;
 }
 #endif
 
 static void
-TimeStamp_dealloc(TimeStamp *self)
+TimeStamp_dealloc(PyObject *self)
 {
     PyTypeObject *type = Py_TYPE(self);
 
@@ -502,7 +509,7 @@ static PyTypeObject TimeStamp_type_def =
     .tp_repr            = (reprfunc)TimeStamp_repr,
     .tp_hash            = (hashfunc)TimeStamp_hash,
     .tp_richcompare     = (richcmpfunc)TimeStamp_richcompare,
-    .tp_dealloc         = (destructor)TimeStamp_dealloc,
+    .tp_dealloc         = TimeStamp_dealloc,
     .tp_methods         = TimeStamp_methods,
 };
 
@@ -519,6 +526,7 @@ static PyType_Slot TimeStamp_type_slots[] = {
     {Py_tp_hash,        TimeStamp_hash},
     {Py_tp_richcompare, TimeStamp_richcompare},
     {Py_tp_traverse,    TimeStamp_traverse},
+    {Py_tp_clear,       TimeStamp_clear},
     {Py_tp_dealloc,     TimeStamp_dealloc},
     {Py_tp_methods,     TimeStamp_methods},
     {0,                 NULL}
