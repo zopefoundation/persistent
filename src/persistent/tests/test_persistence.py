@@ -2215,10 +2215,26 @@ class Test_simple_new(unittest.TestCase):
     def test_w_non_type(self):
         self.assertRaises(TypeError, self._callFUT, '')
 
-    def test_w_type(self):
-        TO_CREATE = [type, list, tuple, object, dict]
-        for typ in TO_CREATE:
-            self.assertIsInstance(self._callFUT(typ), typ)
+    def dont_test_w_type(self):
+        # Calling PyType_GenericNew() with PyType_Type creates an instance
+        # which is does *not* have tye 'Py_TPFLAGS_HEAPTYPE' flag set;
+        # deallocating it then hits an assert in 'type_dealloc'.
+        self.assertIsInstance(self._callFUT(type), type)
+
+    def test_w_list(self):
+        self.assertIsInstance(self._callFUT(list), list)
+
+    def dont_test_w_tuple(self):
+        # Calling PyType_GenericNew() with PyTuple_Type creates an empty
+        # tuple which is *not* the expected singleton;  deallocating it
+        # hits an assert in 'tupledealloc'.
+        self.assertIsInstance(self._callFUT(tuple), tuple)
+
+    def test_w_object(self):
+        self.assertIsInstance(self._callFUT(object), object)
+
+    def test_w_dict(self):
+        self.assertIsInstance(self._callFUT(dict), dict)
 
 
 def test_suite():
