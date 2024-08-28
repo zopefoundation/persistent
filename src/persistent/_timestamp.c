@@ -17,11 +17,6 @@
 #include "bytesobject.h"
 #include <time.h>
 
-/*
- *  Python < 3.9 does not support the PyType_FromModuleAndSpec and
- *  PyType_GetModule APIs.  We therefore stick to static / legacy
- *  initialization of the module and the type on such Pythons.
- */
 #if PY_VERSION_HEX < 0x030b0000
 #define USE_STATIC_MODULE_INIT 1
 #define USE_MULTIPHASE_MOD_INIT 0
