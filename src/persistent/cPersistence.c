@@ -267,7 +267,6 @@ ghostify(cPersistentObject *self)
         }
         Py_XDECREF(slotnames);
         PyErr_Restore(errtype, errvalue, errtb);
-    } else {
     }
 
     /* We remove the reference to the just ghosted object that the ring
