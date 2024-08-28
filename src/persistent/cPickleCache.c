@@ -1468,6 +1468,8 @@ CC_module_exec(PyObject* module)
             module, "PickleCache", (PyObject*)state->cc_type) < 0)
         return -1;
 
+    Py_INCREF(state->cc_type);  /* restore stolen ref */
+
     return 0;
 }
 

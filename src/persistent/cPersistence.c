@@ -1837,6 +1837,8 @@ CP_module_exec(PyObject* module)
             module, "Persistent", (PyObject*)capi_struct->pertype) < 0)
         return -1;
 
+    Py_INCREF(capi_struct->pertype);  /* restore stolen ref */
+
     capi = PyCapsule_New(capi_struct, CAPI_CAPSULE_NAME, NULL);
     if (!capi)
         return -1;
