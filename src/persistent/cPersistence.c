@@ -794,6 +794,8 @@ static void
 Per_dealloc(cPersistentObject *self)
 {
     cPersistenceCAPIstruct* capi_struct;
+    PyTypeObject* type = Py_TYPE(self);
+
     PyObject_GC_UnTrack((PyObject *)self);
     if (self->state >= 0)
     {
@@ -820,7 +822,10 @@ Per_dealloc(cPersistentObject *self)
     Py_XDECREF(self->cache);
     Py_XDECREF(self->jar);
     Py_XDECREF(self->oid);
-    Py_TYPE(self)->tp_free(self);
+    type->tp_free(self);
+#if USE_HEAP_ALLOCATED_TYPE
+    Py_DECREF(type);
+#endif
 }
 
 static int
