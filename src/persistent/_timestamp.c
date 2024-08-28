@@ -18,9 +18,13 @@
 #include <time.h>
 
 #if PY_VERSION_HEX < 0x030b0000
+#define USE_HEAP_ALLOCATED_TYPE 0
+#define USE_STATIC_TYPE 1
 #define USE_STATIC_MODULE_INIT 1
 #define USE_MULTIPHASE_MOD_INIT 0
 #else
+#define USE_HEAP_ALLOCATED_TYPE 1
+#define USE_STATIC_TYPE 0
 #define USE_STATIC_MODULE_INIT 0
 #define USE_MULTIPHASE_MOD_INIT 1
 #endif
@@ -190,10 +194,28 @@ typedef struct
     unsigned char data[8];
 } TimeStamp;
 
+#if USE_HEAP_ALLOCATED_TYPE
 static void
-TimeStamp_dealloc(TimeStamp *ts)
+TimeStamp_traverse(TimeStamp *self, visitproc visit, void *arg)
 {
-    PyObject_Del(ts);
+    Py_VISIT(Py_TYPE((PyObject*)self));
+}
+#endif
+
+static void
+TimeStamp_dealloc(TimeStamp *self)
+{
+    PyTypeObject *type = Py_TYPE(self);
+
+#if USE_HEAP_ALLOCATED_TYPE
+    PyObject_GC_UnTrack(self);
+#endif
+
+    type->tp_free(self);
+
+#if USE_HEAP_ALLOCATED_TYPE
+    Py_DECREF(type);
+#endif
 }
 
 static PyObject*
@@ -462,7 +484,7 @@ static struct PyMethodDef TimeStamp_methods[] =
 static char TimeStamp__name__[] = "persistent.TimeStamp";
 static char TimeStamp__doc__[] = "Timestamp object used as object ID";
 
-#if USE_STATIC_MODULE_INIT
+#if USE_STATIC_TYPE
 
 /*
  *  Static type: TimeStamp
@@ -496,6 +518,7 @@ static PyType_Slot TimeStamp_type_slots[] = {
     {Py_tp_repr,        TimeStamp_repr},
     {Py_tp_hash,        TimeStamp_hash},
     {Py_tp_richcompare, TimeStamp_richcompare},
+    {Py_tp_traverse,    TimeStamp_traverse},
     {Py_tp_dealloc,     TimeStamp_dealloc},
     {Py_tp_methods,     TimeStamp_methods},
     {0,                 NULL}
@@ -505,7 +528,8 @@ static PyType_Spec TimeStamp_type_spec = {
     .name       = TimeStamp__name__,
     .basicsize  = sizeof(TimeStamp),
     .flags      = Py_TPFLAGS_DEFAULT |
-                  Py_TPFLAGS_BASETYPE,
+                  Py_TPFLAGS_BASETYPE |
+                  Py_TPFLAGS_HAVE_GC,
     .slots      = TimeStamp_type_slots
 };
 
