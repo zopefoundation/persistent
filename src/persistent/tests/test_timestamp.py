@@ -213,18 +213,19 @@ class Instant:
         self.MUT = MUT
         self.orig_maxint = MUT._MAXINT
 
-        self.is_32_bit_hash = self.orig_maxint == self.MAX_32_BITS
-
-        self.orig_c_long = None
-        self.c_int64 = None
-        self.c_int32 = None
-        if MUT.c_long is not None:
+        if MUT.c_long is None:  # pragma: no cover
+            self.orig_c_long = None
+            self.c_int64 = None
+            self.c_int32 = None
+            self.is_32_bit_hash = self.orig_maxint == self.MAX_32_BITS
+        else:
             import ctypes
             self.orig_c_long = MUT.c_long
             self.c_int32 = ctypes.c_int32
             self.c_int64 = ctypes.c_int64
             # win32, even on 64-bit long, has funny sizes
             self.is_32_bit_hash = self.c_int32 == ctypes.c_long
+
         self.expected_hash = (
             self.bit_32_hash if self.is_32_bit_hash else self.bit_64_hash)
 

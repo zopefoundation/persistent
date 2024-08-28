@@ -1057,38 +1057,38 @@ class _Persistent_Base:
         self.assertEqual(inst.baz, 'bam')
         self.assertEqual(inst.qux, 'spam')
 
-    if not PYPY:
-        def test___setstate___interns_dict_keys(self):
-            class Derived(self._getTargetClass()):
-                pass
-            inst1 = Derived()
-            inst2 = Derived()
-            key1 = 'key'
-            key2 = 'ke'
-            key2 += 'y'  # construct in a way that won't intern the literal
-            self.assertIsNot(key1, key2)
-            inst1.__setstate__({key1: 1})
-            inst2.__setstate__({key2: 2})
-            key1 = list(inst1.__dict__.keys())[0]
-            key2 = list(inst2.__dict__.keys())[0]
-            self.assertIs(key1, key2)
+    @unittest.skipIf(PYPY, "interning doesn't happen")
+    def test___setstate___interns_dict_keys(self):
+        class Derived(self._getTargetClass()):
+            pass
+        inst1 = Derived()
+        inst2 = Derived()
+        key1 = 'key'
+        key2 = 'ke'
+        key2 += 'y'  # construct in a way that won't intern the literal
+        self.assertIsNot(key1, key2)
+        inst1.__setstate__({key1: 1})
+        inst2.__setstate__({key2: 2})
+        key1 = list(inst1.__dict__.keys())[0]
+        key2 = list(inst2.__dict__.keys())[0]
+        self.assertIs(key1, key2)
 
-            inst1 = Derived()
-            inst2 = Derived()
-            key1 = 'key'
-            key2 = 'ke'
-            key2 += 'y'  # construct in a way that won't intern the literal
-            self.assertIsNot(key1, key2)
-            state1 = IterableUserDict({key1: 1})
-            state2 = IterableUserDict({key2: 2})
-            k1 = list(state1.keys())[0]
-            k2 = list(state2.keys())[0]
-            self.assertIsNot(k1, k2)  # verify
-            inst1.__setstate__(state1)
-            inst2.__setstate__(state2)
-            key1 = list(inst1.__dict__.keys())[0]
-            key2 = list(inst2.__dict__.keys())[0]
-            self.assertIs(key1, key2)
+        inst1 = Derived()
+        inst2 = Derived()
+        key1 = 'key'
+        key2 = 'ke'
+        key2 += 'y'  # construct in a way that won't intern the literal
+        self.assertIsNot(key1, key2)
+        state1 = IterableUserDict({key1: 1})
+        state2 = IterableUserDict({key2: 2})
+        k1 = list(state1.keys())[0]
+        k2 = list(state2.keys())[0]
+        self.assertIsNot(k1, k2)  # verify
+        inst1.__setstate__(state1)
+        inst2.__setstate__(state2)
+        key1 = list(inst1.__dict__.keys())[0]
+        key2 = list(inst2.__dict__.keys())[0]
+        self.assertIs(key1, key2)
 
     def test___setstate___doesnt_fail_on_non_string_keys(self):
         class Derived(self._getTargetClass()):
@@ -2033,8 +2033,13 @@ class _Persistent_Base:
     def test__p_repr_in_instance_ignored(self):
         class P(self._getTargetClass()):
             pass
+
+        def _repr():
+            raise NotImplementedError
+
         p = P()
-        p._p_repr = lambda: "Instance"
+
+        p._p_repr = _repr
         result = self._normalized_repr(p)
         self.assertEqual(
             result,
@@ -2138,8 +2143,8 @@ class PyPersistentTests(unittest.TestCase, _Persistent_Base):
             accessed = False
 
             def __getattr__(self, name):
-                if name == '_cache':
-                    self.accessed = True
+                assert name == '_cache'
+                self.accessed = True
                 raise AttributeError(name)
 
             def register(self, *args):
@@ -2215,7 +2220,7 @@ class Test_simple_new(unittest.TestCase):
     def test_w_non_type(self):
         self.assertRaises(TypeError, self._callFUT, '')
 
-    def dont_test_w_type(self):
+    def dont_test_w_type(self):  # pragma: no cover
         # Calling PyType_GenericNew() with PyType_Type creates an instance
         # which is does *not* have tye 'Py_TPFLAGS_HEAPTYPE' flag set;
         # deallocating it then hits an assert in 'type_dealloc'.
@@ -2224,7 +2229,7 @@ class Test_simple_new(unittest.TestCase):
     def test_w_list(self):
         self.assertIsInstance(self._callFUT(list), list)
 
-    def dont_test_w_tuple(self):
+    def dont_test_w_tuple(self):  # pragma: no cover
         # Calling PyType_GenericNew() with PyTuple_Type creates an empty
         # tuple which is *not* the expected singleton;  deallocating it
         # hits an assert in 'tupledealloc'.
