@@ -170,7 +170,7 @@ _init_gmoff(double *p_gmoff)
 }
 
 /*
- *  Timestamp type
+ *  TimeStamp type
  */
 
 typedef struct
@@ -465,7 +465,7 @@ static char TimeStamp__doc__[] = "Timestamp object used as object ID";
 #if USE_STATIC_MODULE_INIT
 
 /*
- *  Static type: Timestamp
+ *  Static type: TimeStamp
  */
 
 static PyTypeObject TimeStamp_type_def =
@@ -487,7 +487,7 @@ static PyTypeObject TimeStamp_type_def =
 #else
 
 /*
- *  Heap type: Timestamp
+ *  Heap type: TimeStamp
  */
 
 static PyType_Slot TimeStamp_type_slots[] = {
