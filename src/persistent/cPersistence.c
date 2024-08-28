@@ -1796,8 +1796,6 @@ CP_module_exec(PyObject* module)
     CP_module_state* state = PyModule_GetState(module);
     cPersistenceCAPIstruct* capi_struct = &(state->capi_struct);
 
-    /* TODO:  figure out why this can't go away, at least for heap type */
-    ((PyObject*)&Per_type_def)->ob_type = &PyType_Type;
     Per_type_def.tp_new = PyType_GenericNew;
 
     capi_struct->getattro = (getattrofunc)Per_getattro;
