@@ -1400,6 +1400,7 @@ init_cpersistence_capi(PyObject* module, percachedelfunc func)
         return -1;
 
     state->capi_struct->percachedel = func;
+    Py_INCREF(state->capi_struct->pertype);
     return 0;
 }
 
