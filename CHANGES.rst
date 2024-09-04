@@ -5,6 +5,8 @@
 6.1 (unreleased)
 ================
 
+- Removed ``persisent.cPersistence.simple_new`` fossil.
+  See https://github.com/zopefoundation/persistent/pull/208
 
 6.0 (2024-05-30)
 ================

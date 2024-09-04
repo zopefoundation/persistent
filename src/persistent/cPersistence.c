@@ -1679,30 +1679,12 @@ Per_setstate(cPersistentObject *self)
     return 0;
 }
 
-
 /*
  *  Module methods
  */
 
-static char simple_new__doc__[] = (
-    "Create an object by simply calling a class's __new__ method without "
-    "arguments." 
-);
-static PyObject *
-simple_new(PyObject *self, PyObject *type_object)
-{
-    if (!PyType_Check(type_object))
-    {
-        PyErr_SetString(PyExc_TypeError,
-                        "simple_new argument must be a type object.");
-        return NULL;
-    }
-    return PyType_GenericNew((PyTypeObject *)type_object, NULL, NULL);
-}
-
 static PyMethodDef CP_module_methods[] =
 {
-    {"simple_new", simple_new, METH_O, simple_new__doc__ },
     {NULL, NULL}
 };
 

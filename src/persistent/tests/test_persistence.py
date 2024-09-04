@@ -2209,38 +2209,5 @@ class CPersistentTests(unittest.TestCase, _Persistent_Base):
         return PickleCache(jar)
 
 
-@skipIfNoCExtension
-class Test_simple_new(unittest.TestCase):
-
-    def _callFUT(self, x):
-        from persistent._compat import _c_optimizations_available as get_c
-        simple_new = get_c()['persistent.persistence'].simple_new
-        return simple_new(x)
-
-    def test_w_non_type(self):
-        self.assertRaises(TypeError, self._callFUT, '')
-
-    def dont_test_w_type(self):  # pragma: no cover
-        # Calling PyType_GenericNew() with PyType_Type creates an instance
-        # which is does *not* have tye 'Py_TPFLAGS_HEAPTYPE' flag set;
-        # deallocating it then hits an assert in 'type_dealloc'.
-        self.assertIsInstance(self._callFUT(type), type)
-
-    def test_w_list(self):
-        self.assertIsInstance(self._callFUT(list), list)
-
-    def dont_test_w_tuple(self):  # pragma: no cover
-        # Calling PyType_GenericNew() with PyTuple_Type creates an empty
-        # tuple which is *not* the expected singleton;  deallocating it
-        # hits an assert in 'tupledealloc'.
-        self.assertIsInstance(self._callFUT(tuple), tuple)
-
-    def test_w_object(self):
-        self.assertIsInstance(self._callFUT(object), object)
-
-    def test_w_dict(self):
-        self.assertIsInstance(self._callFUT(dict), dict)
-
-
 def test_suite():
     return unittest.defaultTestLoader.loadTestsFromName(__name__)
