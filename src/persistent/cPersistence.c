@@ -28,9 +28,6 @@ struct ccobject_head_struct
 #include <stdint.h>
 #include <inttypes.h>
 
-/* These objects are initialized when the module is loaded */
-static PyObject *py_simple_new;
-
 /* Strings initialized by init_strings() below. */
 static PyObject *py_keys, *py_setstate, *py___dict__, *py_timeTime;
 static PyObject *py__p_changed, *py__p_deactivate;
@@ -1624,23 +1621,8 @@ Per_setstate(cPersistentObject *self)
     return 0;
 }
 
-static PyObject *
-simple_new(PyObject *self, PyObject *type_object)
-{
-    if (!PyType_Check(type_object))
-    {
-        PyErr_SetString(PyExc_TypeError,
-                        "simple_new argument must be a type object.");
-        return NULL;
-    }
-    return PyType_GenericNew((PyTypeObject *)type_object, NULL, NULL);
-}
-
 static PyMethodDef cPersistence_methods[] =
 {
-    {"simple_new", simple_new, METH_O,
-     "Create an object by simply calling a class's __new__ method without "
-     "arguments."},
     {NULL, NULL}
 };
 
@@ -1711,10 +1693,6 @@ module_init(void)
 
     if (PyModule_AddIntConstant(module, "STICKY",
                                 cPersistent_STICKY_STATE) < 0)
-        return NULL;
-
-    py_simple_new = PyObject_GetAttrString(module, "simple_new");
-    if (!py_simple_new)
         return NULL;
 
     copy_reg = PyImport_ImportModule("copyreg");
