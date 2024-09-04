@@ -2204,22 +2204,5 @@ class CPersistentTests(unittest.TestCase, _Persistent_Base):
         return PickleCache(jar)
 
 
-@skipIfNoCExtension
-class Test_simple_new(unittest.TestCase):
-
-    def _callFUT(self, x):
-        from persistent._compat import _c_optimizations_available as get_c
-        simple_new = get_c()['persistent.persistence'].simple_new
-        return simple_new(x)
-
-    def test_w_non_type(self):
-        self.assertRaises(TypeError, self._callFUT, '')
-
-    def test_w_type(self):
-        TO_CREATE = [type, list, tuple, object, dict]
-        for typ in TO_CREATE:
-            self.assertIsInstance(self._callFUT(typ), typ)
-
-
 def test_suite():
     return unittest.defaultTestLoader.loadTestsFromName(__name__)
