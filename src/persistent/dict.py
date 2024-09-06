@@ -18,6 +18,6 @@ deprecated(
     "`persistent.dict.PersistentDict` is deprecated. Use"
     " `persistent.mapping.PersistentMapping` instead."
     " This backward compatibility shim will be removed in persistent"
-    " version 6.",
+    " version 7.",
     PersistentDict='persistent.mapping:PersistentMapping',
 )
