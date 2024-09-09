@@ -1,0 +1,5 @@
+# Generated from:
+# https://github.com/zopefoundation/meta/tree/master/config/c-code
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools<74"]
