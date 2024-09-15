@@ -16,16 +16,30 @@
 #include "Python.h"
 #include "bytesobject.h"
 #include <time.h>
-#include "_compat.h"
 
+#if PY_VERSION_HEX < 0x030b0000
+#define USE_HEAP_ALLOCATED_TYPE 0
+#define USE_STATIC_TYPE 1
+#define USE_STATIC_MODULE_INIT 1
+#define USE_MULTIPHASE_MOD_INIT 0
+#else
+#define USE_HEAP_ALLOCATED_TYPE 1
+#define USE_STATIC_TYPE 0
+#define USE_STATIC_MODULE_INIT 0
+#define USE_MULTIPHASE_MOD_INIT 1
+#endif
 
-PyObject *TimeStamp_FromDate(int, int, int, int, int, double);
-PyObject *TimeStamp_FromString(const char *);
+static char timestamp_module_doc[] =
+"A 64-bit TimeStamp used as a ZODB serial number.\n";
 
-static char TimeStampModule_doc[] =
-"A 64-bit TimeStamp used as a ZODB serial number.\n"
-"\n"
-"$Id$\n";
+/*
+ * Forward declarations
+ */
+static PyObject *TimeStamp_FromDate(PyObject*, int, int, int, int, int, double);
+static PyObject *TimeStamp_FromString(PyObject*, const char *);
+static PyObject* _get_module(PyTypeObject *typeobj);
+static int _get_gmoff(PyObject* module, double* target);
+static PyTypeObject* _get_timestamp_type(PyObject* module);
 
 
 /* A magic constant having the value 0.000000013969839. When an
@@ -83,6 +97,86 @@ static char TimeStampModule_doc[] =
  */
 #define TS_UNPACK_UINT32_FROM_BYTES(bytes) (*(bytes) * 0x1000000U + *(bytes + 1) * 0x10000U + *(bytes + 2) * 0x100U + *(bytes + 3))
 
+/* The first dimension of the arrays below is non-leapyear / leapyear */
+
+static char month_len[2][12] =
+{
+    {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
+    {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
+};
+
+static short joff[2][12] =
+{
+    {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334},
+    {0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335}
+};
+
+
+static int
+leap(int year)
+{
+    return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+}
+
+static int
+days_in_month(int year, int month)
+{
+    return month_len[leap(year)][month];
+}
+
+static double
+_yad(int y)
+{
+    double d, s;
+
+    y -= TS_BASE_YEAR;
+
+    d = (y - 1) * 365;
+    if (y > 0) {
+        s = 1.0;
+        y -= 1;
+    } else {
+        s = -1.0;
+        y = -y;
+    }
+    return d + s * (y / 4 - y / 100 + (y + 300) / 400);
+}
+
+static double
+_abst(int y, int mo, int d, int m, int s)
+{
+    return (_yad(y) + joff[leap(y)][mo] + d) * 86400 + m * 60 + s;
+}
+
+
+static int
+_init_gmoff(double *p_gmoff)
+{
+    struct tm *t;
+    time_t z=0;
+
+    t = gmtime(&z);
+    if (t == NULL)
+    {
+        PyErr_SetString(PyExc_SystemError, "gmtime failed");
+        return -1;
+    }
+
+    *p_gmoff = _abst(
+        t->tm_year + TS_BASE_YEAR,
+        t->tm_mon,
+        t->tm_mday - 1,
+        t->tm_hour * 60 + t->tm_min,
+        t->tm_sec
+    );
+
+    return 0;
+}
+
+/*
+ *  TimeStamp type
+ */
+
 typedef struct
 {
     PyObject_HEAD
@@ -100,83 +194,14 @@ typedef struct
     unsigned char data[8];
 } TimeStamp;
 
-/* The first dimension of the arrays below is non-leapyear / leapyear */
-
-static char month_len[2][12] =
-{
-    {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
-    {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
-};
-
-static short joff[2][12] =
-{
-    {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334},
-    {0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335}
-};
-
-static double gmoff=0;
-
-
+#if USE_HEAP_ALLOCATED_TYPE
 static int
-leap(int year)
+TimeStamp_traverse(PyObject *self, visitproc visit, void *arg)
 {
-    return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
-}
-
-static int
-days_in_month(int year, int month)
-{
-    return month_len[leap(year)][month];
-}
-
-static double
-TimeStamp_yad(int y)
-{
-    double d, s;
-
-    y -= TS_BASE_YEAR;
-
-    d = (y - 1) * 365;
-    if (y > 0) {
-        s = 1.0;
-    y -= 1;
-    } else {
-    s = -1.0;
-    y = -y;
-    }
-    return d + s * (y / 4 - y / 100 + (y + 300) / 400);
-}
-
-static double
-TimeStamp_abst(int y, int mo, int d, int m, int s)
-{
-    return (TimeStamp_yad(y) + joff[leap(y)][mo] + d) * 86400 + m * 60 + s;
-}
-
-static int
-TimeStamp_init_gmoff(void)
-{
-    struct tm *t;
-    time_t z=0;
-
-    t = gmtime(&z);
-    if (t == NULL)
-    {
-        PyErr_SetString(PyExc_SystemError, "gmtime failed");
-        return -1;
-    }
-
-    gmoff = TimeStamp_abst(t->tm_year + TS_BASE_YEAR, t->tm_mon, t->tm_mday - 1,
-               t->tm_hour * 60 + t->tm_min, t->tm_sec);
-
+    Py_VISIT(Py_TYPE(self));
     return 0;
 }
-
-static void
-TimeStamp_dealloc(TimeStamp *ts)
-{
-    PyObject_Del(ts);
-}
+#endif
 
 static PyObject*
 TimeStamp_richcompare(TimeStamp *self, TimeStamp *other, int op)
@@ -219,7 +244,7 @@ TimeStamp_richcompare(TimeStamp *self, TimeStamp *other, int op)
 
 
 static Py_hash_t
-TimeStamp_hash(TimeStamp *self)
+TimeStamp_hash(TimeStamp* self)
 {
     register unsigned char *p = (unsigned char *)self->data;
     register int len = 8;
@@ -268,7 +293,7 @@ TimeStamp_year(TimeStamp *self)
 {
     TimeStampParts p;
     TimeStamp_unpack(self, &p);
-    return INT_FROM_LONG(p.y);
+    return PyLong_FromLong(p.y);
 }
 
 static PyObject *
@@ -276,7 +301,7 @@ TimeStamp_month(TimeStamp *self)
 {
     TimeStampParts p;
     TimeStamp_unpack(self, &p);
-    return INT_FROM_LONG(p.m);
+    return PyLong_FromLong(p.m);
 }
 
 static PyObject *
@@ -284,7 +309,7 @@ TimeStamp_day(TimeStamp *self)
 {
     TimeStampParts p;
     TimeStamp_unpack(self, &p);
-    return INT_FROM_LONG(p.d);
+    return PyLong_FromLong(p.d);
 }
 
 static PyObject *
@@ -292,7 +317,7 @@ TimeStamp_hour(TimeStamp *self)
 {
     TimeStampParts p;
     TimeStamp_unpack(self, &p);
-    return INT_FROM_LONG(p.mi / 60);
+    return PyLong_FromLong(p.mi / 60);
 }
 
 static PyObject *
@@ -300,7 +325,7 @@ TimeStamp_minute(TimeStamp *self)
 {
     TimeStampParts p;
     TimeStamp_unpack(self, &p);
-    return INT_FROM_LONG(p.mi % 60);
+    return PyLong_FromLong(p.mi % 60);
 }
 
 static PyObject *
@@ -312,10 +337,22 @@ TimeStamp_second(TimeStamp *self)
 static PyObject *
 TimeStamp_timeTime(TimeStamp *self)
 {
+    PyObject* obj_self = (PyObject*)self;
+    PyObject* module;
+    double gmoff;
+
+    module = _get_module(Py_TYPE(obj_self));
+    if (module == NULL)
+        return NULL;
+
+    if (_get_gmoff(module, &gmoff) < 0)
+        return NULL;
+
     TimeStampParts p;
     TimeStamp_unpack(self, &p);
-    return PyFloat_FromDouble(TimeStamp_abst(p.y, p.m - 1, p.d - 1, p.mi, 0)
-                  + TimeStamp_sec(self) - gmoff);
+    return PyFloat_FromDouble(
+        _abst(p.y, p.m - 1, p.d - 1, p.mi, 0) + TimeStamp_sec(self) - gmoff
+    );
 }
 
 static PyObject *
@@ -325,7 +362,7 @@ TimeStamp_raw(TimeStamp *self)
 }
 
 static PyObject *
-TimeStamp_repr(TimeStamp *self)
+TimeStamp_repr(TimeStamp* self)
 {
     PyObject *raw, *result;
     raw = TimeStamp_raw(self);
@@ -335,24 +372,26 @@ TimeStamp_repr(TimeStamp *self)
 }
 
 static PyObject *
-TimeStamp_str(TimeStamp *self)
+TimeStamp_str(TimeStamp* self)
 {
     char buf[128];
     TimeStampParts p;
     int len;
 
     TimeStamp_unpack(self, &p);
-    len =sprintf(buf, "%4.4d-%2.2d-%2.2d %2.2d:%2.2d:%09.6f",
+    len = snprintf(buf, 128, "%4.4d-%2.2d-%2.2d %2.2d:%2.2d:%09.6f",
              p.y, p.m, p.d, p.mi / 60, p.mi % 60,
              TimeStamp_sec(self));
 
-    return NATIVE_FROM_STRING_AND_SIZE(buf, len);
+    return PyUnicode_FromStringAndSize(buf, len);
 }
 
 
 static PyObject *
 TimeStamp_laterThan(TimeStamp *self, PyObject *obj)
 {
+    PyObject* obj_self = (PyObject*)self;
+    PyObject* module;
     TimeStamp *o = NULL;
     TimeStampParts p;
     unsigned char new[8];
@@ -363,12 +402,17 @@ TimeStamp_laterThan(TimeStamp *self, PyObject *obj)
         PyErr_SetString(PyExc_TypeError, "expected TimeStamp object");
         return NULL;
     }
+
     o = (TimeStamp *)obj;
     if (memcmp(self->data, o->data, 8) > 0)
     {
         Py_INCREF(self);
         return (PyObject *)self;
     }
+
+    module = _get_module(Py_TYPE(obj_self));
+    if (module == NULL)
+        return NULL;
 
     memcpy(new, o->data, 8);
     for (i = 7; i > 3; i--)
@@ -378,7 +422,7 @@ TimeStamp_laterThan(TimeStamp *self, PyObject *obj)
         else
         {
             new[i]++;
-            return TimeStamp_FromString((const char*)new);
+            return TimeStamp_FromString(module, (const char*)new);
         }
     }
 
@@ -405,7 +449,7 @@ TimeStamp_laterThan(TimeStamp *self, PyObject *obj)
     else
         p.mi++;
 
-    return TimeStamp_FromDate(p.y, p.m, p.d, p.mi / 60, p.mi % 60, 0);
+    return TimeStamp_FromDate(module, p.y, p.m, p.d, p.mi / 60, p.mi % 60, 0);
 }
 
 static struct PyMethodDef TimeStamp_methods[] =
@@ -422,53 +466,75 @@ static struct PyMethodDef TimeStamp_methods[] =
     {NULL, NULL},
 };
 
-#define DEFERRED_ADDRESS(ADDR) 0
+static char TimeStamp__name__[] = "persistent.TimeStamp";
+static char TimeStamp__doc__[] = "Timestamp object used as object ID";
 
-static PyTypeObject TimeStamp_type =
+#if USE_STATIC_TYPE
+
+/*
+ *  Static type: TimeStamp
+ */
+
+static PyTypeObject TimeStamp_type_def =
 {
-    PyVarObject_HEAD_INIT(DEFERRED_ADDRESS(NULL), 0)
-    "persistent.TimeStamp",
-    sizeof(TimeStamp),                      /* tp_basicsize */
-    0,                                      /* tp_itemsize */
-    (destructor)TimeStamp_dealloc,          /* tp_dealloc */
-    0,                                      /* tp_print */
-    0,                                      /* tp_getattr */
-    0,                                      /* tp_setattr */
-    0,                                      /* tp_compare */
-    (reprfunc)TimeStamp_repr,               /* tp_repr */
-    0,                                      /* tp_as_number */
-    0,                                      /* tp_as_sequence */
-    0,                                      /* tp_as_mapping */
-    (hashfunc)TimeStamp_hash,               /* tp_hash */
-    0,                                      /* tp_call */
-    (reprfunc)TimeStamp_str,                /* tp_str */
-    0,                                      /* tp_getattro */
-    0,                                      /* tp_setattro */
-    0,                                      /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT |
-    Py_TPFLAGS_BASETYPE |
-    Py_TPFLAGS_HAVE_RICHCOMPARE,            /* tp_flags */
-    0,                                      /* tp_doc */
-    0,                                      /* tp_traverse */
-    0,                                      /* tp_clear */
-    (richcmpfunc)&TimeStamp_richcompare,    /* tp_richcompare */
-    0,                                      /* tp_weaklistoffset */
-    0,                                      /* tp_iter */
-    0,                                      /* tp_iternext */
-    TimeStamp_methods,                      /* tp_methods */
-    0,                                      /* tp_members */
-    0,                                      /* tp_getset */
-    0,                                      /* tp_base */
-    0,                                      /* tp_dict */
-    0,                                      /* tp_descr_get */
-    0,                                      /* tp_descr_set */
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name            = TimeStamp__name__,
+    .tp_doc             = TimeStamp__doc__,
+    .tp_basicsize       = sizeof(TimeStamp),
+    .tp_flags           = Py_TPFLAGS_DEFAULT |
+                          Py_TPFLAGS_BASETYPE,
+    .tp_str             = (reprfunc)TimeStamp_str,
+    .tp_repr            = (reprfunc)TimeStamp_repr,
+    .tp_hash            = (hashfunc)TimeStamp_hash,
+    .tp_richcompare     = (richcmpfunc)TimeStamp_richcompare,
+    .tp_methods         = TimeStamp_methods,
 };
 
+#else
+
+/*
+ *  Heap type: TimeStamp
+ */
+
+static PyType_Slot TimeStamp_type_slots[] = {
+    {Py_tp_doc,         TimeStamp__doc__},
+    {Py_tp_str,         TimeStamp_str},
+    {Py_tp_repr,        TimeStamp_repr},
+    {Py_tp_hash,        TimeStamp_hash},
+    {Py_tp_richcompare, TimeStamp_richcompare},
+    {Py_tp_traverse,    TimeStamp_traverse},
+    {Py_tp_methods,     TimeStamp_methods},
+    {0,                 NULL}
+};
+
+static PyType_Spec TimeStamp_type_spec = {
+    .name       = TimeStamp__name__,
+    .basicsize  = sizeof(TimeStamp),
+    .flags      = Py_TPFLAGS_DEFAULT |
+                  Py_TPFLAGS_BASETYPE |
+                  Py_TPFLAGS_HAVE_GC,
+    .slots      = TimeStamp_type_slots
+};
+
+#endif
+
+
+/*
+ *  Module functions
+ */
+
 PyObject *
-TimeStamp_FromString(const char *buf)
+TimeStamp_FromString(PyObject* module, const char *buf)
 {
     /* buf must be exactly 8 characters */
-    TimeStamp *ts = (TimeStamp *)PyObject_New(TimeStamp, &TimeStamp_type);
+    PyTypeObject* timestamp_type;
+    TimeStamp *ts;
+
+    timestamp_type = _get_timestamp_type(module);
+    if (timestamp_type == NULL)
+        return NULL;
+
+    ts = (TimeStamp *)timestamp_type->tp_alloc(timestamp_type, 0);
     memcpy(ts->data, buf, 8);
     return (PyObject *)ts;
 }
@@ -480,12 +546,18 @@ TimeStamp_FromString(const char *buf)
     }
 
 PyObject *
-TimeStamp_FromDate(int year, int month, int day, int hour, int min,
-           double sec)
+TimeStamp_FromDate(
+    PyObject* module,
+    int year,
+    int month,
+    int day,
+    int hour,
+    int min,
+    double sec)
 {
 
+    PyTypeObject* timestamp_type;
     TimeStamp *ts = NULL;
-    int d;
     unsigned int years_since_base;
     unsigned int months_since_base;
     unsigned int days_since_base;
@@ -497,10 +569,7 @@ TimeStamp_FromDate(int year, int month, int day, int hour, int min,
         return PyErr_Format(PyExc_ValueError,
                     "year must be greater than %d: %d", TS_BASE_YEAR, year);
     CHECK_RANGE(month, 1, 12);
-    d = days_in_month(year, month - 1);
-    if (day < 1 || day > d)
-        return PyErr_Format(PyExc_ValueError,
-                    "day must be between 1 and %d: %d", d, day);
+    CHECK_RANGE(day, 1, days_in_month(year, month - 1));
     CHECK_RANGE(hour, 0, 23);
     CHECK_RANGE(min, 0, 59);
     /* Seconds are allowed to be anything, so chill
@@ -509,7 +578,12 @@ TimeStamp_FromDate(int year, int month, int day, int hour, int min,
     return PyErr_Format(PyExc_ValueError,
                 "second must be between 0 and 59: %f", sec);
     */
-    ts = (TimeStamp *)PyObject_New(TimeStamp, &TimeStamp_type);
+    timestamp_type = _get_timestamp_type(module);
+    if (timestamp_type == NULL)
+        return NULL;
+
+    ts = (TimeStamp *)timestamp_type->tp_alloc(timestamp_type, 0);
+
     /* months come in 1-based, hours and minutes come in 0-based */
     /* The base time is Jan 1, 00:00 of TS_BASE_YEAR */
     years_since_base = year - TS_BASE_YEAR;
@@ -527,7 +601,7 @@ TimeStamp_FromDate(int year, int month, int day, int hour, int min,
 }
 
 PyObject *
-TimeStamp_TimeStamp(PyObject *obj, PyObject *args)
+TimeStamp_TimeStamp(PyObject *module, PyObject *args)
 {
     char *buf = NULL;
     Py_ssize_t len = 0;
@@ -542,54 +616,171 @@ TimeStamp_TimeStamp(PyObject *obj, PyObject *args)
                             "8-byte array expected");
             return NULL;
         }
-        return TimeStamp_FromString(buf);
+        return TimeStamp_FromString(module, buf);
     }
     PyErr_Clear();
 
     if (!PyArg_ParseTuple(args, "iii|iid", &y, &mo, &d, &h, &m, &sec))
         return NULL;
-    return TimeStamp_FromDate(y, mo, d, h, m, sec);
+    return TimeStamp_FromDate(module, y, mo, d, h, m, sec);
 }
 
-static PyMethodDef TimeStampModule_functions[] =
+
+/*
+ *  Module initialization
+ */
+
+static struct PyModuleDef timestamp_module_def;
+
+typedef struct {
+    PyTypeObject* timestamp_type;
+    double gmoff;
+} timestamp_module_state;
+
+static int
+timestamp_module_traverse(PyObject *module, visitproc visit, void *arg)
+{
+    timestamp_module_state* state = PyModule_GetState(module);
+    Py_VISIT(state->timestamp_type);
+    return 0;
+}
+
+static int
+timestamp_module_clear(PyObject *module)
+{
+    timestamp_module_state* state = PyModule_GetState(module);
+    Py_CLEAR(state->timestamp_type);
+    return 0;
+}
+
+static PyObject*
+_get_module(PyTypeObject *typeobj)
+{
+#if USE_STATIC_MODULE_INIT
+    return PyState_FindModule(&timestamp_module_def);
+#else
+    if (PyType_Check(typeobj)) {
+        /* Only added in Python 3.9 */
+        return PyType_GetModule(typeobj);
+    }
+
+    PyErr_SetString(PyExc_TypeError, "_get_module: called w/ non-type");
+    return NULL;
+#endif
+}
+
+static int
+_get_gmoff(PyObject* module, double* target)
+{
+    timestamp_module_state* state = PyModule_GetState(module);
+    if (state == NULL)
+        return -1;
+
+    *target = state->gmoff;
+    return 0;
+}
+
+static PyTypeObject*
+_get_timestamp_type(PyObject* module)
+{
+    timestamp_module_state* state = PyModule_GetState(module);
+    if (state == NULL)
+        return NULL;
+
+    return state->timestamp_type;
+}
+
+static PyMethodDef timestamp_module_functions[] =
 {
     {"TimeStamp", TimeStamp_TimeStamp, METH_VARARGS},
     {NULL, NULL},
 };
 
-static struct PyModuleDef moduledef =
+static int
+timestamp_module_exec(PyObject* module)
+{
+    PyTypeObject* timestamp_type;
+    timestamp_module_state* state;
+    double my_gmoff;
+
+    if (_init_gmoff(&my_gmoff) < 0)
+        return -1;
+
+    state = (timestamp_module_state*)PyModule_GetState(module);
+    if (state == NULL) {
+        return -1;
+    }
+    state->gmoff = my_gmoff;
+
+#if USE_STATIC_MODULE_INIT
+    if (PyType_Ready(&TimeStamp_type_def) < 0)
+        return -1;
+
+    timestamp_type = &TimeStamp_type_def;
+#else
+    timestamp_type = (PyTypeObject*)PyType_FromModuleAndSpec(
+        module, &TimeStamp_type_spec, NULL);
+
+    if (timestamp_type == NULL)
+        return -1;
+#endif
+
+    state->timestamp_type = timestamp_type;
+    return 0;
+}
+
+#if USE_MULTIPHASE_MOD_INIT
+/* Slot definitions for multi-phase initialization
+ *
+ * See: https://docs.python.org/3/c-api/module.html#multi-phase-initialization
+ * and: https://peps.python.org/pep-0489
+ */
+static PyModuleDef_Slot timestamp_module_slots[] = {
+    {Py_mod_exec,       timestamp_module_exec},
+    {0,                 NULL}
+};
+#endif
+
+static struct PyModuleDef timestamp_module_def =
 {
     PyModuleDef_HEAD_INIT,
-    "_timestamp",               /* m_name */
-    TimeStampModule_doc,        /* m_doc */
-    -1,                         /* m_size */
-    TimeStampModule_functions,  /* m_methods */
-    NULL,                       /* m_reload */
-    NULL,                       /* m_traverse */
-    NULL,                       /* m_clear */
-    NULL,                       /* m_free */
+    .m_name                     = "_timestamp",
+    .m_doc                      = timestamp_module_doc,
+    .m_size                     = sizeof(timestamp_module_state),
+    .m_traverse                 = timestamp_module_traverse,
+    .m_clear                    = timestamp_module_clear,
+    .m_methods                  = timestamp_module_functions,
+#if USE_MULTIPHASE_MOD_INIT
+    .m_slots                    = timestamp_module_slots,
+#endif
 };
 
 
 static PyObject*
-module_init(void)
+timestamp_module_init(void)
 {
+
+#if USE_STATIC_MODULE_INIT
     PyObject *module;
 
-    if (TimeStamp_init_gmoff() < 0)
-        return NULL;
+    module = PyModule_Create(&timestamp_module_def);
 
-    module = PyModule_Create(&moduledef);
     if (module == NULL)
         return NULL;
 
-    ((PyObject*)&TimeStamp_type)->ob_type = &PyType_Type;
-    TimeStamp_type.tp_getattro = PyObject_GenericGetAttr;
+    if (timestamp_module_exec(module) < 0)
+        return NULL;
 
     return module;
+
+#else
+    return PyModuleDef_Init(&timestamp_module_def);
+#endif
+
 }
 
-PyMODINIT_FUNC PyInit__timestamp(void)
+PyMODINIT_FUNC
+PyInit__timestamp(void)
 {
-    return module_init();
+    return timestamp_module_init();
 }
