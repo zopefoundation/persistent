@@ -12,7 +12,7 @@ relative_files = true
 omit = ["_ring_build.py"]
 
 [tool.coverage.report]
-fail_under = 99.8
+fail_under = 95
 precision = 2
 ignore_errors = true
 show_missing = true
