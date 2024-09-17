@@ -5,6 +5,8 @@
 6.1 (unreleased)
 ================
 
+- Add final support for Python 3.13.
+
 - Removed ``persisent.cPersistence.simple_new`` fossil.
   See https://github.com/zopefoundation/persistent/pull/208
 
