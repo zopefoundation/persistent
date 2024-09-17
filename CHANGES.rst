@@ -2,6 +2,10 @@
  ``persistent`` Changelog
 ==========================
 
+6.2 (unreleased)
+================
+
+
 6.1 (2024-09-17)
 ================
 
@@ -9,6 +13,7 @@
 
 - Removed ``persisent.cPersistence.simple_new`` fossil.
   See https://github.com/zopefoundation/persistent/pull/208
+
 
 6.0 (2024-05-30)
 ================
