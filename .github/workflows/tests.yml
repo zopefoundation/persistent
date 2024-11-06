@@ -155,7 +155,7 @@ jobs:
       - name: Install Build Dependencies
         run: |
           pip install -U pip
-          pip install -U "setuptools <74" wheel twine
+          pip install -U "setuptools < 74" wheel twine
           pip install cffi
 
       - name: Build persistent (macOS x86_64)
@@ -312,7 +312,7 @@ jobs:
           path: dist/
       - name: Install persistent
         run: |
-          pip install -U wheel "setuptools <74"
+          pip install -U wheel "setuptools < 74"
           pip install -U coverage[toml]
           pip install -U 'cffi; platform_python_implementation == "CPython"'
           # Unzip into src/ so that testrunner can find the .so files

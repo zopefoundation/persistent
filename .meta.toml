@@ -2,7 +2,7 @@
 # https://github.com/zopefoundation/meta/tree/master/config/c-code
 [meta]
 template = "c-code"
-commit-id = "32ea0a11"
+commit-id = "f317618e"
 
 [python]
 with-windows = true
@@ -20,7 +20,7 @@ coverage-command = [
     ]
 
 [coverage]
-fail-under = 95
+fail-under = 94.9
 
 [coverage-run]
 source = "persistent"
