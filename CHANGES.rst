@@ -5,13 +5,16 @@
 6.2 (unreleased)
 ================
 
+- Use ``Py_REFCNT`` to access ``cPersistentObject`` reference counts in
+  assertions.
+
 
 6.1 (2024-09-17)
 ================
 
 - Add final support for Python 3.13.
 
-- Removed ``persisent.cPersistence.simple_new`` fossil.
+- Removed ``persistent.cPersistence.simple_new`` fossil.
   See https://github.com/zopefoundation/persistent/pull/208
 
 
