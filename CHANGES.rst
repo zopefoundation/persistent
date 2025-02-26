@@ -2,8 +2,8 @@
  ``persistent`` Changelog
 ==========================
 
-6.2 (unreleased)
-================
+6.1.1 (2025-02-26)
+==================
 
 - Use ``Py_REFCNT`` to access ``cPersistentObject`` reference counts in
   assertions.
