@@ -1016,8 +1016,8 @@ class PythonPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
             was_set = False
 
             def __setattr__(self, name, value):
-                if name == '_cache':
-                    object.__setattr__(self, 'was_set', True)
+                assert name == '_cache'
+                object.__setattr__(self, 'was_set', True)
                 raise AttributeError(name)
 
         jar = Jar()
@@ -1211,7 +1211,7 @@ class PythonPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
         unraised = []
         try:
             old_hook = sys.unraisablehook
-        except AttributeError:
+        except AttributeError:  # pragma: no cover
             pass
         else:  # pragma: no cover
             sys.unraisablehook = unraised.append
@@ -1224,7 +1224,7 @@ class PythonPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
         o = cache[oid] = self._makePersist(oid=oid)  # noqa: F841
         # Clear the dict, or at least part of it.
         # This is coupled to ``cleanup_hook``
-        if cache.data.cleanup_hook:
+        if cache.data.cleanup_hook:  # pragma: no cover
             del cache.data._addr_to_oid
         del cache[oid]
 
