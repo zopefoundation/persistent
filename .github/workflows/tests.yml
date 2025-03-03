@@ -492,7 +492,7 @@ jobs:
         env:
           ZOPE_INTERFACE_STRICT_IRO: 1
         run: |
-          tox -erelease-check
+          tox -e release-check
 
   manylinux:
     runs-on: ubuntu-latest
