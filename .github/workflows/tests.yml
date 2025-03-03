@@ -486,6 +486,7 @@ jobs:
         run: |
           pip install -U wheel
           pip install -U tox
+          pip install -U 'cffi; platform_python_implementation == "CPython"'
           pip install -U  "`ls dist/persistent-*.whl`[docs]"
       - name: Run release check
         env:
