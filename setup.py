@@ -32,12 +32,6 @@ def _read_file(filename):
 
 README = (_read_file('README.rst') + '\n\n' + _read_file('CHANGES.rst'))
 
-PY313_CFFI_GH_DEP = (
-    "cffi >= 1.17.0rc1; "
-    "platform_python_implementation == 'CPython' and "
-    "python_version >= '3.13a0'"
-)
-
 
 define_macros = (
     # We currently use macros like PyBytes_AS_STRING
@@ -96,12 +90,12 @@ setup(name='persistent',
       version=version,
       description='Translucent persistent objects',
       long_description=README,
+      long_description_content_type='text/x-rst',
       classifiers=[
           "Development Status :: 6 - Mature",
           "License :: OSI Approved :: Zope Public License",
           "Programming Language :: Python",
           "Programming Language :: Python :: 3",
-          "Programming Language :: Python :: 3.8",
           "Programming Language :: Python :: 3.9",
           "Programming Language :: Python :: 3.10",
           "Programming Language :: Python :: 3.11",
@@ -124,7 +118,7 @@ setup(name='persistent',
                            'persistent/issues',
           'Sources': 'https://github.com/zopefoundation/persistent',
       },
-      license="ZPL 2.1",
+      license="ZPL-2.1",
       packages=find_packages('src'),
       package_dir={'': 'src'},
       include_package_data=True,
@@ -144,15 +138,13 @@ setup(name='persistent',
               'sphinx_rtd_theme',
           ],
       },
-      python_requires='>=3.8',
+      python_requires='>=3.9',
       install_requires=[
           'zope.deferredimport',
           'zope.interface',
           "cffi ; platform_python_implementation == 'CPython'",
-          PY313_CFFI_GH_DEP,
       ],
       setup_requires=[
           "cffi ; platform_python_implementation == 'CPython'",
-          PY313_CFFI_GH_DEP,
       ],
       entry_points={})
