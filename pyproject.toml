@@ -1,7 +1,7 @@
 # Generated from:
 # https://github.com/zopefoundation/meta/tree/master/config/c-code
 [build-system]
-requires = ["setuptools <= 75.6.0"]
+requires = ["setuptools <= 75.6.0", "cffi; platform_python_implementation == 'CPython'"]
 build-backend = "setuptools.build_meta"
 
 [tool.coverage.run]

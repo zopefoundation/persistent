@@ -144,7 +144,4 @@ setup(name='persistent',
           'zope.interface',
           "cffi ; platform_python_implementation == 'CPython'",
       ],
-      setup_requires=[
-          "cffi ; platform_python_implementation == 'CPython'",
-      ],
       entry_points={})

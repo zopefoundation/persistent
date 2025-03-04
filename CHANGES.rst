@@ -5,6 +5,8 @@
 6.2 (unreleased)
 ================
 
+- Move package build requirements from ``setup.py`` to ``pyproject.toml``.
+
 - Drop support for Python 3.8.
 
 
