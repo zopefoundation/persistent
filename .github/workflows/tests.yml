@@ -157,7 +157,6 @@ jobs:
         run: |
           pip install -U pip
           pip install -U "setuptools <= 75.6.0" wheel twine
-          pip install cffi
 
       - name: Build persistent (macOS x86_64)
         if: >
@@ -486,7 +485,6 @@ jobs:
         run: |
           pip install -U wheel
           pip install -U tox
-          pip install -U 'cffi; platform_python_implementation == "CPython"'
           pip install -U  "`ls dist/persistent-*.whl`[docs]"
       - name: Run release check
         env:
