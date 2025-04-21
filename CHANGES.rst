@@ -9,6 +9,9 @@
 
 - Drop support for Python 3.8.
 
+- Make ``Persistent``'s ``_p_oid`` representation follow the same format as the
+  ``ZODB.utils.oid_repr`` function. See `issue 219 <https://github.com/zopefoundation/persistent/issues/219>`_.
+
 
 6.1.1 (2025-02-26)
 ==================

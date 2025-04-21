@@ -1887,6 +1887,14 @@ class _Persistent_Base:
             '<persistent.Persistent object at 0xdeadbeef oid'
             ' 0x8000000000000000>')
 
+    def test_short_odd_oid(self):
+        p = self._makeOne()
+        p._p_oid = b'\x00\x00\x00\x00\x00\x00\x01#'
+        result = self._normalized_repr(p)
+        self.assertEqual(
+            result,
+            '<persistent.Persistent object at 0xdeadbeef oid 0x0123>')
+
     def test_repr_no_oid_repr_jar_raises_exception(self):
         p = self._makeOne()
 

@@ -67,7 +67,14 @@ _SPECIAL_WRITE_NAMES = set(_SPECIAL_NAMES) - {'__class__', '__dict__'}
 # Represent 8-byte OIDs as hex integer, just like
 # ZODB does.
 _OID_STRUCT = struct.Struct('>Q')
-_OID_UNPACK = _OID_STRUCT.unpack
+
+
+def oid_repr(oid):
+    _repr = f'{_OID_STRUCT.unpack(oid)[0]:x}'
+    len_repr = len(_repr)
+    if len_repr < 8 and len_repr % 2 == 1:
+        _repr = '0' + _repr
+    return _repr
 
 
 @use_c_impl
@@ -596,7 +603,7 @@ class Persistent:
         if oid is not None:
             try:
                 if isinstance(oid, bytes) and len(oid) == 8:
-                    oid_str = f' oid 0x{_OID_UNPACK(oid)[0]:x}'
+                    oid_str = f' oid 0x{oid_repr(oid)}'
                 else:
                     oid_str = f' oid {oid!r}'
             except Exception as e:
