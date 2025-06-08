@@ -314,6 +314,7 @@ Per__p_deactivate(cPersistentObject *self)
         PyObject **dictptr = _PyObject_GetDictPtr((PyObject *)self);
         if (dictptr && *dictptr)
         {
+            PyDict_Clear(*dictptr);
             Py_DECREF(*dictptr);
             *dictptr = NULL;
         }
