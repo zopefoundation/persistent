@@ -5,6 +5,8 @@
 6.2 (unreleased)
 ================
 
+- Add preliminary support for Python 3.14b2.
+
 - Move package build requirements from ``setup.py`` to ``pyproject.toml``.
 
 - Drop support for Python 3.8.
