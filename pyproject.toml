@@ -4,7 +4,7 @@
 
 [build-system]
 requires = [
-    "setuptools == 78.1.1",
+    "setuptools <= 75.6.0",
     "wheel",
     "cffi; platform_python_implementation == 'CPython'",
 ]

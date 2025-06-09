@@ -158,12 +158,12 @@ jobs:
         if: matrix.python-version == '3.14'
         run: |
           pip install -U pip
-          pip install -U "setuptools == 78.1.1" wheel twine
+          pip install -U "setuptools <= 75.6.0" wheel twine
       - name: Install Build Dependencies
         if: matrix.python-version != '3.14'
         run: |
           pip install -U pip
-          pip install -U "setuptools == 78.1.1" wheel twine
+          pip install -U "setuptools <= 75.6.0" wheel twine
 
       - name: Build persistent (macOS x86_64)
         if: >
@@ -331,7 +331,7 @@ jobs:
       - name: Install persistent ${{ matrix.python-version }}
         if: matrix.python-version == '3.14'
         run: |
-          pip install -U wheel "setuptools == 78.1.1"
+          pip install -U wheel "setuptools <= 75.6.0"
           # coverage might have a wheel on PyPI for a future python version which is
           # not ABI compatible with the current one, so build it from sdist:
           pip install -U --no-binary :all: coverage[toml]
@@ -346,7 +346,7 @@ jobs:
       - name: Install persistent
         if: matrix.python-version != '3.14'
         run: |
-          pip install -U wheel "setuptools == 78.1.1"
+          pip install -U wheel "setuptools <= 75.6.0"
           pip install -U coverage[toml]
           pip install -U 'cffi; platform_python_implementation == "CPython"'
           # Unzip into src/ so that testrunner can find the .so files
