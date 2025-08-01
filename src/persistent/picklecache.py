@@ -243,6 +243,8 @@ class PickleCache:
                 # Ensure we begin monitoring for ``value`` to
                 # be deallocated.
                 self.ring.ring_node_for(value)
+            else:  # pragma: no cover
+                pass
 
     def __delitem__(self, oid):
         """ See IPickleCache.
@@ -460,9 +462,8 @@ class PickleCache:
                 # actions if our _p_deactivate ran, in case of buggy
                 # subclasses. see _persistent_deactivate_ran.
 
-                if not had_weak_refs:
-                    had_weak_refs |= getattr(
-                        value, '__weakref__', None) is not None
+                had_weak_refs |= getattr(
+                    value, '__weakref__', None) is not None
 
                 value._p_deactivate()
                 if (self._persistent_deactivate_ran
