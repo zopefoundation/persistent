@@ -2,6 +2,12 @@
  ``persistent`` Changelog
 ==========================
 
+6.3 (unreleased)
+================
+
+- Nothing changed yet.
+
+
 6.2 (2025-10-02)
 ================
 
