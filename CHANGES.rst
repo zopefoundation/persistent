@@ -2,7 +2,7 @@
  ``persistent`` Changelog
 ==========================
 
-6.2 (unreleased)
+6.2 (2025-10-02)
 ================
 
 - Add preliminary support for Python 3.14b2.
