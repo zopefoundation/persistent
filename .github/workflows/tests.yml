@@ -56,10 +56,6 @@ env:
   ZOPE_INTERFACE_STRICT_IRO: 1
 
   PIP_UPGRADE_STRATEGY: eager
-  # Don't get warnings about Python 2 support being deprecated. We
-  # know. The env var works for pip 20.
-  PIP_NO_PYTHON_VERSION_WARNING: 1
-  PIP_NO_WARN_SCRIPT_LOCATION: 1
 
   CFLAGS: -O3 -pipe
   CXXFLAGS: -O3 -pipe
@@ -96,7 +92,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version:
-          - "pypy-3.10"
+          - "pypy-3.11"
           - "3.9"
           - "3.10"
           - "3.11"
@@ -106,15 +102,15 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         exclude:
           - os: macos-latest
-            python-version: "pypy-3.10"
+            python-version: "pypy-3.11"
 
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
@@ -158,12 +154,12 @@ jobs:
         if: matrix.python-version == '3.14'
         run: |
           pip install -U pip
-          pip install -U "setuptools <= 75.6.0" wheel twine
+          pip install -U "setuptools >= 78.1.1,< 81" wheel twine
       - name: Install Build Dependencies
         if: matrix.python-version != '3.14'
         run: |
           pip install -U pip
-          pip install -U "setuptools <= 75.6.0" wheel twine
+          pip install -U "setuptools >= 78.1.1,< 81" wheel twine
 
       - name: Build persistent (macOS x86_64)
         if: >
@@ -212,6 +208,7 @@ jobs:
         if: matrix.python-version != '3.14'
         run: |
           # Install to collect dependencies into the (pip) cache.
+          pip install -U pip "setuptools >= 78.1.1,< 81"
           pip install .[test]
 
       - name: Check persistent build
@@ -265,7 +262,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version:
-          - "pypy-3.10"
+          - "pypy-3.11"
           - "3.9"
           - "3.10"
           - "3.11"
@@ -275,15 +272,15 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         exclude:
           - os: macos-latest
-            python-version: "pypy-3.10"
+            python-version: "pypy-3.11"
 
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
@@ -331,7 +328,7 @@ jobs:
       - name: Install persistent ${{ matrix.python-version }}
         if: matrix.python-version == '3.14'
         run: |
-          pip install -U wheel "setuptools <= 75.6.0"
+          pip install -U wheel "setuptools >= 78.1.1,< 81"
           # coverage might have a wheel on PyPI for a future python version which is
           # not ABI compatible with the current one, so build it from sdist:
           pip install -U --no-binary :all: coverage[toml]
@@ -346,7 +343,7 @@ jobs:
       - name: Install persistent
         if: matrix.python-version != '3.14'
         run: |
-          pip install -U wheel "setuptools <= 75.6.0"
+          pip install -U wheel "setuptools >= 78.1.1,< 81"
           pip install -U coverage[toml]
           pip install -U 'cffi; platform_python_implementation == "CPython"'
           # Unzip into src/ so that testrunner can find the .so files
@@ -395,11 +392,11 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
@@ -466,11 +463,11 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
@@ -537,11 +534,11 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
