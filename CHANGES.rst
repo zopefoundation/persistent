@@ -5,7 +5,10 @@
 6.3 (unreleased)
 ================
 
-- Nothing changed yet.
+- Fix setuptools configuration to build missing cffi extension module.
+  The released wheels for version 6.2 will not work, they are missing
+  a compiled extension module.
+  (`#222 <https://github.com/zopefoundation/persistent/issues/222>`_)
 
 
 6.2 (2025-10-02)
