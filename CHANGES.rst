@@ -2,7 +2,7 @@
  ``persistent`` Changelog
 ==========================
 
-6.3 (unreleased)
+6.3 (2025-10-07)
 ================
 
 - Fix setuptools configuration to build missing cffi extension module.
