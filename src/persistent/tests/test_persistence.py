@@ -1833,10 +1833,7 @@ class _Persistent_Base:
 
     def _normalize_repr(self, r):
         # addresses
-        r = re.sub(r'at 0x[0-9a-fA-F]*', 'at 0xdeadbeef', r)
-        # Python 3.7 removed the trailing , in exception reprs
-        r = r.replace("',)", "')")
-        return r
+        return re.sub(r'at 0x[0-9a-fA-F]*', 'at 0xdeadbeef', r)
 
     def _normalized_repr(self, o):
         return self._normalize_repr(repr(o))

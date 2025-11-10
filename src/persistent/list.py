@@ -13,7 +13,6 @@
 ##############################################################################
 
 """Python implementation of persistent list."""
-import sys
 from collections import UserList
 
 import persistent
@@ -51,30 +50,6 @@ class PersistentList(UserList, persistent.Persistent):
         if hasattr(UserList, 'clear')
         else lambda inst: inst.__delitem__(_SLICE_ALL)
     )
-
-    if sys.version_info[:3] < (3, 7, 4):  # pragma: no cover
-        # Prior to 3.7.4, Python 3 failed to properly
-        # return an instance of the same class.
-        # See https://bugs.python.org/issue27639
-        # and https://github.com/zopefoundation/persistent/issues/112.
-        # We only define the special method on the necessary versions to avoid
-        # any speed penalty.
-        def __getitem__(self, item):
-            result = self.__super_getitem(item)
-            if isinstance(item, slice):
-                result = self.__class__(result)
-            return result
-
-    if sys.version_info[:3] < (3, 7, 4):  # pragma: no cover
-        # Likewise for __copy__.
-        # See
-        # https://github.com/python/cpython/commit/3645d29a1dc2102fdb0f5f0c0129ff2295bcd768
-        def __copy__(self):
-            inst = self.__class__.__new__(self.__class__)
-            inst.__dict__.update(self.__dict__)
-            # Create a copy and avoid triggering descriptors
-            inst.__dict__["data"] = self.__dict__["data"][:]
-            return inst
 
     def __setitem__(self, i, item):
         self.__super_setitem(i, item)

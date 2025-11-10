@@ -37,7 +37,7 @@ try:
     # Make sure to overflow and wraparound just
     # like the C code does.
     from ctypes import c_long
-except ImportError:  # pragma: no cover
+except ModuleNotFoundError:  # pragma: no cover
     # XXX: This is broken on 64-bit windows, where
     # sizeof(long) != sizeof(Py_ssize_t)
     # sizeof(long) == 4, sizeof(Py_ssize_t) == 8
