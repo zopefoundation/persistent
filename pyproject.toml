@@ -7,8 +7,63 @@ requires = [
     "setuptools",
     "wheel",
     "cffi; platform_python_implementation == 'CPython'",
+    "pycparser",
 ]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "persistent"
+version = "6.4.dev0"
+description = "Translucent persistent objects"
+readme = "README.rst"
+requires-python = ">=3.10"
+license = "ZPL-2.1"
+authors = [
+  { name = "Zope Foundation and contributors", email = "zope-dev@zope.dev" },
+]
+maintainers = [
+  { name = "Plone Foundation and contributors", email = "zope-dev@zope.dev" },
+]
+classifiers = [
+  "Development Status :: 6 - Mature",
+  "Framework :: ZODB",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+  "Topic :: Database",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+  "zope.deferredimport",
+  "zope.interface",
+  "cffi ; platform_python_implementation == 'CPython'",
+]
+
+[project.optional-dependencies]
+docs = [
+  "Sphinx",
+  "repoze.sphinx.autointerface",
+  "furo",
+]
+test = [
+  "manuel",
+  "zope.testrunner >= 6.4",
+]
+
+[project.urls]
+Documentation = "https://persistent.readthedocs.io"
+Issues = "https://github.com/zopefoundation/persistent/issues"
+Source = "https://github.com/zopefoundation/persistent"
+Changelog = "https://github.com/zopefoundation/persistent/blob/master/CHANGES.rst"
 
 [tool.coverage.run]
 branch = true

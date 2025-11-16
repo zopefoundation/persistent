@@ -2,12 +2,12 @@
 # https://github.com/zopefoundation/meta/tree/master/config/c-code
 [meta]
 template = "c-code"
-commit-id = "ad3bfb10"
+commit-id = "9fcd3d67"
 
 [python]
 with-windows = true
 with-pypy = true
-with-future-python = false
+with-future-python = true
 with-docs = true
 with-sphinx-doctests = true
 with-macos = false
@@ -34,4 +34,7 @@ additional-rules = [
 ]
 
 [check-manifest]
-additional-ignores = ["docs/_build/html/_sources/api/*"]
+additional-ignores = [
+    "docs/_build/html/_sources/api/*",
+    "docs/_build/html/_static/scripts/*",
+]

@@ -1,17 +1,16 @@
-==========================
- ``persistent`` Changelog
-==========================
+Change log
+==========
 
 6.4 (unreleased)
-================
-
+----------------
 
 - Add support for Python 3.14.
 
 - Drop support for Python 3.9.
 
+
 6.3 (2025-10-07)
-================
+----------------
 
 - Fix setuptools configuration to build missing cffi extension module.
   The released wheels for version 6.2 will not work, they are missing
@@ -20,7 +19,7 @@
 
 
 6.2 (2025-10-02)
-================
+----------------
 
 - Add preliminary support for Python 3.14b2.
 
@@ -34,14 +33,14 @@
 
 
 6.1.1 (2025-02-26)
-==================
+------------------
 
 - Use ``Py_REFCNT`` to access ``cPersistentObject`` reference counts in
   assertions.
 
 
 6.1 (2024-09-17)
-================
+----------------
 
 - Add final support for Python 3.13.
 
@@ -50,7 +49,7 @@
 
 
 6.0 (2024-05-30)
-================
+----------------
 
 - Drop support for Python 3.7.
 
@@ -58,19 +57,19 @@
 
 
 5.2 (2024-02-16)
-================
+----------------
 
 - Add preliminary support for Python 3.13a3.
 
 
 5.1 (2023-10-05)
-================
+----------------
 
 - Add support for Python 3.12.
 
 
 5.0 (2023-01-09)
-================
+----------------
 
 - Build Linux binary wheels for Python 3.11.
 
@@ -78,19 +77,19 @@
 
 
 4.9.3 (2022-11-16)
-==================
+------------------
 
 - Add support for building arm64 wheels on macOS.
 
 
 4.9.2 (2022-11-03)
-==================
+------------------
 
 - Update Python 3.11 support to final release.
 
 
 4.9.1 (2022-09-16)
-==================
+------------------
 
 - Update Python 3.11 support to 3.11.0-rc1.
 
@@ -99,33 +98,39 @@
 
 
 4.9.0 (2022-03-10)
-==================
+------------------
 
 - Add support for Python 3.11 (as of 3.11a5).
 
 
 4.8.0 (2022-03-07)
-==================
+------------------
 
 - Switch package to src-layout, this is a packaging only change.
   (`#168 <https://github.com/zopefoundation/persistent/pull/168>`_)
+
 - Add support for Python 3.10.
 
 
 4.7.0 (2021-04-13)
-==================
+------------------
 
 - Add support for Python 3.9.
+
 - Move from Travis CI to Github Actions.
+
 - Supply manylinux wheels for aarch64 (ARM).
+
 - Fix the pure-Python implementation to activate a ghost object
   when setting its ``__class__`` and ``__dict__``. This matches the
   behaviour of the C implementation. See `issue 155
   <https://github.com/zopefoundation/persistent/issues/155>`_.
+
 - Fix the CFFI cache implementation (used on CPython when
   ``PURE_PYTHON=1``) to not print unraisable ``AttributeErrors`` from
   ``_WeakValueDictionary`` during garbage collection. See `issue 150
   <https://github.com/zopefoundation/persistent/issues/150>`_.
+
 - Make the pure-Python implementation of the cache run a garbage
   collection (``gc.collect()``) on ``full_sweep``, ``incrgc`` and
   ``minimize`` *if* it detects that an object that was weakly
@@ -134,16 +139,20 @@
   ``zope.interface`` utilities/adapters registered. This partly
   reverts a change from release 4.2.3.
 
+
 4.6.4 (2020-03-26)
-==================
+------------------
 
 - Fix an overly specific test failure using zope.interface 5. See
   `issue 144 <https://github.com/zopefoundation/persistent/issues/144>`_.
+
 - Fix two reference leaks that could theoretically occur as the result
-  of obscure errors. See `issue 143 <https://github.com/zopefoundation/persistent/issues/143>`_.
+  of obscure errors.
+  See `issue 143 <https://github.com/zopefoundation/persistent/issues/143>`_.
+
 
 4.6.3 (2020-03-18)
-==================
+------------------
 
 - Fix a crash in the test suite under a 32-bit CPython on certain
   32-bit platforms. See `issue 137
@@ -152,7 +161,7 @@
 
 
 4.6.2 (2020-03-12)
-==================
+------------------
 
 - Fix an ``AssertionError`` clearing a non-empty ``PersistentMapping``
   that has no connection. See `issue 139
@@ -160,7 +169,7 @@
 
 
 4.6.1 (2020-03-06)
-==================
+------------------
 
 - Stop installing C header files on PyPy (which is what persistent before 4.6.0
   used to do), fixes `issue 135
@@ -168,7 +177,7 @@
 
 
 4.6.0 (2020-03-05)
-==================
+------------------
 
 - Fix slicing of ``PersistentList`` to always return instances of the
   same class. It was broken on Python 3 prior to 3.7.4.
@@ -182,7 +191,8 @@
   non-empty value prevents the extensions from being used. Also, all C
   extensions are required together or none of them will be used. This
   prevents strange errors that arise from a mismatch of Python and C
-  implementations. See `issue 131 <https://github.com/zopefoundation/persistent/issues/131>`_.
+  implementations.
+  See `issue 131 <https://github.com/zopefoundation/persistent/issues/131>`_.
 
   Note that some private implementation details such as the names of
   the pure-Python implementations have changed.
@@ -213,8 +223,9 @@
   Note that ``ctypes`` is required to use the Python implementation
   (except on PyPy).
 
+
 4.5.1 (2019-11-06)
-==================
+------------------
 
 - Add support for Python 3.8.
 
@@ -222,7 +233,7 @@
 
 
 4.5.0 (2019-05-09)
-==================
+------------------
 
 - Fully test the C implementation of the PickleCache, and fix
   discrepancies between it and the Python implementation:
@@ -254,7 +265,7 @@
 
 
 4.4.3 (2018-10-22)
-==================
+------------------
 
 - Fix the repr of the persistent objects to include the module name
   when using the C extension. This matches the pure-Python behaviour
@@ -268,7 +279,7 @@
 
 
 4.4.2 (2018-08-28)
-==================
+------------------
 
 - Explicitly use unsigned constants for packing and unpacking C
   timestamps, fixing an arithmetic issue for GCC when optimizations
@@ -277,14 +288,14 @@
 
 
 4.4.1 (2018-08-23)
-==================
+------------------
 
 - Fix installation of source packages on PyPy. See `issue 88
   <https://github.com/zopefoundation/persistent/issues/88>`_.
 
 
 4.4.0 (2018-08-22)
-==================
+------------------
 
 - Use unsigned constants when doing arithmetic on C timestamps,
   possibly avoiding some overflow issues with some compilers or
@@ -335,10 +346,11 @@
 
 
 4.3.0 (2018-07-30)
-==================
+------------------
 
 - Fix the possibility of a rare crash in the C extension when
-  deallocating items. See https://github.com/zopefoundation/persistent/issues/66
+  deallocating items.
+  See https://github.com/zopefoundation/persistent/issues/66
 
 - Change cPickleCache's comparison of object sizes to determine
   whether an object can go in the cache to use ``PyObject_TypeCheck()``.
@@ -351,19 +363,19 @@
 
 
 4.2.4.2 (2017-04-23)
-====================
+--------------------
 
 - Packaging-only release: fix Python 2.7 ``manylinux`` wheels.
 
 
 4.2.4.1 (2017-04-21)
-====================
+--------------------
 
 - Packaging-only release:  get ``manylinux`` wheel built automatically.
 
 
 4.2.4 (2017-03-20)
-==================
+------------------
 
 - Avoid raising a ``SystemError: error return without exception set``
   when loading an object with slots whose jar generates an exception
@@ -371,7 +383,7 @@
 
 
 4.2.3 (2017-03-08)
-==================
+------------------
 
 - Fix the hashcode of Python ``TimeStamp`` objects on 64-bit Python on
   Windows. See https://github.com/zopefoundation/persistent/pull/55
@@ -393,7 +405,7 @@
 
 
 4.2.2 (2016-11-29)
-==================
+------------------
 
 - Drop use of ``ctypes`` for determining maximum integer size, to increase
   pure-Python compatibility. See https://github.com/zopefoundation/persistent/pull/31
@@ -406,14 +418,14 @@
 
 
 4.2.1 (2016-05-26)
-==================
+------------------
 
 - Fix the hashcode of C ``TimeStamp`` objects on 64-bit Python 3 on
   Windows.
 
 
 4.2.0 (2016-05-05)
-==================
+------------------
 
 - Fixed the Python(/PYPY) implementation ``TimeStamp.timeTime`` method
   to have subsecond precision.
@@ -427,13 +439,13 @@
 
 
 4.1.1 (2015-06-02)
-==================
+------------------
 
 - Fix manifest and re-upload to fix stray files included in 4.1.0.
 
 
 4.1.0 (2015-05-19)
-==================
+------------------
 
 - Make the Python implementation of ``Persistent`` and ``PickleCache``
   behave more similarly to the C implementation. In particular, the
@@ -443,7 +455,7 @@
 
 
 4.0.9 (2015-04-08)
-==================
+------------------
 
 - Make the C and Python ``TimeStamp`` objects behave more alike. The
   Python version now produces the same ``repr`` and ``.raw()`` output as
@@ -459,7 +471,7 @@
 
 
 4.0.8 (2014-03-20)
-==================
+------------------
 
 - Add support for Python 3.4.
 
@@ -478,7 +490,7 @@
 
 
 4.0.7 (2014-02-20)
-==================
+------------------
 
 - Avoid a KeyError from ``_p_accessed()`` on newly-created objects under
   pure-Python:  these objects may be assigned to a jar, but not yet added
@@ -495,20 +507,20 @@
 
 
 4.0.6 (2013-01-03)
-==================
+------------------
 
 - Updated Trove classifiers.
 
 
 4.0.5 (2012-12-14)
-==================
+------------------
 
 - Fixed the C-extensions under Py3k (previously they compiled but were
   not importable).
 
 
 4.0.4 (2012-12-11)
-==================
+------------------
 
 - Added support for Python 3.3.
 
@@ -517,7 +529,7 @@
 
 
 4.0.3 (2012-11-19)
-==================
+------------------
 
 - Fixed: In the C implimentation, an integer was compared with a
   pointer, with undefined results and a compiler warning.
@@ -531,13 +543,13 @@
 
 
 4.0.2 (2012-08-27)
-==================
+------------------
 
 - Correct initialization functions in renamed ``_timestamp`` extension.
 
 
 4.0.1 (2012-08-26)
-==================
+------------------
 
 - Worked around test failure due to overflow to long on 32-bit systems.
 
@@ -553,7 +565,7 @@
 
 
 4.0.0 (2012-08-11)
-==================
+------------------
 
 Platform Changes
 ----------------
