@@ -13,7 +13,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "persistent"
-version = "6.4.dev0"
+version = "6.4"
 description = "Translucent persistent objects"
 readme = "README.rst"
 requires-python = ">=3.10"

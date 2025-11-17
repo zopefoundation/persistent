@@ -1,8 +1,10 @@
 Change log
 ==========
 
-6.4 (unreleased)
+6.4 (2025-11-17)
 ----------------
+
+- Move all supported package metadata into ``pyproject.toml``.
 
 - Add support for Python 3.14.
 
