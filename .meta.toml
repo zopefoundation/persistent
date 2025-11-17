@@ -2,7 +2,7 @@
 # https://github.com/zopefoundation/meta/tree/master/config/c-code
 [meta]
 template = "c-code"
-commit-id = "bfe21cd9"
+commit-id = "9fcd3d67"
 
 [python]
 with-windows = true
@@ -13,21 +13,17 @@ with-sphinx-doctests = true
 with-macos = false
 
 [tox]
-use-flake8 = true
 coverage-command = [
     "coverage run -m zope.testrunner --test-path=src {posargs:-vc}",
     "python -c 'import os, subprocess; subprocess.check_call(\"coverage run -a -m zope.testrunner --test-path=src\", env=dict(os.environ, PURE_PYTHON=\"0\"), shell=True)'",
-    ]
+]
 
 [coverage]
 fail-under = 94.9
 
 [coverage-run]
 source = "persistent"
-additional-config = [
-    "omit =",
-    "     _ring_build.py",
-    ]
+additional-config = ["omit =", "     _ring_build.py"]
 
 [manifest]
 additional-rules = [
@@ -35,9 +31,10 @@ additional-rules = [
     "include *.sh",
     "recursive-include docs *.bat",
     "recursive-include src *.h",
-    ]
+]
 
 [check-manifest]
 additional-ignores = [
     "docs/_build/html/_sources/api/*",
-    ]
+    "docs/_build/html/_static/scripts/*",
+]

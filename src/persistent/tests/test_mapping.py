@@ -251,7 +251,7 @@ class PersistentMappingTests(unittest.TestCase):
         self.assertEqual(pm, {'b': 42})
 
         pm = self._makeOne()
-        # ``other`` shows up in a Python 3 signature.
+        # ``other`` shows up in a Python signature.
         pm.update(other=42)
         self.assertEqual(pm, {'other': 42})
         pm = self._makeOne()

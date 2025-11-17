@@ -93,8 +93,6 @@ class PersistentMapping(IterableUserDict, persistent.Persistent):
         # so if there was a _container it was persisted as data. We want
         # to preserve that, even if we won't make any modifications otherwise.
         needs_changed = '_container' in self.__dict__ or bool(self)
-        # Python 2 implements this by directly calling self.data.clear(),
-        # but Python 3 does so by repeatedly calling self.popitem()
         self.__super_clear()
         if needs_changed:
             self._p_changed = 1
