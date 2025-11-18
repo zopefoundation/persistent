@@ -71,6 +71,9 @@ else:
         'src/persistent/ring.h',
     ]
 
+# setup_requires must be specified in the setup call, when building CFFI
+# modules it's not sufficient to have the requirements in a pyproject.toml
+# [build-system] section.
 setup(ext_modules=ext_modules,
       cffi_modules=['src/persistent/_ring_build.py:ffi'],
       headers=headers,

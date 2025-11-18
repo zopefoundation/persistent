@@ -1,7 +1,7 @@
 Change log
 ==========
 
-6.5 (unreleased)
+6.5 (2025-11-18)
 ----------------
 
 - Fix setuptools configuration yet again to build missing cffi extension
