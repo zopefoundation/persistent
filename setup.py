@@ -73,4 +73,8 @@ else:
 
 setup(ext_modules=ext_modules,
       cffi_modules=['src/persistent/_ring_build.py:ffi'],
-      headers=headers)
+      headers=headers,
+      setup_requires=[
+          "cffi ; platform_python_implementation == 'CPython'",
+          "pycparser",
+      ])
