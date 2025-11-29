@@ -33,10 +33,11 @@ class DummyPersistent:
         return f"<Dummy {self._p_oid!r} at 0x{id(self):x}>"
 
 
-class CFFIRingTests(unittest.TestCase):
+class _RingBase:
 
     def _getTargetClass(self):
-        return ring._CFFIRing
+        """Return the type of the ring to test"""
+        raise NotImplementedError()
 
     def _makeOne(self):
         return self._getTargetClass()()
@@ -124,3 +125,16 @@ class CFFIRingTests(unittest.TestCase):
 
         r.move_to_head(p3)
         self.assertEqual([p2, p1, p3], list(r))
+
+
+class DequeRingTests(unittest.TestCase, _RingBase):
+
+    def _getTargetClass(self):
+        return ring._DequeRing
+
+
+@unittest.skipUnless(ring._CFFIRing, 'CFFI not available')
+class CFFIRingTests(unittest.TestCase, _RingBase):
+
+    def _getTargetClass(self):
+        return ring._CFFIRing

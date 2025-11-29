@@ -4,6 +4,12 @@ Change log
 6.6 (unreleased)
 ----------------
 
+- Remove CFFI dependency because it is too troublesome.
+  Originally added in `#107
+  <https://github.com/zopefoundation/persistent/pull/107>`_ it caused problems
+  whenever a new Python version came out because the CFFI project is slow
+  releasing compatible versions.
+
 
 6.5 (2025-11-18)
 ----------------
