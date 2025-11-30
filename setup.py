@@ -60,8 +60,7 @@ ext_modules = [
     ),
 ]
 
-is_pypy = platform.python_implementation() == 'PyPy'
-if is_pypy:
+if platform.python_implementation() == 'PyPy':
     # Header installation doesn't work on PyPy:
     # https://github.com/zopefoundation/persistent/issues/135
     headers = []
@@ -71,13 +70,5 @@ else:
         'src/persistent/ring.h',
     ]
 
-# setup_requires must be specified in the setup call, when building CFFI
-# modules it's not sufficient to have the requirements in a pyproject.toml
-# [build-system] section.
 setup(ext_modules=ext_modules,
-      cffi_modules=['src/persistent/_ring_build.py:ffi'],
-      headers=headers,
-      setup_requires=[
-          "cffi ; platform_python_implementation == 'CPython'",
-          "pycparser",
-      ])
+      headers=headers)
