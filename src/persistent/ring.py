@@ -22,7 +22,6 @@ _OGA = object.__getattribute__
 _OSA = object.__setattr__
 
 
-
 class IRing(Interface):
     """Conceptually, a doubly-linked list for efficiently keeping track of
     least- and most-recently used :class:`persistent.interfaces.IPersistent`
@@ -148,7 +147,7 @@ class _DequeRing:
 #            if not create:
 #                return None
 #
-#            node = 
+#            node =
 #            gc_ptr = None
 #            _data = (
 #            node,
