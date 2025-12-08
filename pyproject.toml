@@ -4,8 +4,6 @@
 requires = [
     "setuptools",
     "wheel",
-    "cffi; platform_python_implementation == 'CPython'",
-    "pycparser",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -43,7 +41,6 @@ classifiers = [
 dependencies = [
   "zope.deferredimport",
   "zope.interface",
-  "cffi ; platform_python_implementation == 'CPython'",
 ]
 
 [project.optional-dependencies]
@@ -55,6 +52,7 @@ docs = [
 test = [
   "manuel",
   "zope.testrunner >= 6.4",
+  "cffi ; platform_python_implementation == 'CPython'",
 ]
 
 [project.urls]
