@@ -16,14 +16,14 @@ import struct
 import threading
 from unittest import TestCase
 
-from persistent._compat import _c_optimizations_available
-from persistent._compat import _c_optimizations_ignored
+from persistent.tests.utils import skipIfNoCExtension
 
 
 def _make_oid(n):
     return struct.pack(">Q", n)
 
 
+@skipIfNoCExtension
 class ConcurrentCacheTests(TestCase):
     """Test concurrent access to the C PickleCache."""
 
@@ -299,10 +299,3 @@ class _DummyJar:
     def setstate(self, obj):
         # Trivial: just mark as up-to-date
         pass
-
-
-# Only run these tests when C extensions are active (not PURE_PYTHON
-# mode or PyPy), since they specifically test the C PickleCache and
-# C Persistent implementations.
-if _c_optimizations_ignored() or not _c_optimizations_available():
-    del ConcurrentCacheTests
