@@ -1672,7 +1672,7 @@ module_init(void)
 
     module = PyModule_Create(&moduledef);
 
-    ((PyObject*)&Pertype)->ob_type = &PyType_Type;
+    Py_SET_TYPE((PyObject*)&Pertype, &PyType_Type);
     Pertype.tp_new = PyType_GenericNew;
     if (PyType_Ready(&Pertype) < 0)
         return NULL;

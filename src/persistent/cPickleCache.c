@@ -385,7 +385,7 @@ _invalidate(ccobject *self, PyObject *key)
         }
     }
 
-    if (v->ob_refcnt <= 1 && PyType_Check(v))
+    if (Py_REFCNT(v) <= 1 && PyType_Check(v))
     {
         /* This looks wrong, but it isn't. We use strong references to types
             because they don't have the ring members.
@@ -528,17 +528,17 @@ cc_debug_info(ccobject *self)
 
     while (PyDict_Next(self->data, &p, &k, &v))
     {
-        if (v->ob_refcnt <= 0)
-            v = Py_BuildValue("Oi", k, v->ob_refcnt);
+        if (Py_REFCNT(v) <= 0)
+            v = Py_BuildValue("On", k, Py_REFCNT(v));
 
         else if (! PyType_Check(v) &&
                 PER_TypeCheck(v)
                 )
-            v = Py_BuildValue("Oisi",
-                            k, v->ob_refcnt, v->ob_type->tp_name,
+            v = Py_BuildValue("Onsi",
+                            k, Py_REFCNT(v), Py_TYPE(v)->tp_name,
                             ((cPersistentObject*)v)->state);
         else
-            v = Py_BuildValue("Ois", k, v->ob_refcnt, v->ob_type->tp_name);
+            v = Py_BuildValue("Ons", k, Py_REFCNT(v), Py_TYPE(v)->tp_name);
 
         if (v == NULL)
             goto err;
@@ -1070,7 +1070,7 @@ cc_add_item(ccobject *self, PyObject *key, PyObject *v)
         Py_DECREF(oid);
         PyErr_Format(PyExc_TypeError,
                     "Cached object oid must be bytes, not a %s",
-                    oid->ob_type->tp_name);
+                    Py_TYPE(oid)->tp_name);
 
         return -1;
     }
@@ -1226,7 +1226,7 @@ cc_ass_sub(ccobject *self, PyObject *key, PyObject *v)
     {
         PyErr_Format(PyExc_TypeError,
                     "cPickleCache key must be bytes, not a %s",
-                    key->ob_type->tp_name);
+                    Py_TYPE(key)->tp_name);
         return -1;
     }
     if (v)
@@ -1338,7 +1338,7 @@ module_init(void)
 {
   PyObject *module;
 
-    ((PyObject*)&Cctype)->ob_type = &PyType_Type;
+    Py_SET_TYPE((PyObject*)&Cctype, &PyType_Type);
     Cctype.tp_new = &PyType_GenericNew;
     if (PyType_Ready(&Cctype) < 0)
     {
