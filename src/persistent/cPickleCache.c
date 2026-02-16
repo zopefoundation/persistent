@@ -611,7 +611,8 @@ cc_oid_unreferenced(ccobject *self, PyObject *oid)
         when the reference count on a persistent object reaches
         zero. We need to fix up our dictionary; its reference is now
         dangling because we stole its reference count. Be careful to
-        not release the global interpreter lock until this is
+        not release the global interpreter lock (or, in the free-threaded
+        build, not to trigger re-entrant deallocation) until this is
         complete. */
 
     cPersistentObject *dead_pers_obj;
@@ -623,7 +624,16 @@ cc_oid_unreferenced(ccobject *self, PyObject *oid)
 
     dead_pers_obj = (cPersistentObject*)PyDict_GetItem(self->data, oid);
     assert(dead_pers_obj);
+
+    /* In the free-threaded build, Per_dealloc temporarily sets refcount
+       to 2 before calling us, to prevent PyDict_GetItem's internal
+       INCREF/DECREF from triggering recursive deallocation.
+       In the standard (GIL) build, refcount is 0 at this point. */
+#ifdef Py_GIL_DISABLED
+    assert(Py_REFCNT(dead_pers_obj) == 2);
+#else
     assert(Py_REFCNT(dead_pers_obj) == 0);
+#endif
 
     dead_pers_obj_ref_to_self = (ccobject*)dead_pers_obj->cache;
     assert(dead_pers_obj_ref_to_self == self);
@@ -633,7 +643,6 @@ cc_oid_unreferenced(ccobject *self, PyObject *oid)
     */
 
     Py_INCREF(dead_pers_obj);
-    assert(Py_REFCNT(dead_pers_obj) == 1);
     /* Incremement the refcount again, because delitem is going to
         DECREF it.  If its refcount reached zero again, we'd call back to
         the dealloc function that called us.
@@ -644,9 +653,8 @@ cc_oid_unreferenced(ccobject *self, PyObject *oid)
     {
         /* Almost ignore errors if it wasn't already present (somehow;
            that shouldn't be possible since we literally just got it out
-           of this dict and we're holding the GIL and not making any
-           calls that could cause a greenlet switch so the state of the
-           dictionary should not change). We still need to finish the cleanup.
+           of this dict and there should be no concurrent modification).
+           We still need to finish the cleanup.
 
            Just write an unraisable error (like an exception from __del__,
            because that's basically what this is).
@@ -662,7 +670,13 @@ cc_oid_unreferenced(ccobject *self, PyObject *oid)
     Py_DECREF(dead_pers_obj_ref_to_self);
     dead_pers_obj->cache = NULL;
 
+    /* After 2 INCREFs and 1 DECREF (from PyDict_DelItem), the refcount
+       is base + 1 (1 in standard build, 3 in free-threaded build). */
+#ifdef Py_GIL_DISABLED
+    assert(Py_REFCNT(dead_pers_obj) == 3);
+#else
     assert(Py_REFCNT(dead_pers_obj) == 1);
+#endif
 
     /* Don't DECREF the object, because this function is called from
         the object's dealloc function. If the refcnt reaches zero (again), it
