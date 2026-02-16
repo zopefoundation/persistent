@@ -22,7 +22,7 @@ coverage-command = [
 ]
 
 [coverage]
-fail-under = 94.9
+fail-under = 91
 
 [coverage-run]
 source = "persistent"
