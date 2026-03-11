@@ -762,6 +762,7 @@ static void
 Per_dealloc(cPersistentObject *self)
 {
     PyObject_GC_UnTrack((PyObject *)self);
+    Py_TRASHCAN_BEGIN(self, Per_dealloc)
     if (self->state >= 0)
     {
         /* If the cache has been cleared, then a non-ghost object
@@ -778,12 +779,27 @@ Per_dealloc(cPersistentObject *self)
         }
     }
 
+#ifdef Py_GIL_DISABLED
+    /* In the free-threaded build, dict operations (PyDict_GetItem,
+       PyDict_DelItem) internally INCREF/DECREF values for thread safety.
+       The cache dict holds "stolen" (uncounted) references to persistent
+       objects, so their refcount is 0 while in the dict. When
+       percachedel calls PyDict_GetItem, the internal DECREF triggers
+       Per_dealloc recursively on the same object — infinite recursion.
+
+       Temporarily set the refcount to a positive value so the dict
+       operations' INCREF/DECREF cycle does not trigger deallocation. */
+    if (self->cache)
+        Py_SET_REFCNT((PyObject *)self, 2);
+#endif
+
     if (self->cache)
         cPersistenceCAPI->percachedel(self->cache, self->oid);
     Py_XDECREF(self->cache);
     Py_XDECREF(self->jar);
     Py_XDECREF(self->oid);
     Py_TYPE(self)->tp_free(self);
+    Py_TRASHCAN_END
 }
 
 static int
@@ -1672,7 +1688,7 @@ module_init(void)
 
     module = PyModule_Create(&moduledef);
 
-    ((PyObject*)&Pertype)->ob_type = &PyType_Type;
+    Py_SET_TYPE((PyObject*)&Pertype, &PyType_Type);
     Pertype.tp_new = PyType_GenericNew;
     if (PyType_Ready(&Pertype) < 0)
         return NULL;

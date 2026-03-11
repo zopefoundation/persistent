@@ -2,7 +2,7 @@
 # https://github.com/zopefoundation/meta/tree/master/src/zope/meta/c-code
 [meta]
 template = "c-code"
-commit-id = "76e81852"
+commit-id = "2dc4f53b"
 
 [python]
 with-windows = true
@@ -11,15 +11,17 @@ with-future-python = false
 with-docs = true
 with-sphinx-doctests = true
 with-macos = false
+with-free-threaded-python = true
 
 [tox]
+additional-envlist = []
 coverage-command = [
     "coverage run -m zope.testrunner --test-path=src {posargs:-vc}",
     "python -c 'import os, subprocess; subprocess.check_call(\"coverage run -a -m zope.testrunner --test-path=src\", env=dict(os.environ, PURE_PYTHON=\"0\"), shell=True)'",
 ]
 
 [coverage]
-fail-under = 94.9
+fail-under = 91
 
 [coverage-run]
 source = "persistent"

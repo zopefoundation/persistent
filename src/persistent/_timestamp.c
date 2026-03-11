@@ -583,7 +583,7 @@ module_init(void)
     if (module == NULL)
         return NULL;
 
-    ((PyObject*)&TimeStamp_type)->ob_type = &PyType_Type;
+    Py_SET_TYPE((PyObject*)&TimeStamp_type, &PyType_Type);
     TimeStamp_type.tp_getattro = PyObject_GenericGetAttr;
 
     return module;

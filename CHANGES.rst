@@ -4,6 +4,17 @@ Change log
 6.6 (unreleased)
 ----------------
 
+- Fix compilation on free-threaded Python 3.14t: replace direct
+  ``ob_refcnt``/``ob_type`` struct access with ``Py_REFCNT()``/``Py_TYPE()``
+  API macros, fix ``Py_BuildValue`` format strings for ``Py_ssize_t``.
+
+- Fix infinite recursion crash in ``Per_dealloc`` on free-threaded Python
+  3.14t caused by ``PyDict_GetItem`` internally INCREF/DECREF'ing values
+  in the pickle cache dict that holds stolen (uncounted) references.
+  (`#229 <https://github.com/zopefoundation/persistent/issues/229>`_)
+
+- Add CI testing for free-threaded Python 3.14t (Linux).
+
 
 6.5 (2025-11-18)
 ----------------
