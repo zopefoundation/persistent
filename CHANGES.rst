@@ -4,6 +4,10 @@ Change log
 6.6 (unreleased)
 ----------------
 
+- Add support for automatically building and publishing Windows/ARM64 wheels.
+
+- Add support for automatically building and publishing source distributions.
+
 - Fix compilation on free-threaded Python 3.14t: replace direct
   ``ob_refcnt``/``ob_type`` struct access with ``Py_REFCNT()``/``Py_TYPE()``
   API macros, fix ``Py_BuildValue`` format strings for ``Py_ssize_t``.
