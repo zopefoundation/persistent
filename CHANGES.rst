@@ -9,8 +9,9 @@ Change log
 - Add support for automatically building and publishing source distributions.
 
 - Fix compilation on free-threaded Python 3.14t: replace direct
-  ``ob_refcnt``/``ob_type`` struct access with ``Py_REFCNT()``/``Py_TYPE()``
-  API macros, fix ``Py_BuildValue`` format strings for ``Py_ssize_t``.
+  ``ob_refcnt`` / ``ob_type`` struct access with ``Py_REFCNT()`` /
+  ``Py_TYPE()`` API macros, fix ``Py_BuildValue`` format strings for
+  ``Py_ssize_t``.
 
 - Fix infinite recursion crash in ``Per_dealloc`` on free-threaded Python
   3.14t caused by ``PyDict_GetItem`` internally INCREF/DECREF'ing values
