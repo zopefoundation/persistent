@@ -11,7 +11,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "persistent"
-version = "6.6.dev0"
+version = "6.6"
 description = "Translucent persistent objects"
 dynamic = ["readme"]
 requires-python = ">=3.10"
