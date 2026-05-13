@@ -94,6 +94,7 @@ jobs:
           - "3.12"
           - "3.13"
           - "3.14"
+          - "3.15"
         os: [ubuntu-latest, macos-latest, windows-latest, windows-11-arm]
         exclude:
           - os: macos-latest
@@ -149,7 +150,13 @@ jobs:
           key: ${{ runner.os }}-${{ runner.arch }}-pip-${{ matrix.python-version }}
 
 
+      - name: Install Build Dependencies (3.15)
+        if: matrix.python-version == '3.15'
+        run: |
+          pip install -U pip
+          pip install -U "setuptools >= 78.1.1,< 82" wheel twine
       - name: Install Build Dependencies
+        if: matrix.python-version != '3.15'
         run: |
           pip install -U pip
           pip install -U "setuptools >= 78.1.1,< 82" wheel twine
@@ -197,7 +204,15 @@ jobs:
         run: |
           python setup.py sdist
 
+      - name: Install persistent and dependencies (3.15)
+        if: matrix.python-version == '3.15'
+        run: |
+          # Install to collect dependencies into the (pip) cache.
+          # Use "--pre" here because dependencies with support for this future
+          # Python release may only be available as pre-releases
+          pip install --pre .[test]
       - name: Install persistent and dependencies
+        if: matrix.python-version != '3.15'
         run: |
           # Install to collect dependencies into the (pip) cache.
           pip install -U pip "setuptools >= 78.1.1,< 82"
@@ -261,6 +276,7 @@ jobs:
           - "3.12"
           - "3.13"
           - "3.14"
+          - "3.15"
         os: [ubuntu-latest, macos-latest, windows-latest, windows-11-arm]
         exclude:
           - os: macos-latest
@@ -328,7 +344,23 @@ jobs:
         with:
           name: persistent-${{ runner.os }}-${{ matrix.python-version }}-${{ runner.arch }}.whl
           path: dist/
+      - name: Install persistent ${{ matrix.python-version }}
+        if: matrix.python-version == '3.15'
+        run: |
+          pip install -U wheel "setuptools >= 78.1.1,< 82"
+          # coverage might have a wheel on PyPI for a future python version which is
+          # not ABI compatible with the current one, so build it from sdist:
+          pip install -U --no-binary :all: coverage[toml]
+          # Unzip into src/ so that testrunner can find the .so files
+          # when we ask it to load tests from that directory. This
+          # might also save some build time?
+          ls -l dist/
+          unzip -n dist/*.whl -d src
+          # Use "--pre" here because dependencies with support for this future
+          # Python release may only be available as pre-releases
+          pip install --pre -e .[test]
       - name: Install persistent
+        if: matrix.python-version != '3.15'
         run: |
           pip install -U wheel "setuptools >= 78.1.1,< 82"
           pip install -U coverage[toml]
@@ -589,6 +621,9 @@ jobs:
 
       - name: Restore pip cache permissions
         run: sudo chown -R $(whoami) ${{ steps.pip-cache-default.outputs.dir }}
+
+      - name: Prevent publishing wheels for unreleased Python versions
+        run: VER=$(echo '3.15' | tr -d .) && ls -al wheelhouse && sudo rm -f wheelhouse/*-cp${VER}*.whl && ls -al wheelhouse
 
   publish:
     name: Publish to PyPI

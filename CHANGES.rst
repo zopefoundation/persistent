@@ -4,7 +4,7 @@ Change log
 6.7 (unreleased)
 ----------------
 
-- Nothing changed yet.
+- Add preliminary support for Python 3.15b1.
 
 
 6.6 (2026-05-04)
