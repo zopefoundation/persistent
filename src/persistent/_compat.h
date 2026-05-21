@@ -29,4 +29,10 @@
 #define INT_AS_LONG(x) PyLong_AsLong(x)
 #define CAPI_CAPSULE_NAME "persistent.cPersistence.CAPI"
 
+/* PyPy only provides Py_TRASHCAN_SAFE_BEGIN/Py_TRASHCAN_SAFE_END. */
+#ifndef Py_TRASHCAN_BEGIN
+#define Py_TRASHCAN_BEGIN(op, dealloc) Py_TRASHCAN_SAFE_BEGIN(op)
+#define Py_TRASHCAN_END Py_TRASHCAN_SAFE_END(NULL)
+#endif
+
 #endif
