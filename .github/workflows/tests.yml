@@ -106,6 +106,16 @@ jobs:
         include:
           - python-version: "3.14t"
             os: ubuntu-latest
+          - python-version: "3.14t"
+            os: macos-latest
+          - python-version: "3.14t"
+            os: windows-latest
+          - python-version: "3.15t"
+            os: ubuntu-latest
+          - python-version: "3.15t"
+            os: macos-latest
+          - python-version: "3.15t"
+            os: windows-latest
 
     steps:
       - name: checkout
@@ -151,12 +161,12 @@ jobs:
 
 
       - name: Install Build Dependencies (3.15)
-        if: matrix.python-version == '3.15'
+        if: startsWith(matrix.python-version, '3.15')
         run: |
           pip install -U pip
           pip install -U "setuptools >= 78.1.1,< 82" wheel twine cffi pycparser
       - name: Install Build Dependencies
-        if: matrix.python-version != '3.15'
+        if: ${{ !startsWith(matrix.python-version, '3.15') }}
         run: |
           pip install -U pip
           pip install -U "setuptools >= 78.1.1,< 82" wheel twine
@@ -205,14 +215,14 @@ jobs:
           python setup.py sdist
 
       - name: Install persistent and dependencies (3.15)
-        if: matrix.python-version == '3.15'
+        if: startsWith(matrix.python-version, '3.15')
         run: |
           # Install to collect dependencies into the (pip) cache.
           # Use "--pre" here because dependencies with support for this future
           # Python release may only be available as pre-releases
           pip install --pre .[test]
       - name: Install persistent and dependencies
-        if: matrix.python-version != '3.15'
+        if: ${{ !startsWith(matrix.python-version, '3.15') }}
         run: |
           # Install to collect dependencies into the (pip) cache.
           pip install -U pip "setuptools >= 78.1.1,< 82"
@@ -221,6 +231,9 @@ jobs:
       - name: Check persistent build
         run: |
           ls -l dist
+      - name: Check persistent build (twine)
+        if: ${{ !endsWith(matrix.python-version, 't') }}
+        run: |
           twine check dist/*
       - name: Upload persistent wheel (macOS x86_64)
         if: >
@@ -288,6 +301,16 @@ jobs:
         include:
           - python-version: "3.14t"
             os: ubuntu-latest
+          - python-version: "3.14t"
+            os: macos-latest
+          - python-version: "3.14t"
+            os: windows-latest
+          - python-version: "3.15t"
+            os: ubuntu-latest
+          - python-version: "3.15t"
+            os: macos-latest
+          - python-version: "3.15t"
+            os: windows-latest
 
     steps:
       - name: checkout
@@ -345,7 +368,7 @@ jobs:
           name: persistent-${{ runner.os }}-${{ matrix.python-version }}-${{ runner.arch }}.whl
           path: dist/
       - name: Install persistent ${{ matrix.python-version }}
-        if: matrix.python-version == '3.15'
+        if: startsWith(matrix.python-version, '3.15')
         run: |
           pip install -U wheel "setuptools >= 78.1.1,< 82"
           # coverage might have a wheel on PyPI for a future python version which is
@@ -360,7 +383,7 @@ jobs:
           # Python release may only be available as pre-releases
           pip install --pre -e .[test]
       - name: Install persistent
-        if: matrix.python-version != '3.15'
+        if: ${{ !startsWith(matrix.python-version, '3.15') }}
         run: |
           pip install -U wheel "setuptools >= 78.1.1,< 82"
           pip install -U coverage[toml]
