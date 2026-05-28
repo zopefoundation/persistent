@@ -163,7 +163,7 @@ class PickleCacheTestMixin:
         with self.assertRaises(ValueError):
             cache[KEY] = duplicate
 
-    def test___setitem___ghost(self):
+    def _check___setitem___ghost(self):
         from persistent.interfaces import GHOST
 
         KEY = b'ghost'
@@ -180,6 +180,9 @@ class PickleCacheTestMixin:
         self.assertIs(items[0][1], ghost)
         self.assertIs(cache[KEY], ghost)
         return cache
+
+    def test___setitem___ghost(self):
+        self._check___setitem___ghost()
 
     def test___setitem___mismatch_key_oid(self):
         KEY = b'uptodate'
@@ -206,7 +209,7 @@ class PickleCacheTestMixin:
         self.assertIs(cache[KEY], uptodate)
         self.assertIs(cache.get(KEY), uptodate)
 
-    def test___setitem___persistent_class(self):
+    def _check___setitem___persistent_class(self):
 
         KEY = b'pclass'
 
@@ -226,6 +229,9 @@ class PickleCacheTestMixin:
         self.assertIs(cache.get(KEY), pclass)
         return cache
 
+    def test___setitem___persistent_class(self):
+        self._check___setitem___persistent_class()
+
     def test___delitem___non_string_oid_raises_TypeError(self):
         cache = self._makeOne()
 
@@ -239,7 +245,7 @@ class PickleCacheTestMixin:
         with self.assertRaises(KeyError):
             del cache[b'nonesuch']
 
-    def test___delitem___w_persistent_class(self):
+    def _check___delitem___w_persistent_class(self):
 
         KEY = b'pclass'
         cache = self._makeOne()
@@ -254,6 +260,9 @@ class PickleCacheTestMixin:
         self.assertIs(cache.get(KEY, self), self)
         self.assertEqual(cache.ringlen(), 0)
         return cache, KEY
+
+    def test___delitem___w_persistent_class(self):
+        self._check___delitem___w_persistent_class()
 
     def test___delitem___w_normal_object(self):
         KEY = b'uptodate'
@@ -514,7 +523,7 @@ class PickleCacheTestMixin:
         with self.assertRaises(ValueError):
             cache.new_ghost(b'123', candidate)
 
-    def test_new_ghost_obj_already_in_cache(self):
+    def _check_new_ghost_obj_already_in_cache(self):
         KEY = b'123'
         cache = self._makeOne()
         candidate = self._makePersist(oid=KEY)
@@ -524,6 +533,9 @@ class PickleCacheTestMixin:
         # a ghost, we get the value error
         self.assertRaises(ValueError, cache.new_ghost, KEY, candidate)
         return cache, KEY, candidate
+
+    def test_new_ghost_obj_already_in_cache(self):
+        self._check_new_ghost_obj_already_in_cache()
 
     def test_new_ghost_success_already_ghost(self):
         from persistent.interfaces import GHOST
@@ -551,7 +563,22 @@ class PickleCacheTestMixin:
         self.assertEqual(candidate._p_jar, jar)
         self.assertEqual(candidate._p_state, GHOST)
 
+    def _check_new_ghost_w_pclass_non_ghost(self):
+        KEY = b'123'
+
+        class Pclass:
+            _p_oid = None
+            _p_jar = None
+        cache = self._makeOne()
+        cache.new_ghost(KEY, Pclass)
+        self.assertIs(cache.get(KEY), Pclass)
+        self.assertEqual(Pclass._p_oid, KEY)
+        return cache, Pclass, KEY
+
     def test_new_ghost_w_pclass_non_ghost(self):
+        self._check_new_ghost_w_pclass_non_ghost()
+
+    def _check_new_ghost_w_pclass_ghost(self):
         KEY = b'123'
 
         class Pclass:
@@ -564,16 +591,7 @@ class PickleCacheTestMixin:
         return cache, Pclass, KEY
 
     def test_new_ghost_w_pclass_ghost(self):
-        KEY = b'123'
-
-        class Pclass:
-            _p_oid = None
-            _p_jar = None
-        cache = self._makeOne()
-        cache.new_ghost(KEY, Pclass)
-        self.assertIs(cache.get(KEY), Pclass)
-        self.assertEqual(Pclass._p_oid, KEY)
-        return cache, Pclass, KEY
+        self._check_new_ghost_w_pclass_ghost()
 
     def test_invalidate_miss_single(self):
         KEY = b'123'
@@ -618,7 +636,7 @@ class PickleCacheTestMixin:
         self.assertEqual(c1._p_state, GHOST)
         self.assertEqual(c2._p_state, GHOST)
 
-    def test_debug_info_w_persistent_class(self):
+    def _check_debug_info_w_persistent_class(self):
         KEY = b'pclass'
 
         class pclass:
@@ -642,7 +660,10 @@ class PickleCacheTestMixin:
 
         return pclass, info[0]
 
-    def test_debug_info_w_normal_object(self):
+    def test_debug_info_w_persistent_class(self):
+        self._check_debug_info_w_persistent_class()
+
+    def _check_debug_info_w_normal_object(self):
         KEY = b'uptodate'
         cache = self._makeOne()
         uptodate = self._makePersist(state=UPTODATE, oid=KEY)
@@ -660,7 +681,10 @@ class PickleCacheTestMixin:
         self.assertEqual(typ, type(uptodate).__name__)
         return uptodate, info[0]
 
-    def test_debug_info_w_ghost(self):
+    def test_debug_info_w_normal_object(self):
+        self._check_debug_info_w_normal_object()
+
+    def _check_debug_info_w_ghost(self):
         from persistent.interfaces import GHOST
 
         KEY = b'ghost'
@@ -679,6 +703,9 @@ class PickleCacheTestMixin:
         # directly.
         self.assertEqual(state, ghost._p_state)
         return ghost, info[0]
+
+    def test_debug_info_w_ghost(self):
+        self._check_debug_info_w_ghost()
 
     def test_setting_non_persistent_item(self):
         cache = self._makeOne()
@@ -829,24 +856,24 @@ class PythonPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
         self.assertFalse(updated)
 
     def test___delitem___w_persistent_class(self):
-        cache, key = super().test___delitem___w_persistent_class()
+        cache, key = self._check___delitem___w_persistent_class()
         self.assertNotIn(key, cache.persistent_classes)
 
     def test___setitem___ghost(self):
-        cache = super().test___setitem___ghost()
+        cache = self._check___setitem___ghost()
         self.assertEqual(cache.ringlen(), 0)
 
     def test___setitem___persistent_class(self):
-        cache = super().test___setitem___persistent_class()
+        cache = self._check___setitem___persistent_class()
         self.assertEqual(_len(cache.items()), 0)
 
     def test_new_ghost_w_pclass_non_ghost(self):
-        cache, Pclass, key = super().test_new_ghost_w_pclass_non_ghost()
+        cache, Pclass, key = self._check_new_ghost_w_pclass_non_ghost()
         self.assertEqual(Pclass._p_jar, cache.jar)
         self.assertIs(cache.persistent_classes[key], Pclass)
 
     def test_new_ghost_w_pclass_ghost(self):
-        cache, Pclass, key = super().test_new_ghost_w_pclass_ghost()
+        cache, Pclass, key = self._check_new_ghost_w_pclass_ghost()
         self.assertEqual(Pclass._p_jar, cache.jar)
         self.assertIs(cache.persistent_classes[key], Pclass)
 
@@ -964,16 +991,16 @@ class PythonPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
         self.assertNotIn(KEY, cache.persistent_classes)
 
     def test_debug_info_w_normal_object(self):
-        obj, info = super().test_debug_info_w_normal_object()
+        obj, info = self._check_debug_info_w_normal_object()
         self.assertEqual(info[1], len(gc.get_referents(obj)))
         self.assertEqual(info[3], UPTODATE)
 
     def test_debug_info_w_ghost(self):
-        ghost, info = super().test_debug_info_w_ghost()
+        ghost, info = self._check_debug_info_w_ghost()
         self.assertEqual(info[1], len(gc.get_referents(ghost)))
 
     def test_debug_info_w_persistent_class(self):
-        pclass, info = super().test_debug_info_w_persistent_class()
+        pclass, info = self._check_debug_info_w_persistent_class()
         self.assertEqual(info[3], UPTODATE)
         self.assertEqual(info[1], len(gc.get_referents(pclass)))
 
@@ -1138,8 +1165,7 @@ class PythonPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
         self.assertEqual(len(cache), 1)
 
     def test_new_ghost_obj_already_in_cache(self):
-        base_result = super().test_new_ghost_obj_already_in_cache()
-        cache, key, candidate = base_result
+        cache, key, candidate = self._check_new_ghost_obj_already_in_cache()
         # If we're sneaky and remove the OID and jar, then we get the duplicate
         # key error. Removing them only works because we're not using a real
         # persistent object.
@@ -1264,7 +1290,7 @@ class CPickleCacheTests(PickleCacheTestMixin, unittest.TestCase):
             verifyObject(IExtendedPickleCache, self._makeOne(), tentative=True)
 
     def test___setitem___persistent_class(self):
-        cache = super().test___setitem___persistent_class()
+        cache = self._check___setitem___persistent_class()
         self.assertEqual(_len(cache.items()), 1)
 
     def test_cache_garbage_collection_bytes_with_cache_size_0(self):
