@@ -8,6 +8,9 @@ Change log
   values from test methods in ``test_picklecache.py``.
   (`#235 <https://github.com/zopefoundation/persistent/issues/235>`_)
 
+- Bump timeout in ``test_rapid_create_destroy_cycle`` to allow more headroom
+  on slow architectures.
+
 
 6.7 (2026-05-26)
 ----------------

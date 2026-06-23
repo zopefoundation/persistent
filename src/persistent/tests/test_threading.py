@@ -279,7 +279,7 @@ class ConcurrentCacheTests(TestCase):
         for t in threads:
             t.start()
         for t in threads:
-            t.join(timeout=30)
+            t.join(timeout=60)
             self.assertFalse(t.is_alive(), "Thread hung")
         self.assertEqual(errors, [], f"Errors in threads: {errors}")
 
