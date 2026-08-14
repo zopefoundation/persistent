@@ -46,6 +46,13 @@ on:
   # Allow to run this workflow manually from the Actions tab
   workflow_dispatch:
 
+defaults:
+  run:
+    # ``pwsh`` propagates only the exit code of the *last* command of a
+    # multi-command block, so failures on Windows go unnoticed. ``bash``
+    # runs with ``-eo pipefail`` and aborts the step on the first failure.
+    shell: bash
+
 env:
   # Weirdly, this has to be a top-level key, not ``defaults.env``
   PYTHONHASHSEED: 8675309
@@ -119,11 +126,11 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
@@ -133,42 +140,36 @@ jobs:
       # to save the cache. So it must come before the thing we want to use
       # the cache.
       ###
-      - name: Get pip cache dir (default)
-        id: pip-cache-default
-        if: ${{ !startsWith(runner.os, 'Windows') }}
+      - name: Get pip cache epoch
+        id: pip-cache-epoch
+        # ``actions/cache`` never replaces an entry: "if the provided key
+        # matches an existing cache, a new cache is not created". A corrupt
+        # entry would therefore break every run that restores it until GitHub
+        # evicts it. Rotating the key weekly abandons such an entry instead.
         run: |
-          echo "dir=$(pip cache dir)" >>$GITHUB_OUTPUT
+          echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
 
-      - name: Get pip cache dir (Windows)
-        id: pip-cache-windows
-        if: ${{ startsWith(runner.os, 'Windows') }}
+      - name: Get pip cache dir
+        id: pip-cache
         run: |
-          echo "dir=$(pip cache dir)" >> $Env:GITHUB_OUTPUT
+          echo "dir=$(pip cache dir)" >> "$GITHUB_OUTPUT"
 
-      - name: pip cache (default)
+      - name: pip cache
         uses: actions/cache@v5
-        if: ${{ !startsWith(runner.os, 'Windows') }}
         with:
-          path: ${{ steps.pip-cache-default.outputs.dir }}
-          key: ${{ runner.os }}-${{ runner.arch }}-pip-${{ matrix.python-version }}
-
-      - name: pip cache (Windows)
-        uses: actions/cache@v5
-        if: ${{ startsWith(runner.os, 'Windows') }}
-        with:
-          path: ${{ steps.pip-cache-windows.outputs.dir }}
-          key: ${{ runner.os }}-${{ runner.arch }}-pip-${{ matrix.python-version }}
+          path: ${{ steps.pip-cache.outputs.dir }}
+          key: ${{ runner.os }}-${{ runner.arch }}-pip-${{ matrix.python-version }}-${{ steps.pip-cache-epoch.outputs.week }}
 
 
       - name: Install Build Dependencies (3.15)
         if: startsWith(matrix.python-version, '3.15')
         run: |
-          pip install -U pip
+          python -m pip install -U pip
           pip install -U "setuptools >= 78.1.1,< 82" wheel twine cffi pycparser
       - name: Install Build Dependencies
         if: ${{ !startsWith(matrix.python-version, '3.15') }}
         run: |
-          pip install -U pip
+          python -m pip install -U pip
           pip install -U "setuptools >= 78.1.1,< 82" wheel twine
 
       - name: Build persistent (macOS x86_64)
@@ -225,7 +226,7 @@ jobs:
         if: ${{ !startsWith(matrix.python-version, '3.15') }}
         run: |
           # Install to collect dependencies into the (pip) cache.
-          pip install -U pip "setuptools >= 78.1.1,< 82"
+          python -m pip install -U pip "setuptools >= 78.1.1,< 82"
           pip install .[test]
 
       - name: Check persistent build
@@ -314,11 +315,11 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
@@ -328,31 +329,25 @@ jobs:
       # to save the cache. So it must come before the thing we want to use
       # the cache.
       ###
-      - name: Get pip cache dir (default)
-        id: pip-cache-default
-        if: ${{ !startsWith(runner.os, 'Windows') }}
+      - name: Get pip cache epoch
+        id: pip-cache-epoch
+        # ``actions/cache`` never replaces an entry: "if the provided key
+        # matches an existing cache, a new cache is not created". A corrupt
+        # entry would therefore break every run that restores it until GitHub
+        # evicts it. Rotating the key weekly abandons such an entry instead.
         run: |
-          echo "dir=$(pip cache dir)" >>$GITHUB_OUTPUT
+          echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
 
-      - name: Get pip cache dir (Windows)
-        id: pip-cache-windows
-        if: ${{ startsWith(runner.os, 'Windows') }}
+      - name: Get pip cache dir
+        id: pip-cache
         run: |
-          echo "dir=$(pip cache dir)" >> $Env:GITHUB_OUTPUT
+          echo "dir=$(pip cache dir)" >> "$GITHUB_OUTPUT"
 
-      - name: pip cache (default)
+      - name: pip cache
         uses: actions/cache@v5
-        if: ${{ !startsWith(runner.os, 'Windows') }}
         with:
-          path: ${{ steps.pip-cache-default.outputs.dir }}
-          key: ${{ runner.os }}-${{ runner.arch }}-pip-${{ matrix.python-version }}
-
-      - name: pip cache (Windows)
-        uses: actions/cache@v5
-        if: ${{ startsWith(runner.os, 'Windows') }}
-        with:
-          path: ${{ steps.pip-cache-windows.outputs.dir }}
-          key: ${{ runner.os }}-${{ runner.arch }}-pip-${{ matrix.python-version }}
+          path: ${{ steps.pip-cache.outputs.dir }}
+          key: ${{ runner.os }}-${{ runner.arch }}-pip-${{ matrix.python-version }}-${{ steps.pip-cache-epoch.outputs.week }}
 
       - name: Download persistent wheel (Linux/macOS)
         if: "!startsWith(runner.os, 'Windows')"
@@ -434,11 +429,11 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
@@ -448,31 +443,25 @@ jobs:
       # to save the cache. So it must come before the thing we want to use
       # the cache.
       ###
-      - name: Get pip cache dir (default)
-        id: pip-cache-default
-        if: ${{ !startsWith(runner.os, 'Windows') }}
+      - name: Get pip cache epoch
+        id: pip-cache-epoch
+        # ``actions/cache`` never replaces an entry: "if the provided key
+        # matches an existing cache, a new cache is not created". A corrupt
+        # entry would therefore break every run that restores it until GitHub
+        # evicts it. Rotating the key weekly abandons such an entry instead.
         run: |
-          echo "dir=$(pip cache dir)" >>$GITHUB_OUTPUT
+          echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
 
-      - name: Get pip cache dir (Windows)
-        id: pip-cache-windows
-        if: ${{ startsWith(runner.os, 'Windows') }}
+      - name: Get pip cache dir
+        id: pip-cache
         run: |
-          echo "dir=$(pip cache dir)" >> $Env:GITHUB_OUTPUT
+          echo "dir=$(pip cache dir)" >> "$GITHUB_OUTPUT"
 
-      - name: pip cache (default)
+      - name: pip cache
         uses: actions/cache@v5
-        if: ${{ !startsWith(runner.os, 'Windows') }}
         with:
-          path: ${{ steps.pip-cache-default.outputs.dir }}
-          key: ${{ runner.os }}-${{ runner.arch }}-pip-${{ matrix.python-version }}
-
-      - name: pip cache (Windows)
-        uses: actions/cache@v5
-        if: ${{ startsWith(runner.os, 'Windows') }}
-        with:
-          path: ${{ steps.pip-cache-windows.outputs.dir }}
-          key: ${{ runner.os }}-${{ runner.arch }}-pip-${{ matrix.python-version }}
+          path: ${{ steps.pip-cache.outputs.dir }}
+          key: ${{ runner.os }}-${{ runner.arch }}-pip-${{ matrix.python-version }}-${{ steps.pip-cache-epoch.outputs.week }}
 
       - name: Download persistent wheel
         uses: actions/download-artifact@v8
@@ -501,11 +490,11 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
@@ -515,31 +504,25 @@ jobs:
       # to save the cache. So it must come before the thing we want to use
       # the cache.
       ###
-      - name: Get pip cache dir (default)
-        id: pip-cache-default
-        if: ${{ !startsWith(runner.os, 'Windows') }}
+      - name: Get pip cache epoch
+        id: pip-cache-epoch
+        # ``actions/cache`` never replaces an entry: "if the provided key
+        # matches an existing cache, a new cache is not created". A corrupt
+        # entry would therefore break every run that restores it until GitHub
+        # evicts it. Rotating the key weekly abandons such an entry instead.
         run: |
-          echo "dir=$(pip cache dir)" >>$GITHUB_OUTPUT
+          echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
 
-      - name: Get pip cache dir (Windows)
-        id: pip-cache-windows
-        if: ${{ startsWith(runner.os, 'Windows') }}
+      - name: Get pip cache dir
+        id: pip-cache
         run: |
-          echo "dir=$(pip cache dir)" >> $Env:GITHUB_OUTPUT
+          echo "dir=$(pip cache dir)" >> "$GITHUB_OUTPUT"
 
-      - name: pip cache (default)
+      - name: pip cache
         uses: actions/cache@v5
-        if: ${{ !startsWith(runner.os, 'Windows') }}
         with:
-          path: ${{ steps.pip-cache-default.outputs.dir }}
-          key: ${{ runner.os }}-${{ runner.arch }}-pip-${{ matrix.python-version }}
-
-      - name: pip cache (Windows)
-        uses: actions/cache@v5
-        if: ${{ startsWith(runner.os, 'Windows') }}
-        with:
-          path: ${{ steps.pip-cache-windows.outputs.dir }}
-          key: ${{ runner.os }}-${{ runner.arch }}-pip-${{ matrix.python-version }}
+          path: ${{ steps.pip-cache.outputs.dir }}
+          key: ${{ runner.os }}-${{ runner.arch }}-pip-${{ matrix.python-version }}-${{ steps.pip-cache-epoch.outputs.week }}
 
       - name: Download persistent wheel
         uses: actions/download-artifact@v8
@@ -575,11 +558,11 @@ jobs:
             python-version: "3.13"
     steps:
       - name: checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
@@ -589,35 +572,29 @@ jobs:
       # to save the cache. So it must come before the thing we want to use
       # the cache.
       ###
-      - name: Get pip cache dir (default)
-        id: pip-cache-default
-        if: ${{ !startsWith(runner.os, 'Windows') }}
+      - name: Get pip cache epoch
+        id: pip-cache-epoch
+        # ``actions/cache`` never replaces an entry: "if the provided key
+        # matches an existing cache, a new cache is not created". A corrupt
+        # entry would therefore break every run that restores it until GitHub
+        # evicts it. Rotating the key weekly abandons such an entry instead.
         run: |
-          echo "dir=$(pip cache dir)" >>$GITHUB_OUTPUT
+          echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
 
-      - name: Get pip cache dir (Windows)
-        id: pip-cache-windows
-        if: ${{ startsWith(runner.os, 'Windows') }}
+      - name: Get pip cache dir
+        id: pip-cache
         run: |
-          echo "dir=$(pip cache dir)" >> $Env:GITHUB_OUTPUT
+          echo "dir=$(pip cache dir)" >> "$GITHUB_OUTPUT"
 
-      - name: pip cache (default)
+      - name: pip cache
         uses: actions/cache@v5
-        if: ${{ !startsWith(runner.os, 'Windows') }}
         with:
-          path: ${{ steps.pip-cache-default.outputs.dir }}
-          key: ${{ runner.os }}-pip_manylinux-${{ matrix.image }}-${{ matrix.python-version }}
-
-      - name: pip cache (Windows)
-        uses: actions/cache@v5
-        if: ${{ startsWith(runner.os, 'Windows') }}
-        with:
-          path: ${{ steps.pip-cache-windows.outputs.dir }}
-          key: ${{ runner.os }}-pip_manylinux-${{ matrix.image }}-${{ matrix.python-version }}
+          path: ${{ steps.pip-cache.outputs.dir }}
+          key: ${{ runner.os }}-pip_manylinux-${{ matrix.image }}-${{ matrix.python-version }}-${{ steps.pip-cache-epoch.outputs.week }}
 
 
       - name: Update pip
-        run: pip install -U pip
+        run: python -m pip install -U pip
 
       - name: Build persistent
         if: matrix.image != 'manylinux2014_i686'
@@ -643,7 +620,7 @@ jobs:
           name: manylinux_${{ matrix.image }}_wheels.zip
 
       - name: Restore pip cache permissions
-        run: sudo chown -R $(whoami) ${{ steps.pip-cache-default.outputs.dir }}
+        run: sudo chown -R $(whoami) ${{ steps.pip-cache.outputs.dir }}
 
       - name: Prevent publishing wheels for unreleased Python versions
         run: VER=$(echo '3.15' | tr -d .) && ls -al wheelhouse && sudo rm -f wheelhouse/*-cp${VER}*.whl && ls -al wheelhouse
@@ -688,7 +665,7 @@ jobs:
           find dist/ -name "*linux_x86_64*" -type f -delete || true
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33  # v1.14.2
         with:
           skip-existing: true
           packages-dir: dist/
