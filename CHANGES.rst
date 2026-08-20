@@ -4,6 +4,8 @@ Change log
 6.8 (unreleased)
 ----------------
 
+- Add support for Python 3.15.
+
 - Fix ``DeprecationWarning`` on Python 3.14+ about returning non-``None``
   values from test methods in ``test_picklecache.py``.
   (`#235 <https://github.com/zopefoundation/persistent/issues/235>`_)
