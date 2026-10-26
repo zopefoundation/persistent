@@ -22,5 +22,5 @@ This package provides one implementation of :class:`IPersistent` that
 should be extended.
 
   .. autoclass:: persistent.Persistent
-				 :members:
-				 :show-inheritance:
+   :members:
+   :show-inheritance:

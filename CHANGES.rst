@@ -6,6 +6,10 @@ Change log
 
 - Build and publish PyPy wheels for macOS, Windows and manylinux.
 
+- Add support for Python 3.15.
+
+- Drop support for Python 3.10.
+
 6.8 (2026-08-20)
 ----------------
 
