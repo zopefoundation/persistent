@@ -65,7 +65,7 @@ Our sample class takes initial values as keyword arguments to the constructor:
    >>> o = VeryPrivate(x=1)
 
 
-Hooking :meth:`__getattribute__``
+Hooking :meth:`__getattribute__`
 #################################
 
 The :meth:`__getattribute__` method is called for all attribute
@@ -125,7 +125,7 @@ It works for missing attributes too:
    False
 
 
-Hooking :meth:`__setattr__``
+Hooking :meth:`__setattr__`
 ############################
 
 The :meth:`__setattr__` method is called for all attribute
@@ -219,7 +219,7 @@ object as changed if the name starts with ``tmp_``:
    3
 
 
-Hooking :meth:`__delattr__``
+Hooking :meth:`__delattr__`
 ############################
 
 The __delattr__ method is called for all attribute
