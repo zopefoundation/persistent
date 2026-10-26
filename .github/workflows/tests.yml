@@ -549,8 +549,8 @@ jobs:
     runs-on: ubuntu-latest
     # Only publish on tag pushes
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
-    # Wait for both build jobs to complete
-    needs: [build-package, manylinux]
+    # Only publish if the packages were built and the tests passed
+    needs: [build-package, manylinux, test, docs, release-check]
     environment:
       name: pypi
       url: https://pypi.org/p/persistent
@@ -581,7 +581,7 @@ jobs:
           find dist/ -name "*linux_x86_64*" -type f -delete || true
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33  # v1.14.2
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086  # v1.14.3
         with:
           skip-existing: true
           packages-dir: dist/
