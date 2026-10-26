@@ -4,6 +4,7 @@ Change log
 6.9 (unreleased)
 ----------------
 
+- Build and publish PyPy wheels for macOS, Windows and manylinux.
 
 6.8 (2026-08-20)
 ----------------
