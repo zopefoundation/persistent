@@ -96,11 +96,12 @@ jobs:
       matrix:
         python-version:
           - "pypy-3.11"
-          - "3.10"
           - "3.11"
           - "3.12"
           - "3.13"
+          - "3.14t"
           - "3.14"
+          - "3.15t"
           - "3.15"
         os: [ubuntu-latest, macos-latest, windows-latest, windows-11-arm]
         exclude:
@@ -108,21 +109,6 @@ jobs:
             python-version: "pypy-3.11"
           - os: windows-11-arm
             python-version: "pypy-3.11"
-          - os: windows-11-arm
-            python-version: "3.10"
-        include:
-          - python-version: "3.14t"
-            os: ubuntu-latest
-          - python-version: "3.14t"
-            os: macos-latest
-          - python-version: "3.14t"
-            os: windows-latest
-          - python-version: "3.15t"
-            os: ubuntu-latest
-          - python-version: "3.15t"
-            os: macos-latest
-          - python-version: "3.15t"
-            os: windows-latest
 
     steps:
       - name: checkout
@@ -140,15 +126,6 @@ jobs:
       # to save the cache. So it must come before the thing we want to use
       # the cache.
       ###
-      - name: Get pip cache epoch
-        id: pip-cache-epoch
-        # ``actions/cache`` never replaces an entry: "if the provided key
-        # matches an existing cache, a new cache is not created". A corrupt
-        # entry would therefore break every run that restores it until GitHub
-        # evicts it. Rotating the key weekly abandons such an entry instead.
-        run: |
-          echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
-
       - name: Get pip cache dir
         id: pip-cache
         run: |
@@ -158,19 +135,18 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-${{ runner.arch }}-pip-${{ matrix.python-version }}-${{ steps.pip-cache-epoch.outputs.week }}
+          key: ${{ runner.os }}-${{ runner.arch }}-pip-${{ matrix.python-version }}
 
-
-      - name: Install Build Dependencies (3.15)
-        if: startsWith(matrix.python-version, '3.15')
-        run: |
-          python -m pip install -U pip
-          pip install -U "setuptools >= 78.1.1,< 82" wheel twine cffi pycparser
       - name: Install Build Dependencies
-        if: ${{ !startsWith(matrix.python-version, '3.15') }}
         run: |
-          python -m pip install -U pip
-          pip install -U "setuptools >= 78.1.1,< 82" wheel twine
+          # PyPI downloads are occasionally cut off mid-transfer, which makes
+          # pip fail with ``IncompleteRead``. pip does not retry a truncated
+          # download, so retry the complete command. Purge pip's cache before
+          # the last attempt: should a truncated download ever get *cached*,
+          # it would fail every attempt in the same way.
+          retry() { for i in 1 2; do "$@" && return 0; echo "Attempt $i failed, retrying in 15s ..."; sleep 15; done; pip cache purge || true; "$@"; }
+          retry python -m pip install -U pip
+          retry pip install -U "setuptools >= 78.1.1,< 82" wheel twine
 
       - name: Build persistent (macOS x86_64)
         if: >
@@ -211,23 +187,21 @@ jobs:
       - name: Create persistent sdist
         if: >
           startsWith(runner.os, 'Linux')
-          && matrix.python-version == '3.14'
+          && matrix.python-version == '3.15'
         run: |
           python setup.py sdist
 
-      - name: Install persistent and dependencies (3.15)
-        if: startsWith(matrix.python-version, '3.15')
-        run: |
-          # Install to collect dependencies into the (pip) cache.
-          # Use "--pre" here because dependencies with support for this future
-          # Python release may only be available as pre-releases
-          pip install --pre .[test]
       - name: Install persistent and dependencies
-        if: ${{ !startsWith(matrix.python-version, '3.15') }}
         run: |
+          # PyPI downloads are occasionally cut off mid-transfer, which makes
+          # pip fail with ``IncompleteRead``. pip does not retry a truncated
+          # download, so retry the complete command. Purge pip's cache before
+          # the last attempt: should a truncated download ever get *cached*,
+          # it would fail every attempt in the same way.
+          retry() { for i in 1 2; do "$@" && return 0; echo "Attempt $i failed, retrying in 15s ..."; sleep 15; done; pip cache purge || true; "$@"; }
           # Install to collect dependencies into the (pip) cache.
-          python -m pip install -U pip "setuptools >= 78.1.1,< 82"
-          pip install .[test]
+          retry python -m pip install -U pip "setuptools >= 78.1.1,< 82"
+          retry pip install .[test]
 
       - name: Check persistent build
         run: |
@@ -271,7 +245,7 @@ jobs:
       - name: Upload persistent sdist
         if: >
           startsWith(runner.os, 'Linux')
-          && matrix.python-version == '3.14'
+          && matrix.python-version == '3.15'
         uses: actions/upload-artifact@v7
         with:
           name: persistent.tar.gz
@@ -285,11 +259,12 @@ jobs:
       matrix:
         python-version:
           - "pypy-3.11"
-          - "3.10"
           - "3.11"
           - "3.12"
           - "3.13"
+          - "3.14t"
           - "3.14"
+          - "3.15t"
           - "3.15"
         os: [ubuntu-latest, macos-latest, windows-latest, windows-11-arm]
         exclude:
@@ -297,21 +272,6 @@ jobs:
             python-version: "pypy-3.11"
           - os: windows-11-arm
             python-version: "pypy-3.11"
-          - os: windows-11-arm
-            python-version: "3.10"
-        include:
-          - python-version: "3.14t"
-            os: ubuntu-latest
-          - python-version: "3.14t"
-            os: macos-latest
-          - python-version: "3.14t"
-            os: windows-latest
-          - python-version: "3.15t"
-            os: ubuntu-latest
-          - python-version: "3.15t"
-            os: macos-latest
-          - python-version: "3.15t"
-            os: windows-latest
 
     steps:
       - name: checkout
@@ -329,15 +289,6 @@ jobs:
       # to save the cache. So it must come before the thing we want to use
       # the cache.
       ###
-      - name: Get pip cache epoch
-        id: pip-cache-epoch
-        # ``actions/cache`` never replaces an entry: "if the provided key
-        # matches an existing cache, a new cache is not created". A corrupt
-        # entry would therefore break every run that restores it until GitHub
-        # evicts it. Rotating the key weekly abandons such an entry instead.
-        run: |
-          echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
-
       - name: Get pip cache dir
         id: pip-cache
         run: |
@@ -347,8 +298,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-${{ runner.arch }}-pip-${{ matrix.python-version }}-${{ steps.pip-cache-epoch.outputs.week }}
-
+          key: ${{ runner.os }}-${{ runner.arch }}-pip-${{ matrix.python-version }}
       - name: Download persistent wheel (Linux/macOS)
         if: "!startsWith(runner.os, 'Windows')"
         uses: actions/download-artifact@v8
@@ -362,33 +312,23 @@ jobs:
         with:
           name: persistent-${{ runner.os }}-${{ matrix.python-version }}-${{ runner.arch }}.whl
           path: dist/
-      - name: Install persistent ${{ matrix.python-version }}
-        if: startsWith(matrix.python-version, '3.15')
-        run: |
-          pip install -U wheel "setuptools >= 78.1.1,< 82"
-          # coverage might have a wheel on PyPI for a future python version which is
-          # not ABI compatible with the current one, so build it from sdist:
-          pip install -U --no-binary :all: coverage[toml]
-          # Unzip into src/ so that testrunner can find the .so files
-          # when we ask it to load tests from that directory. This
-          # might also save some build time?
-          ls -l dist/
-          unzip -n dist/*.whl -d src
-          # Use "--pre" here because dependencies with support for this future
-          # Python release may only be available as pre-releases
-          pip install --pre -e .[test]
       - name: Install persistent
-        if: ${{ !startsWith(matrix.python-version, '3.15') }}
         run: |
-          pip install -U wheel "setuptools >= 78.1.1,< 82"
-          pip install -U coverage[toml]
-          pip install -U 'cffi; platform_python_implementation == "CPython"'
+          # PyPI downloads are occasionally cut off mid-transfer, which makes
+          # pip fail with ``IncompleteRead``. pip does not retry a truncated
+          # download, so retry the complete command. Purge pip's cache before
+          # the last attempt: should a truncated download ever get *cached*,
+          # it would fail every attempt in the same way.
+          retry() { for i in 1 2; do "$@" && return 0; echo "Attempt $i failed, retrying in 15s ..."; sleep 15; done; pip cache purge || true; "$@"; }
+          retry pip install -U wheel "setuptools >= 78.1.1,< 82"
+          retry pip install -U coverage[toml]
+          retry pip install -U 'cffi; platform_python_implementation == "CPython"'
           # Unzip into src/ so that testrunner can find the .so files
           # when we ask it to load tests from that directory. This
           # might also save some build time?
           ls -l dist/
           unzip -n dist/*.whl -d src
-          pip install -e .[test]
+          retry pip install -e .[test]
       - name: Run tests with C extensions
         if: ${{ !startsWith(matrix.python-version, 'pypy') }}
         run: |
@@ -443,15 +383,6 @@ jobs:
       # to save the cache. So it must come before the thing we want to use
       # the cache.
       ###
-      - name: Get pip cache epoch
-        id: pip-cache-epoch
-        # ``actions/cache`` never replaces an entry: "if the provided key
-        # matches an existing cache, a new cache is not created". A corrupt
-        # entry would therefore break every run that restores it until GitHub
-        # evicts it. Rotating the key weekly abandons such an entry instead.
-        run: |
-          echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
-
       - name: Get pip cache dir
         id: pip-cache
         run: |
@@ -461,8 +392,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-${{ runner.arch }}-pip-${{ matrix.python-version }}-${{ steps.pip-cache-epoch.outputs.week }}
-
+          key: ${{ runner.os }}-${{ runner.arch }}-pip-${{ matrix.python-version }}
       - name: Download persistent wheel
         uses: actions/download-artifact@v8
         with:
@@ -470,9 +400,15 @@ jobs:
           path: dist/
       - name: Install persistent
         run: |
-          pip install -U wheel
-          pip install -U coverage[toml]
-          pip install -U  "`ls dist/*.whl`[docs]"
+          # PyPI downloads are occasionally cut off mid-transfer, which makes
+          # pip fail with ``IncompleteRead``. pip does not retry a truncated
+          # download, so retry the complete command. Purge pip's cache before
+          # the last attempt: should a truncated download ever get *cached*,
+          # it would fail every attempt in the same way.
+          retry() { for i in 1 2; do "$@" && return 0; echo "Attempt $i failed, retrying in 15s ..."; sleep 15; done; pip cache purge || true; "$@"; }
+          retry pip install -U wheel
+          retry pip install -U coverage[toml]
+          retry pip install -U  "`ls dist/*.whl`[docs]"
       - name: Build docs
         env:
           ZOPE_INTERFACE_STRICT_IRO: 1
@@ -504,15 +440,6 @@ jobs:
       # to save the cache. So it must come before the thing we want to use
       # the cache.
       ###
-      - name: Get pip cache epoch
-        id: pip-cache-epoch
-        # ``actions/cache`` never replaces an entry: "if the provided key
-        # matches an existing cache, a new cache is not created". A corrupt
-        # entry would therefore break every run that restores it until GitHub
-        # evicts it. Rotating the key weekly abandons such an entry instead.
-        run: |
-          echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
-
       - name: Get pip cache dir
         id: pip-cache
         run: |
@@ -522,8 +449,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-${{ runner.arch }}-pip-${{ matrix.python-version }}-${{ steps.pip-cache-epoch.outputs.week }}
-
+          key: ${{ runner.os }}-${{ runner.arch }}-pip-${{ matrix.python-version }}
       - name: Download persistent wheel
         uses: actions/download-artifact@v8
         with:
@@ -531,9 +457,15 @@ jobs:
           path: dist/
       - name: Install persistent
         run: |
-          pip install -U wheel
-          pip install -U tox
-          pip install -U  "`ls dist/*.whl`[docs]"
+          # PyPI downloads are occasionally cut off mid-transfer, which makes
+          # pip fail with ``IncompleteRead``. pip does not retry a truncated
+          # download, so retry the complete command. Purge pip's cache before
+          # the last attempt: should a truncated download ever get *cached*,
+          # it would fail every attempt in the same way.
+          retry() { for i in 1 2; do "$@" && return 0; echo "Attempt $i failed, retrying in 15s ..."; sleep 15; done; pip cache purge || true; "$@"; }
+          retry pip install -U wheel
+          retry pip install -U tox
+          retry pip install -U  "`ls dist/*.whl`[docs]"
       - name: Run release check
         env:
           ZOPE_INTERFACE_STRICT_IRO: 1
@@ -572,15 +504,6 @@ jobs:
       # to save the cache. So it must come before the thing we want to use
       # the cache.
       ###
-      - name: Get pip cache epoch
-        id: pip-cache-epoch
-        # ``actions/cache`` never replaces an entry: "if the provided key
-        # matches an existing cache, a new cache is not created". A corrupt
-        # entry would therefore break every run that restores it until GitHub
-        # evicts it. Rotating the key weekly abandons such an entry instead.
-        run: |
-          echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
-
       - name: Get pip cache dir
         id: pip-cache
         run: |
@@ -590,8 +513,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-pip_manylinux-${{ matrix.image }}-${{ matrix.python-version }}-${{ steps.pip-cache-epoch.outputs.week }}
-
+          key: ${{ runner.os }}-pip_manylinux-${{ matrix.image }}-${{ matrix.python-version }}
 
       - name: Update pip
         run: python -m pip install -U pip
@@ -622,16 +544,13 @@ jobs:
       - name: Restore pip cache permissions
         run: sudo chown -R $(whoami) ${{ steps.pip-cache.outputs.dir }}
 
-      - name: Prevent publishing wheels for unreleased Python versions
-        run: VER=$(echo '3.15' | tr -d .) && ls -al wheelhouse && sudo rm -f wheelhouse/*-cp${VER}*.whl && ls -al wheelhouse
-
   publish:
     name: Publish to PyPI
     runs-on: ubuntu-latest
     # Only publish on tag pushes
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
-    # Wait for both build jobs to complete
-    needs: [build-package, manylinux]
+    # Only publish if the packages were built and the tests passed
+    needs: [build-package, manylinux, test, docs, release-check]
     environment:
       name: pypi
       url: https://pypi.org/p/persistent
@@ -658,14 +577,11 @@ jobs:
           # PyPy wheels shouldn't be uploaded, remove them if present
           find dist/ -name "*pypy*" -type f -delete || true
           find dist/ -name "*none-any*" -type f -delete || true
-          # Wheels for the not-yet-supported future Python version need to go
-          find dist/ -name "*3.15*" -type f -delete || true
-          find dist/ -name "*cp315*" -type f -delete || true
           # For Linux, we only want the manylinux wheels
           find dist/ -name "*linux_x86_64*" -type f -delete || true
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33  # v1.14.2
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086  # v1.14.3
         with:
           skip-existing: true
           packages-dir: dist/

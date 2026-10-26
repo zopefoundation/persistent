@@ -123,7 +123,7 @@ After assigning it:
    True
 
 :class:`persistent.Persistent` supports derived classes which have base
-classes defining :attr:`__slots`, but which do not define attr:`__slots__`
+classes defining :attr:`__slots`, but which do not define :attr:`__slots__`
 themselves:
 
 .. doctest::
