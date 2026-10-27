@@ -4,6 +4,7 @@ Change log
 6.9 (unreleased)
 ----------------
 
+- Build and publish PyPy wheels for macOS, Windows and manylinux.
 
 - Add support for Python 3.15.
 

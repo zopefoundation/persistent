@@ -35,6 +35,7 @@ tox_env_map() {
         *"cp314"*) echo 'py314';;
         *"cp315t"*) echo 'py315t';;
         *"cp315"*) echo 'py315';;
+        *"pp311"*) echo 'pypy3';;
         *) echo 'py';;
     esac
 }
@@ -42,6 +43,7 @@ tox_env_map() {
 # Compile wheels
 for PYBIN in /opt/python/*/bin; do
     if \
+       [[ "${PYBIN}" == *"pp311-"* ]] || \
        [[ "${PYBIN}" == *"cp311/"* ]] || \
        [[ "${PYBIN}" == *"cp312/"* ]] || \
        [[ "${PYBIN}" == *"cp313/"* ]] || \
