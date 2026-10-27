@@ -1,7 +1,7 @@
 Change log
 ==========
 
-6.9 (unreleased)
+6.9 (2026-10-27)
 ----------------
 
 - Build and publish PyPy wheels for macOS, Windows and manylinux.
