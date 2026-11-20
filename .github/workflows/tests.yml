@@ -225,7 +225,11 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: persistent-${{ runner.os }}-${{ matrix.python-version }}.whl
-          path: dist/*arm64.whl
+          # PyPy builds a pure Python wheel if it does not build the C
+          # extension. It is needed by the test job but never published.
+          path: |
+            dist/*arm64.whl
+            dist/*none-any.whl
       - name: Upload persistent wheel (Windows)
         if: startsWith(runner.os, 'Windows')
         uses: actions/upload-artifact@v7
@@ -528,6 +532,9 @@ jobs:
         env:
           DOCKER_IMAGE: quay.io/pypa/${{ matrix.image }}
           PRE_CMD: linux32
+          # Docker 29.4.2 on ubuntu-26.04 blocks socketcall(2) which 32-bit
+          # glibc needs for networking, so DNS fails inside the container.
+          DOCKER_ARGS: --security-opt seccomp=unconfined
         run: |
           bash .manylinux.sh
 
