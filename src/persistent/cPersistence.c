@@ -20,6 +20,12 @@ static char cPersistence_doc_string[] =
 #include "cPersistence.h"
 #include "structmember.h"
 
+/* PyPy only provides Py_TRASHCAN_SAFE_BEGIN/Py_TRASHCAN_SAFE_END. */
+#ifndef Py_TRASHCAN_BEGIN
+#define Py_TRASHCAN_BEGIN(op, dealloc) Py_TRASHCAN_SAFE_BEGIN(op)
+#define Py_TRASHCAN_END Py_TRASHCAN_SAFE_END(NULL)
+#endif
+
 struct ccobject_head_struct
 {
     CACHE_HEAD
@@ -41,7 +47,7 @@ static int
 init_strings(void)
 {
 #define INIT_STRING(S)                              \
-  if (!(py_ ## S = INTERN(#S)))  \
+  if (!(py_ ## S = PyUnicode_InternFromString(#S)))  \
     return -1;
   INIT_STRING(keys);
   INIT_STRING(setstate);
@@ -258,7 +264,7 @@ changed(cPersistentObject *self)
         static PyObject *s_register;
 
         if (s_register == NULL)
-            s_register = INTERN("register");
+            s_register = PyUnicode_InternFromString("register");
         meth = PyObject_GetAttr((PyObject *)self->jar, s_register);
         if (meth == NULL)
             return -1;
@@ -294,7 +300,7 @@ readCurrent(cPersistentObject *self)
         PyObject *r;
 
         if (s_readCurrent == NULL)
-            s_readCurrent = INTERN("readCurrent");
+            s_readCurrent = PyUnicode_InternFromString("readCurrent");
 
         r = PyObject_CallMethodObjArgs(self->jar, s_readCurrent, self, NULL);
         if (r == NULL)
@@ -603,9 +609,9 @@ pickle___setstate__(PyObject *self, PyObject *state)
             while (PyDict_Next(state, &i, &d_key, &d_value)) {
                 /* normally the keys for instance attributes are
                    interned.  we should try to do that here. */
-                if (NATIVE_CHECK_EXACT(d_key)) {
+                if (PyUnicode_CheckExact(d_key)) {
                     Py_INCREF(d_key);
-                    INTERN_INPLACE(&d_key);
+                    PyUnicode_InternInPlace(&d_key);
                     Py_DECREF(d_key);
                 }
                 if (PyObject_SetItem(*dict, d_key, d_value) < 0)
@@ -648,9 +654,9 @@ pickle___setstate__(PyObject *self, PyObject *state)
                     return NULL;
                 }
 
-                if (NATIVE_CHECK_EXACT(d_key)) {
+                if (PyUnicode_CheckExact(d_key)) {
                     Py_INCREF(d_key);
-                    INTERN_INPLACE(&d_key);
+                    PyUnicode_InternInPlace(&d_key);
                     Py_DECREF(d_key);
                 }
                 Py_DECREF(item);
@@ -1279,13 +1285,13 @@ Per_get_mtime(cPersistentObject *self)
 static PyObject *
 Per_get_state(cPersistentObject *self)
 {
-    return INT_FROM_LONG(self->state);
+    return PyLong_FromLong(self->state);
 }
 
 static PyObject *
 Per_get_estimated_size(cPersistentObject *self)
 {
-    return INT_FROM_LONG(_estimated_size_in_bytes(self->estimated_size));
+    return PyLong_FromLong(_estimated_size_in_bytes(self->estimated_size));
 }
 
 static int
@@ -1293,9 +1299,9 @@ Per_set_estimated_size(cPersistentObject *self, PyObject *v)
 {
     if (v)
     {
-        if (INT_CHECK(v))
+        if (PyLong_Check(v))
         {
-            long lv = INT_AS_LONG(v);
+            long lv = PyLong_AsLong(v);
             if (lv < 0)
             {
                 PyErr_SetString(PyExc_ValueError,
