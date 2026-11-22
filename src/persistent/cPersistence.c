@@ -11,43 +11,51 @@
   FOR A PARTICULAR PURPOSE
 
 ****************************************************************************/
-static char cPersistence_doc_string[] =
-  "Defines Persistent mixin class for persistent objects.\n"
-  "\n"
-  "$Id$\n";
+static char CP_module__name__[] = "cPersistence";
+static char CP_module__doc__[] =
+  "Defines Persistent mixin class for persistent objects.";
+
+
+#include <stdint.h>
+#include <inttypes.h>
 
 #define PY_SSIZE_T_CLEAN
 #include "cPersistence.h"
 #include "structmember.h"
 
-/* PyPy only provides Py_TRASHCAN_SAFE_BEGIN/Py_TRASHCAN_SAFE_END. */
-#ifndef Py_TRASHCAN_BEGIN
-#define Py_TRASHCAN_BEGIN(op, dealloc) Py_TRASHCAN_SAFE_BEGIN(op)
-#define Py_TRASHCAN_END Py_TRASHCAN_SAFE_END(NULL)
-#endif
+
 
 struct ccobject_head_struct
 {
     CACHE_HEAD
 };
 
-#include <stdint.h>
-#include <inttypes.h>
-
 /* Strings initialized by init_strings() below. */
-static PyObject *py_keys, *py_setstate, *py___dict__, *py_timeTime;
-static PyObject *py__p_changed, *py__p_deactivate;
-static PyObject *py___getattr__, *py___setattr__, *py___delattr__;
-static PyObject *py___slotnames__, *copy_reg_slotnames, *__newobj__;
-static PyObject *py___getnewargs__, *py___getstate__;
-static PyObject *py_unsaved, *py_ghost, *py_saved, *py_changed, *py_sticky;
-
+static PyObject *py_keys;
+static PyObject *py_setstate;
+static PyObject *py___dict__;
+static PyObject *py_timeTime;
+static PyObject *py__p_changed;
+static PyObject *py__p_deactivate;
+static PyObject *py___getattr__;
+static PyObject *py___setattr__;
+static PyObject *py___delattr__;
+static PyObject *py___slotnames__;
+static PyObject *py___getnewargs__;
+static PyObject *py___getstate__;
+static PyObject *py_unsaved;
+static PyObject *py_ghost;
+static PyObject *py_saved;
+static PyObject *py_changed;
+static PyObject *py_sticky;
+static PyObject *py_register;
+static PyObject *py_readCurrent;
 
 static int
 init_strings(void)
 {
 #define INIT_STRING(S)                              \
-  if (!(py_ ## S = PyUnicode_InternFromString(#S)))  \
+  if (!(py_ ## S = PyUnicode_InternFromString(#S))) \
     return -1;
   INIT_STRING(keys);
   INIT_STRING(setstate);
@@ -66,9 +74,14 @@ init_strings(void)
   INIT_STRING(saved);
   INIT_STRING(changed);
   INIT_STRING(sticky);
+  INIT_STRING(register);
+  INIT_STRING(readCurrent);
 #undef INIT_STRING
   return 0;
 }
+
+static PyObject* _get_copyreg_slotnames(PyTypeObject *typeobj);
+static PyObject* _get_copyreg___newobj__(PyTypeObject *typeobj);
 
 #ifdef Py_DEBUG
 static void
@@ -145,7 +158,7 @@ unghostify(cPersistentObject *self)
 
 /****************************************************************************/
 
-static PyTypeObject Pertype;
+static PyTypeObject Per_type_def;
 
 static void
 accessed(cPersistentObject *self)
@@ -201,7 +214,7 @@ ghostify(cPersistentObject *self)
     /* clear all slots besides _p_*
      * ( for backward-compatibility reason we do this only if class does not
      *   override __new__ ) */
-    if (Py_TYPE(self)->tp_new == Pertype.tp_new)
+    if (Py_TYPE(self)->tp_new == Per_type_def.tp_new)
     {
         /* later we might clear an AttributeError but
          * if we have a pending exception that still needs to be
@@ -261,11 +274,8 @@ changed(cPersistentObject *self)
         && self->jar)
     {
         PyObject *meth, *arg, *result;
-        static PyObject *s_register;
 
-        if (s_register == NULL)
-            s_register = PyUnicode_InternFromString("register");
-        meth = PyObject_GetAttr((PyObject *)self->jar, s_register);
+        meth = PyObject_GetAttr((PyObject *)self->jar, py_register);
         if (meth == NULL)
             return -1;
         arg = PyTuple_New(1);
@@ -296,13 +306,9 @@ readCurrent(cPersistentObject *self)
         self->state == cPersistent_STICKY_STATE)
         && self->jar && self->oid)
     {
-        static PyObject *s_readCurrent=NULL;
         PyObject *r;
 
-        if (s_readCurrent == NULL)
-            s_readCurrent = PyUnicode_InternFromString("readCurrent");
-
-        r = PyObject_CallMethodObjArgs(self->jar, s_readCurrent, self, NULL);
+        r = PyObject_CallMethodObjArgs(self->jar, py_readCurrent, self, NULL);
         if (r == NULL)
             return -1;
 
@@ -369,6 +375,7 @@ Per__p_invalidate(cPersistentObject *self)
 static PyObject *
 pickle_slotnames(PyTypeObject *cls)
 {
+    PyObject *copyreg_slotnames;
     PyObject *slotnames;
 
     slotnames = PyDict_GetItem(cls->tp_dict, py___slotnames__);
@@ -384,7 +391,9 @@ pickle_slotnames(PyTypeObject *cls)
         return slotnames;
     }
 
-    slotnames = PyObject_CallFunctionObjArgs(copy_reg_slotnames,
+    copyreg_slotnames = _get_copyreg_slotnames(cls);
+
+    slotnames = PyObject_CallFunctionObjArgs(copyreg_slotnames,
                                             (PyObject*)cls, NULL);
     if (slotnames && !(slotnames == Py_None || PyList_Check(slotnames)))
     {
@@ -684,8 +693,13 @@ static char pickle___reduce__doc[] =
 static PyObject *
 pickle___reduce__(PyObject *self)
 {
-    PyObject *args=NULL, *bargs=NULL, *state=NULL, *getnewargs=NULL;
-    int l, i;
+    PyObject *args=NULL;
+    PyObject *bargs=NULL;
+    PyObject *state=NULL;
+    PyObject *getnewargs=NULL;
+    PyObject *copyreg___newobj__;
+    int l;
+    int i;
 
     getnewargs = PyObject_GetAttr(self, py___getnewargs__);
     if (getnewargs)
@@ -720,7 +734,8 @@ pickle___reduce__(PyObject *self)
     if (!state)
         goto end;
 
-    state = Py_BuildValue("(OON)", __newobj__, args, state);
+    copyreg___newobj__ = _get_copyreg___newobj__(Py_TYPE(self));
+    state = Py_BuildValue("(OON)", copyreg___newobj__, args, state);
 
 end:
     Py_XDECREF(bargs);
@@ -767,8 +782,10 @@ Per__getstate__(cPersistentObject *self)
 static void
 Per_dealloc(cPersistentObject *self)
 {
+    cPersistenceCAPIstruct* capi_struct;
+    PyTypeObject* type = Py_TYPE(self);
+
     PyObject_GC_UnTrack((PyObject *)self);
-    Py_TRASHCAN_BEGIN(self, Per_dealloc)
     if (self->state >= 0)
     {
         /* If the cache has been cleared, then a non-ghost object
@@ -800,31 +817,26 @@ Per_dealloc(cPersistentObject *self)
 #endif
 
     if (self->cache)
-        cPersistenceCAPI->percachedel(self->cache, self->oid);
+    {
+        capi_struct = cPersistenceCAPI;
+        if (capi_struct != NULL)
+            capi_struct->percachedel(self->cache, self->oid);
+    }
     Py_XDECREF(self->cache);
     Py_XDECREF(self->jar);
     Py_XDECREF(self->oid);
-    Py_TYPE(self)->tp_free(self);
-    Py_TRASHCAN_END
+    type->tp_free(self);
+    Py_DECREF(type);
 }
 
 static int
 Per_traverse(cPersistentObject *self, visitproc visit, void *arg)
 {
-    int err;
+    Py_VISIT(Py_TYPE((PyObject*)self));
+    Py_VISIT(self->jar);
+    Py_VISIT(self->oid);
+    Py_VISIT(self->cache);
 
-#define VISIT(SLOT)                             \
-    if (SLOT) {                                   \
-        err = visit((PyObject *)(SLOT), arg);       \
-        if (err)                                    \
-        return err;                               \
-    }
-
-    VISIT(self->jar);
-    VISIT(self->oid);
-    VISIT(self->cache);
-
-#undef VISIT
     return 0;
 }
 
@@ -981,7 +993,9 @@ Per_setattro(cPersistentObject *self, PyObject *name, PyObject *v)
     {
         if (unghostify(self) < 0)
             goto Done;
+
         accessed(self);
+
         if (strncmp(s, "_v_", 3) != 0
             && self->state != cPersistent_CHANGED_STATE)
             {
@@ -1590,49 +1604,35 @@ static struct PyMethodDef Per_methods[] = {
   {NULL,        NULL}        /* sentinel */
 };
 
-/* This module is compiled as a shared library.  Some compilers don't
-   allow addresses of Python objects defined in other libraries to be
-   used in static initializers here.  The DEFERRED_ADDRESS macro is
-   used to tag the slots where such addresses appear; the module init
-   function must fill in the tagged slots at runtime.  The argument is
-   for documentation -- the macro ignores it.
-*/
-#define DEFERRED_ADDRESS(ADDR) 0
+static char Per__name__[] = "persistent.Persistent";
+static char Per__doc__[] = "Base class for persistent objects";
 
-static PyTypeObject Pertype = {
-  PyVarObject_HEAD_INIT(DEFERRED_ADDRESS(&PyType_Type), 0)
-  "persistent.Persistent",          /* tp_name */
-  sizeof(cPersistentObject),        /* tp_basicsize */
-  0,                                /* tp_itemsize */
-  (destructor)Per_dealloc,          /* tp_dealloc */
-  0,                                /* tp_print */
-  0,                                /* tp_getattr */
-  0,                                /* tp_setattr */
-  0,                                /* tp_compare */
-  (reprfunc)Per_repr,               /* tp_repr */
-  0,                                /* tp_as_number */
-  0,                                /* tp_as_sequence */
-  0,                                /* tp_as_mapping */
-  0,                                /* tp_hash */
-  0,                                /* tp_call */
-  0,                                /* tp_str */
-  (getattrofunc)Per_getattro,       /* tp_getattro */
-  (setattrofunc)Per_setattro,       /* tp_setattro */
-  0,                                /* tp_as_buffer */
-  Py_TPFLAGS_DEFAULT |
-  Py_TPFLAGS_BASETYPE |
-  Py_TPFLAGS_HAVE_GC,               /* tp_flags */
-  0,                                /* tp_doc */
-  (traverseproc)Per_traverse,       /* tp_traverse */
-  0,                                /* tp_clear */
-  0,                                /* tp_richcompare */
-  0,                                /* tp_weaklistoffset */
-  0,                                /* tp_iter */
-  0,                                /* tp_iternext */
-  Per_methods,                      /* tp_methods */
-  0,                                /* tp_members */
-  Per_getsets,                      /* tp_getset */
+
+/*
+ *  Heap type: Persistent
+ */
+
+static PyType_Slot Per_type_slots[] = {
+    {Py_tp_doc,             Per__doc__},
+    {Py_tp_repr,            Per_repr},
+    {Py_tp_getattro,        Per_getattro},
+    {Py_tp_setattro,        Per_setattro},
+    {Py_tp_traverse,        Per_traverse},
+    {Py_tp_dealloc,         Per_dealloc},
+    {Py_tp_methods,         Per_methods},
+    {Py_tp_getset,          Per_getsets},
+    {0,                     NULL}
 };
+
+static PyType_Spec Per_type_spec = {
+    .name       = Per__name__,
+    .basicsize  = sizeof(cPersistentObject),
+    .flags      = Py_TPFLAGS_DEFAULT |
+                  Py_TPFLAGS_BASETYPE |
+                  Py_TPFLAGS_HAVE_GC,
+    .slots      = Per_type_slots
+};
+
 
 /* End of code for Persistent objects */
 /* -------------------------------------------------------- */
@@ -1649,102 +1649,210 @@ Per_setstate(cPersistentObject *self)
     return 0;
 }
 
-static PyMethodDef cPersistence_methods[] =
+/*
+ *  Module methods
+ */
+
+static PyMethodDef CP_module_methods[] =
 {
     {NULL, NULL}
 };
 
 
-static cPersistenceCAPIstruct
-truecPersistenceCAPI = {
-    &Pertype,
-    (getattrofunc)Per_getattro,         /*tp_getattr with object key*/
-    (setattrofunc)Per_setattro,         /*tp_setattr with object key*/
-    changed,
-    accessed,
-    ghostify,
-    (intfunctionwithpythonarg)Per_setstate,
-    NULL, /* The percachedel slot is initialized in cPickleCache.c when
-            the module is loaded.  It uses a function in a different
-            shared library. */
-    readCurrent
-};
+/*
+ *  Module initialization
+ */
 
-static struct PyModuleDef moduledef =
+typedef struct {
+    cPersistenceCAPIstruct capi_struct;
+    PyObject *copyreg_slotnames;
+    PyObject *copyreg___newobj__;
+} CP_module_state;
+
+static int
+CP_module_traverse(PyObject *module, visitproc visit, void *arg)
 {
-    PyModuleDef_HEAD_INIT,
-    "cPersistence",                     /* m_name */
-    cPersistence_doc_string,            /* m_doc */
-    -1,                                 /* m_size */
-    cPersistence_methods,               /* m_methods */
-    NULL,                               /* m_reload */
-    NULL,                               /* m_traverse */
-    NULL,                               /* m_clear */
-    NULL,                               /* m_free */
-};
+    CP_module_state* state = PyModule_GetState(module);
+    Py_VISIT(state->capi_struct.pertype);
+    Py_VISIT(state->copyreg_slotnames);
+    Py_VISIT(state->copyreg___newobj__);
+    return 0;
+}
+
+static int
+CP_module_clear(PyObject *module)
+{
+    CP_module_state* state = PyModule_GetState(module);
+    Py_CLEAR(state->capi_struct.pertype);
+    Py_CLEAR(state->copyreg_slotnames);
+    Py_CLEAR(state->copyreg___newobj__);
+    return 0;
+}
+
+static struct PyModuleDef CP_module_def;
 
 static PyObject*
-module_init(void)
+_get_module(PyTypeObject *typeobj)
 {
-    PyObject *module, *capi;
+    if (PyType_Check(typeobj)) {
+        /* Only added in Python 3.11 */
+        return PyType_GetModuleByDef(typeobj, &CP_module_def);
+    }
+
+    PyErr_SetString(PyExc_TypeError, "_get_module: called w/ non-type");
+    return NULL;
+}
+
+static PyObject*
+_get_copyreg_slotnames(PyTypeObject *typeobj)
+{
+    PyObject* module = _get_module(typeobj);
+    if (module == NULL)
+        return NULL;
+
+    CP_module_state* state = PyModule_GetState(module);
+    return state->copyreg_slotnames;
+}
+
+static PyObject*
+_get_copyreg___newobj__(PyTypeObject *typeobj)
+{
+    PyObject* module = _get_module(typeobj);
+    if (module == NULL)
+        return NULL;
+
+    CP_module_state* state = PyModule_GetState(module);
+    return state->copyreg___newobj__;
+}
+
+static int
+CP_module_exec(PyObject* module)
+{
+    PyObject *capi;
     PyObject *copy_reg;
+    CP_module_state* state = PyModule_GetState(module);
+    cPersistenceCAPIstruct* capi_struct = &(state->capi_struct);
 
-    if (init_strings() < 0)
-        return NULL;
+    Per_type_def.tp_new = PyType_GenericNew;
 
-    module = PyModule_Create(&moduledef);
+    capi_struct->getattro = (getattrofunc)Per_getattro;
+    capi_struct->setattro = (setattrofunc)Per_setattro;
+    capi_struct->changed = changed;
+    capi_struct->accessed = accessed;
+    capi_struct->ghostify = ghostify;
+    capi_struct->setstate = (intfunctionwithpythonarg)Per_setstate,
+    /* The percachedel slot is initialized in cPickleCache.c when
+     * the module is loaded.  It uses a function in a different shared
+     * library.
+     */
+    capi_struct->percachedel = NULL,
+    capi_struct->readCurrent = readCurrent;
 
-    Py_SET_TYPE((PyObject*)&Pertype, &PyType_Type);
-    Pertype.tp_new = PyType_GenericNew;
-    if (PyType_Ready(&Pertype) < 0)
-        return NULL;
-    if (PyModule_AddObject(module, "Persistent", (PyObject *)&Pertype) < 0)
-        return NULL;
+    /* The dealloc path fetches the CAPI via this TU-static: the type
+     * may be mid-clear in the GC cycle which is running the dealloc.
+     */
+    cPersistenceCAPI = capi_struct;
 
-    cPersistenceCAPI = &truecPersistenceCAPI;
-    capi = PyCapsule_New(cPersistenceCAPI, CAPI_CAPSULE_NAME, NULL);
+
+    capi_struct->pertype = (PyTypeObject*)PyType_FromModuleAndSpec(
+            module, &Per_type_spec, NULL);
+
+    /* ugly hack:  'ghostify' wants to check wheter subclasses have
+     * overriden 'tp_new', and expects to be able to find the original version
+     * on .&Per_type_def'.
+     *
+     * With heap types, the version we set above gets replaced, so copy it
+     * back.
+     */
+    Per_type_def.tp_new = capi_struct->pertype->tp_new;
+
+
+    if (PyModule_AddObject(
+            module, "Persistent", (PyObject*)capi_struct->pertype) < 0)
+        return -1;
+
+    Py_INCREF(capi_struct->pertype);  /* restore stolen ref */
+
+    capi = PyCapsule_New(capi_struct, CAPI_CAPSULE_NAME, NULL);
     if (!capi)
-        return NULL;
+        return -1;
+
     if (PyModule_AddObject(module, "CAPI", capi) < 0)
-        return NULL;
+        return -1;
 
     if (PyModule_AddIntConstant(module, "GHOST", cPersistent_GHOST_STATE) < 0)
-        return NULL;
+        return -1;
 
     if (PyModule_AddIntConstant(module, "UPTODATE",
                                 cPersistent_UPTODATE_STATE) < 0)
-        return NULL;
+        return -1;
 
     if (PyModule_AddIntConstant(module, "CHANGED",
                                 cPersistent_CHANGED_STATE) < 0)
-        return NULL;
+        return -1;
 
     if (PyModule_AddIntConstant(module, "STICKY",
                                 cPersistent_STICKY_STATE) < 0)
-        return NULL;
+        return -1;
 
     copy_reg = PyImport_ImportModule("copyreg");
     if (!copy_reg)
-        return NULL;
+        return -1;
 
-    copy_reg_slotnames = PyObject_GetAttrString(copy_reg, "_slotnames");
-    if (!copy_reg_slotnames)
+    state->copyreg_slotnames = PyObject_GetAttrString(copy_reg, "_slotnames");
+    if (!state->copyreg_slotnames)
     {
-      Py_DECREF(copy_reg);
-      return NULL;
+        Py_DECREF(copy_reg);
+        return -1;
     }
 
-    __newobj__ = PyObject_GetAttrString(copy_reg, "__newobj__");
-    if (!__newobj__)
+    state->copyreg___newobj__ = PyObject_GetAttrString(
+            copy_reg, "__newobj__");
+    if (!state->copyreg___newobj__)
     {
-      Py_DECREF(copy_reg);
-      return NULL;
+        Py_DECREF(copy_reg);
+        return -1;
     }
 
-    return module;
+    Py_DECREF(copy_reg);
+    return 0;
 }
 
-PyMODINIT_FUNC PyInit_cPersistence(void)
+/* Slot definitions for multi-phase initialization
+ *
+ * See: https://docs.python.org/3/c-api/module.html#multi-phase-initialization
+ * and: https://peps.python.org/pep-0489
+ */
+static PyModuleDef_Slot CP_module_slots[] = {
+    {Py_mod_exec,       CP_module_exec},
+    {0,                 NULL}
+};
+
+static struct PyModuleDef CP_module_def =
 {
-    return module_init();
+    PyModuleDef_HEAD_INIT,
+    .m_name             = CP_module__name__,
+    .m_doc              = CP_module__doc__,
+    .m_size             = sizeof(CP_module_state),
+    .m_traverse         = CP_module_traverse,
+    .m_clear            = CP_module_clear,
+    .m_methods          = CP_module_methods,
+    .m_slots            = CP_module_slots,
+};
+
+static PyObject*
+CP_module_init(void)
+{
+    if (init_strings() < 0)
+        return NULL;
+
+
+    return PyModuleDef_Init(&CP_module_def);
+
+}
+
+PyMODINIT_FUNC
+PyInit_cPersistence(void)
+{
+    return CP_module_init();
 }

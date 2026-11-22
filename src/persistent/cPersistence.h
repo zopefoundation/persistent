@@ -16,9 +16,7 @@
 #define CPERSISTENCE_H
 
 #include "Python.h"
-
 #define CAPI_CAPSULE_NAME "persistent.cPersistence.CAPI"
-#include "bytesobject.h"
 
 #include "ring.h"
 
