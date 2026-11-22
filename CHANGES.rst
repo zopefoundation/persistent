@@ -4,7 +4,7 @@ Change log
 6.10 (unreleased)
 -----------------
 
-- Nothing changed yet.
+- Remove Python 2-era compatibility macros from the C extension sources.
 
 
 6.9 (2026-10-27)

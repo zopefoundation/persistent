@@ -373,7 +373,7 @@ _invalidate(ccobject *self, PyObject *key)
 
     if (_p_invalidate == NULL)
     {
-        _p_invalidate = INTERN("_p_invalidate");
+        _p_invalidate = PyUnicode_InternFromString("_p_invalidate");
         if (_p_invalidate == NULL)
         {
             /* It doesn't make any sense to ignore this error, but
@@ -693,7 +693,7 @@ cc_ringlen(ccobject *self)
     for (here = self->ring_home.r_next; here != &self->ring_home;
         here = here->r_next)
         c++;
-    return INT_FROM_LONG(c);
+    return PyLong_FromLong(c);
 }
 
 static PyObject *
@@ -1366,16 +1366,16 @@ module_init(void)
         return NULL;
     cPersistenceCAPI->percachedel = (percachedelfunc)cc_oid_unreferenced;
 
-    py__p_changed = INTERN("_p_changed");
+    py__p_changed = PyUnicode_InternFromString("_p_changed");
     if (!py__p_changed)
         return NULL;
-    py__p_deactivate = INTERN("_p_deactivate");
+    py__p_deactivate = PyUnicode_InternFromString("_p_deactivate");
     if (!py__p_deactivate)
         return NULL;
-    py__p_jar = INTERN("_p_jar");
+    py__p_jar = PyUnicode_InternFromString("_p_jar");
     if (!py__p_jar)
         return NULL;
-    py__p_oid = INTERN("_p_oid");
+    py__p_oid = PyUnicode_InternFromString("_p_oid");
     if (!py__p_oid)
         return NULL;
 

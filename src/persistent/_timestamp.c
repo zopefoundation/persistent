@@ -16,7 +16,6 @@
 #include "Python.h"
 #include "bytesobject.h"
 #include <time.h>
-#include "_compat.h"
 
 
 PyObject *TimeStamp_FromDate(int, int, int, int, int, double);
@@ -268,7 +267,7 @@ TimeStamp_year(TimeStamp *self)
 {
     TimeStampParts p;
     TimeStamp_unpack(self, &p);
-    return INT_FROM_LONG(p.y);
+    return PyLong_FromLong(p.y);
 }
 
 static PyObject *
@@ -276,7 +275,7 @@ TimeStamp_month(TimeStamp *self)
 {
     TimeStampParts p;
     TimeStamp_unpack(self, &p);
-    return INT_FROM_LONG(p.m);
+    return PyLong_FromLong(p.m);
 }
 
 static PyObject *
@@ -284,7 +283,7 @@ TimeStamp_day(TimeStamp *self)
 {
     TimeStampParts p;
     TimeStamp_unpack(self, &p);
-    return INT_FROM_LONG(p.d);
+    return PyLong_FromLong(p.d);
 }
 
 static PyObject *
@@ -292,7 +291,7 @@ TimeStamp_hour(TimeStamp *self)
 {
     TimeStampParts p;
     TimeStamp_unpack(self, &p);
-    return INT_FROM_LONG(p.mi / 60);
+    return PyLong_FromLong(p.mi / 60);
 }
 
 static PyObject *
@@ -300,7 +299,7 @@ TimeStamp_minute(TimeStamp *self)
 {
     TimeStampParts p;
     TimeStamp_unpack(self, &p);
-    return INT_FROM_LONG(p.mi % 60);
+    return PyLong_FromLong(p.mi % 60);
 }
 
 static PyObject *
@@ -346,7 +345,7 @@ TimeStamp_str(TimeStamp *self)
              p.y, p.m, p.d, p.mi / 60, p.mi % 60,
              TimeStamp_sec(self));
 
-    return NATIVE_FROM_STRING_AND_SIZE(buf, len);
+    return PyUnicode_FromStringAndSize(buf, len);
 }
 
 
@@ -447,7 +446,7 @@ static PyTypeObject TimeStamp_type =
     0,                                      /* tp_as_buffer */
     Py_TPFLAGS_DEFAULT |
     Py_TPFLAGS_BASETYPE |
-    Py_TPFLAGS_HAVE_RICHCOMPARE,            /* tp_flags */
+    0,                                      /* tp_flags */
     0,                                      /* tp_doc */
     0,                                      /* tp_traverse */
     0,                                      /* tp_clear */
