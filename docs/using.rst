@@ -464,3 +464,67 @@ missing or their jar is closed.
    >>> p = P()
    >>> print(repr(p))
    Custom repr
+
+
+Extending ``persistent.Persistent`` in C
+========================================
+
+Subclassing :class:`persistent.Persistent` is normally done in Python,
+but the base type itself is a C extension, and downstream packages
+occasionally find it worthwhile to do the same --- the ``BTrees``
+package, for example, implements all of its types in C.  Such an
+extension needs the ``persistent`` C header at build time, but it
+should not (and need not) keep its own copy of that header:  the
+installed ``persistent`` distribution ships it, and
+:func:`persistent.get_include` reports where to find it.
+
+.. doctest::
+
+   >>> import os
+   >>> import persistent
+   >>> include_dir = persistent.get_include()
+   >>> os.path.isfile(os.path.join(include_dir, 'persistent', 'cPersistence.h'))
+   True
+
+The returned directory is the parent directory of the installed
+``persistent`` package, so the headers are referenced the same way
+they are referenced within the package itself:
+
+.. code-block:: c
+
+   #include "Python.h"
+   #include "persistent/cPersistence.h"
+
+For example, in a package's ``setup.py``:
+
+.. code-block:: python
+
+   import persistent
+   from setuptools import Extension, setup
+
+   setup(
+       ext_modules=[
+           Extension(
+               'mypackage._mypersistenttype',
+               sources=['src/mytype.c'],
+               include_dirs=[persistent.get_include()],
+           ),
+       ],
+   )
+
+``persistent/ring.h`` is available the same way.
+
+The header defines the ``cPersistentObject`` layout, the ``PER_*``
+convenience macros, and the ``cPersistenceCAPIstruct`` structure, which
+is what a C extension uses to call into ``persistent`` at run time:
+the module calls ``PyCapsule_Import("persistent.cPersistence.CAPI", 0)``
+during initialization to obtain the structure, and stores the result in its
+own global, as ``persistent.cPickleCache`` itself does.
+
+.. note::
+
+   The ``persistent`` C API is not a stable ABI:  a C extension which
+   uses it must be recompiled against the ``persistent`` release it
+   will be used with.  Because the header ships inside the installed
+   package, ``persistent.get_include()`` always points at the right
+   copy of it for the build in progress.
