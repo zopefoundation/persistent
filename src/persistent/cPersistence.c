@@ -1606,6 +1606,18 @@ static struct PyMethodDef Per_methods[] = {
 static char Per__name__[] = "persistent.Persistent";
 static char Per__doc__[] = "Base class for persistent objects";
 
+/* Placeholder used only so the heap type gets its '__new__' wrapper at
+ * ready time (slots with imported symbols in static initializers do not
+ * compare equal to their run-time-loaded counterparts on every platform).
+ * 'CP_module_exec' re-binds the slot to 'PyType_GenericNew' immediately
+ * after the type is created.
+ */
+static PyObject *
+Per_tp_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+{
+    return PyType_GenericNew(type, args, kwds);
+}
+
 
 /*
  *  Heap type: Persistent
@@ -1618,7 +1630,7 @@ static PyType_Slot Per_type_slots[] = {
     {Py_tp_setattro,        Per_setattro},
     {Py_tp_traverse,        Per_traverse},
     {Py_tp_dealloc,         Per_dealloc},
-    {Py_tp_new,             PyType_GenericNew},
+    {Py_tp_new,             Per_tp_new},
     {Py_tp_methods,         Per_methods},
     {Py_tp_getset,          Per_getsets},
     {0,                     NULL}
@@ -1757,14 +1769,11 @@ CP_module_exec(PyObject* module)
     if (capi_struct->pertype == NULL)
         return -1;
 
-    /* The 'tp_new' spec slot ensures the type gets a '__new__' entry in
-     * its dict at ready time (the '__new__' wrapper is what makes e.g.
-     * 'cls.__base__.__new__(cls)' work).  Re-bind to the run-time-loaded
-     * symbol right after creation: the guard in 'ghostify' compares
-     * against 'PyType_GenericNew', and only the run-time-loaded symbol is
-     * guaranteed to compare equal on every platform (MSVC binds imported
-     * functions referenced from static data initializers differently than
-     * from code). */
+    /* The 'tp_new' spec slot only exists so the type gets its '__new__'
+     * entry at ready time; re-bind to the run-time-loaded
+     * PyType_GenericNew, which is the sentinel the guard in 'ghostify'
+     * compares against (only the run-time-loaded symbol is guaranteed
+     * to compare equal on every platform). */
     capi_struct->pertype->tp_new = PyType_GenericNew;
 
     if (PyModule_AddObject(
