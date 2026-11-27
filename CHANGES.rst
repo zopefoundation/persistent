@@ -4,6 +4,12 @@ Change log
 6.10 (unreleased)
 -----------------
 
+- Fix ``ghostify`` in the C implementation so that slot attributes are
+  cleared on deactivation for instances of heap-allocated C extension
+  types whose ``tp_new`` is the shared ``PyType_GenericNew`` default,
+  matching the behavior when ``Persistent`` itself was a static type.
+  (Type-specific ``tp_new`` overrides are still left alone.)
+
 - Remove Python 2-era compatibility macros from the C extension sources.
 
 

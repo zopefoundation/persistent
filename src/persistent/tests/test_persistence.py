@@ -21,6 +21,12 @@ from persistent._compat import PYPY
 from persistent.tests.utils import skipIfNoCExtension
 
 
+try:
+    from persistent.tests import _testtypes
+except ImportError:
+    _testtypes = None
+
+
 class _Persistent_Base:
 
     def _getTargetClass(self):
@@ -2207,6 +2213,57 @@ class CPersistentTests(unittest.TestCase, _Persistent_Base):
 
     def _clearMRU(self, jar):
         pass  # Figure this out later
+
+    def _slot_state_after_invalidate(self, base):
+        # Fill slots on an instance of a heap type built like a
+        # consumer C extension's type, ghost the instance, and report
+        # the slot state afterwards.
+
+        class Derived(base):
+            __slots__ = ('myattr1', 'myattr2')
+
+            def __init__(self):
+                self.myattr1 = 'value1'
+                self.myattr2 = 'value2'
+
+        inst, jar, OID = self._makeOneWithJar(Derived)
+        inst._p_activate()
+        inst._p_changed = True
+        jar._loaded = []
+        jar._registered = []
+
+        inst._p_invalidate()
+
+        self.assertEqual(inst._p_status, 'ghost')
+        self.assertEqual(list(jar._loaded), [])
+        self.assertEqual(list(jar._registered), [])
+        state = {}
+        for name in ('myattr1', 'myattr2'):
+            descriptor = getattr(Derived, name)
+            try:
+                state[name] = descriptor.__get__(inst)
+            except AttributeError:
+                state[name] = None
+        return state
+
+    @unittest.skipIf(_testtypes is None,
+                     'persistent.tests._testtypes is unavailable')
+    def test__p_invalidate_from_changed_w_slots_c_heap_type_generic_new(self):
+        # A consumer C-extension type whose tp_new is the shared
+        # PyType_GenericNew default releases its slots, as when
+        # 'Persistent' was a static type.
+        state = self._slot_state_after_invalidate(_testtypes.GenericNew)
+
+        self.assertEqual(state, {'myattr1': None, 'myattr2': None})
+
+    @unittest.skipIf(_testtypes is None,
+                     'persistent.tests._testtypes is unavailable')
+    def test__p_invalidate_from_changed_w_slots_c_heap_type_custom_new(self):
+        # A consumer C-extension type with its own tp_new is treated as
+        # overriding __new__; its slots are kept.
+        state = self._slot_state_after_invalidate(_testtypes.CustomNew)
+
+        self.assertEqual(state, {'myattr1': 'value1', 'myattr2': 'value2'})
 
     def _makeCache(self, jar):
         from persistent._compat import _c_optimizations_available as get_c

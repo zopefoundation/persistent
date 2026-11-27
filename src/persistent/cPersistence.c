@@ -158,8 +158,6 @@ unghostify(cPersistentObject *self)
 
 /****************************************************************************/
 
-static PyTypeObject Per_type_def;
-
 static void
 accessed(cPersistentObject *self)
 {
@@ -213,8 +211,9 @@ ghostify(cPersistentObject *self)
 
     /* clear all slots besides _p_*
      * ( for backward-compatibility reason we do this only if class does not
-     *   override __new__ ) */
-    if (Py_TYPE(self)->tp_new == Per_type_def.tp_new)
+     *   override __new__, i.e. its 'tp_new' is the shared PyType_GenericNew
+     *   default ) */
+    if (Py_TYPE(self)->tp_new == PyType_GenericNew)
     {
         /* later we might clear an AttributeError but
          * if we have a pending exception that still needs to be
@@ -1619,6 +1618,7 @@ static PyType_Slot Per_type_slots[] = {
     {Py_tp_setattro,        Per_setattro},
     {Py_tp_traverse,        Per_traverse},
     {Py_tp_dealloc,         Per_dealloc},
+    {Py_tp_new,             PyType_GenericNew},
     {Py_tp_methods,         Per_methods},
     {Py_tp_getset,          Per_getsets},
     {0,                     NULL}
@@ -1733,8 +1733,6 @@ CP_module_exec(PyObject* module)
     CP_module_state* state = PyModule_GetState(module);
     cPersistenceCAPIstruct* capi_struct = &(state->capi_struct);
 
-    Per_type_def.tp_new = PyType_GenericNew;
-
     capi_struct->getattro = (getattrofunc)Per_getattro;
     capi_struct->setattro = (setattrofunc)Per_setattro;
     capi_struct->changed = changed;
@@ -1756,16 +1754,8 @@ CP_module_exec(PyObject* module)
 
     capi_struct->pertype = (PyTypeObject*)PyType_FromModuleAndSpec(
             module, &Per_type_spec, NULL);
-
-    /* ugly hack:  'ghostify' wants to check wheter subclasses have
-     * overriden 'tp_new', and expects to be able to find the original version
-     * on .&Per_type_def'.
-     *
-     * With heap types, the version we set above gets replaced, so copy it
-     * back.
-     */
-    Per_type_def.tp_new = capi_struct->pertype->tp_new;
-
+    if (capi_struct->pertype == NULL)
+        return -1;
 
     if (PyModule_AddObject(
             module, "Persistent", (PyObject*)capi_struct->pertype) < 0)
