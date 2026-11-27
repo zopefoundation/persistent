@@ -16,6 +16,7 @@
 Fall back to pure Python implementations.
 """
 
+import os
 import sys
 
 
@@ -49,3 +50,13 @@ PickleCache = _picklecache.PickleCache
 TimeStamp = _timestamp
 
 sys.modules['persistent.TimeStamp'] = sys.modules['persistent.timestamp']
+
+
+def get_include():
+    """Return path for our headers.
+
+    Downstream C extensions can add this path to the C include path when
+    compiling moudules using e.g.: ``#include "persistent/cPersistence.h``
+    or ``#include "persistent/ring.h``
+    """
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

@@ -4,6 +4,10 @@ Change log
 6.10 (unreleased)
 -----------------
 
+- 'persistent.get_include()' returns the path to be added to the C include
+  path when including header files in downstream C extensions, e.g. via
+  ``#include "persistent/cPersistence.h"``.
+
 - Remove Python 2-era compatibility macros from the C extension sources.
 
 - Bump timeout in ``test_rapid_create_destroy_cycle`` to allow more headroom
