@@ -58,6 +58,15 @@ ext_modules = [
         ],
         define_macros=list(define_macros),
     ),
+    # Test-only extension, allowing verification of behavior of
+    # heap-based derived extension types.
+    Extension(
+        name='persistent.tests._testtypes',
+        sources=[
+            'src/persistent/tests/_testtypes.c',
+        ],
+        define_macros=list(define_macros),
+    ),
 ]
 
 is_pypy = platform.python_implementation() == 'PyPy'
