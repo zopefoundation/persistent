@@ -1757,6 +1757,16 @@ CP_module_exec(PyObject* module)
     if (capi_struct->pertype == NULL)
         return -1;
 
+    /* The 'tp_new' spec slot ensures the type gets a '__new__' entry in
+     * its dict at ready time (the '__new__' wrapper is what makes e.g.
+     * 'cls.__base__.__new__(cls)' work).  Re-bind to the run-time-loaded
+     * symbol right after creation: the guard in 'ghostify' compares
+     * against 'PyType_GenericNew', and only the run-time-loaded symbol is
+     * guaranteed to compare equal on every platform (MSVC binds imported
+     * functions referenced from static data initializers differently than
+     * from code). */
+    capi_struct->pertype->tp_new = PyType_GenericNew;
+
     if (PyModule_AddObject(
             module, "Persistent", (PyObject*)capi_struct->pertype) < 0)
         return -1;

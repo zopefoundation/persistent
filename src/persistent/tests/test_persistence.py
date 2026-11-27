@@ -2214,7 +2214,7 @@ class CPersistentTests(unittest.TestCase, _Persistent_Base):
     def _clearMRU(self, jar):
         pass  # Figure this out later
 
-    def _slot_state_after_invalidate(self, base):
+    def _slot_state_after_invalidate(self, base):  # pragma: no cover
         # Fill slots on an instance of a heap type built like a
         # consumer C extension's type, ghost the instance, and report
         # the slot state afterwards.
@@ -2246,9 +2246,13 @@ class CPersistentTests(unittest.TestCase, _Persistent_Base):
                 state[name] = None
         return state
 
-    @unittest.skipIf(_testtypes is None,
-                     'persistent.tests._testtypes is unavailable')
-    def test__p_invalidate_from_changed_w_slots_c_heap_type_generic_new(self):
+    @unittest.skipIf(
+        _testtypes is None,
+        'persistent.tests._testtypes is unavailable',
+    )
+    def test__p_invalidate_from_changed_w_slots_c_heap_type_generic_new(
+        self,
+    ):  # pragma: no cover
         # A consumer C-extension type whose tp_new is the shared
         # PyType_GenericNew default releases its slots, as when
         # 'Persistent' was a static type.
@@ -2256,9 +2260,13 @@ class CPersistentTests(unittest.TestCase, _Persistent_Base):
 
         self.assertEqual(state, {'myattr1': None, 'myattr2': None})
 
-    @unittest.skipIf(_testtypes is None,
-                     'persistent.tests._testtypes is unavailable')
-    def test__p_invalidate_from_changed_w_slots_c_heap_type_custom_new(self):
+    @unittest.skipIf(
+        _testtypes is None,
+        'persistent.tests._testtypes is unavailable',
+    )
+    def test__p_invalidate_from_changed_w_slots_c_heap_type_custom_new(
+        self,
+    ):  # pragma: no cover
         # A consumer C-extension type with its own tp_new is treated as
         # overriding __new__; its slots are kept.
         state = self._slot_state_after_invalidate(_testtypes.CustomNew)

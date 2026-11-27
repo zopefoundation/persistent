@@ -30,13 +30,13 @@ custom_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     return PyType_GenericNew(type, args, kwds);
 }
 
-static PyType_Slot generic_new_slots[] = {
-    {Py_tp_new,             (void *)PyType_GenericNew},
-    {0,                     NULL},
-};
+/* 'tp_new' is assigned at run time (in 'testtypes_exec') rather than via
+   a static initializer: MSVC binds imported functions referenced from
+   static data initializers differently than from code, so only the
+   run-time-loaded value is guaranteed to match the sentinel used by
+   'ghostify' in cPersistence.c. */
 
-static PyType_Slot custom_new_slots[] = {
-    {Py_tp_new,             (void *)custom_new},
+static PyType_Slot empty_slots[] = {
     {0,                     NULL},
 };
 
@@ -45,7 +45,7 @@ static PyType_Spec generic_new_spec = {
     0,                          /* basicsize: inherit from base */
     0,                          /* itemsize */
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
-    generic_new_slots,
+    empty_slots,
 };
 
 static PyType_Spec custom_new_spec = {
@@ -53,7 +53,7 @@ static PyType_Spec custom_new_spec = {
     0,                          /* basicsize: inherit from base */
     0,                          /* itemsize */
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
-    custom_new_slots,
+    empty_slots,
 };
 
 static int
@@ -77,6 +77,7 @@ testtypes_exec(PyObject *module)
     type = PyType_FromModuleAndSpec(module, &generic_new_spec, bases);
     if (type == NULL)
         goto error;
+    ((PyTypeObject *)type)->tp_new = PyType_GenericNew;
     if (PyModule_AddObject(module, "GenericNew", type) < 0) {
         Py_DECREF(type);
         goto error;
@@ -85,6 +86,7 @@ testtypes_exec(PyObject *module)
     type = PyType_FromModuleAndSpec(module, &custom_new_spec, bases);
     if (type == NULL)
         goto error;
+    ((PyTypeObject *)type)->tp_new = custom_new;
     if (PyModule_AddObject(module, "CustomNew", type) < 0) {
         Py_DECREF(type);
         goto error;
